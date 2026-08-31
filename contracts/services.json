@@ -6,5 +6,6 @@
   "audit": "https://raw.githubusercontent.com/lihongjie0209/audit-service/main/docs/swagger.json",
   "config": "https://raw.githubusercontent.com/lihongjie0209/config-service/main/docs/swagger.json",
   "notification": "https://raw.githubusercontent.com/lihongjie0209/notification-service/main/docs/swagger.json",
-  "file": "https://raw.githubusercontent.com/lihongjie0209/file-service/main/docs/swagger.json"
+  "file": "https://raw.githubusercontent.com/lihongjie0209/file-service/main/docs/swagger.json",
+  "scheduler": "https://raw.githubusercontent.com/lihongjie0209/scheduler-service/main/docs/swagger.json"
 }

@@ -29,7 +29,8 @@ const pageLoaders = {
   'config-center.entries': () => import('./config-center/pages/entries/index.vue'),
   'notification-center.templates': () => import('./notification-center/pages/templates/index.vue'),
   'notification-center.deliveries': () => import('./notification-center/pages/deliveries/index.vue'),
-  'file-center.files': () => import('./file-center/pages/files/index.vue')
+  'file-center.files': () => import('./file-center/pages/files/index.vue'),
+  'scheduler-center.jobs': () => import('./scheduler-center/pages/jobs/index.vue')
 } as const;
 
 export type ApplicationPageKey = keyof typeof pageLoaders;
@@ -61,6 +62,11 @@ export const applicationModules: readonly ApplicationModule[] = [
     code: 'file-center',
     name: '文件中心',
     pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('file-center.')))
+  },
+  {
+    code: 'scheduler-center',
+    name: '调度中心',
+    pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('scheduler-center.')))
   }
 ];
 

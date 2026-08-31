@@ -9,6 +9,7 @@ window.__PLATFORM_CONFIG__ = {
     audit: 'http://127.0.0.1:18084',
     config: 'http://127.0.0.1:18085',
     notification: 'http://127.0.0.1:18086',
-    file: 'http://127.0.0.1:18087'
+    file: 'http://127.0.0.1:18087',
+    scheduler: 'http://127.0.0.1:18088'
   }
 };

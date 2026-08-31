@@ -5,7 +5,7 @@ import { applicationModules, isApplicationPageKey, resolveApplicationPage } from
 test('application pages are registered under an application namespace', () => {
   assert.deepEqual(
     applicationModules.map(item => item.code),
-    ['platform-admin', 'audit-center', 'config-center', 'notification-center', 'file-center']
+    ['platform-admin', 'audit-center', 'config-center', 'notification-center', 'file-center', 'scheduler-center']
   );
   assert.equal(isApplicationPageKey('platform-admin.applications'), true);
   assert.equal(isApplicationPageKey('platform-admin.users'), true);
@@ -24,6 +24,7 @@ test('application pages are registered under an application namespace', () => {
   assert.equal(isApplicationPageKey('notification-center.templates'), true);
   assert.equal(isApplicationPageKey('notification-center.deliveries'), true);
   assert.equal(isApplicationPageKey('file-center.files'), true);
+  assert.equal(isApplicationPageKey('scheduler-center.jobs'), true);
   assert.equal(isApplicationPageKey('application-service.applications'), false);
 });
 
