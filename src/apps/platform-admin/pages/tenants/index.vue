@@ -94,7 +94,7 @@ function userLabel(user: UserIdentity) {
   return `${user.display_name || user.username} (${user.username})`;
 }
 async function loadOwners() {
-  const result = await listUsers('', 1, 100);
+  const result = await listUsers({ page: 1, pageSize: 100 });
   ownerOptions.value = result.items
     .filter(item => item.status === 'active')
     .map(item => ({ label: userLabel(item), value: item.id }));

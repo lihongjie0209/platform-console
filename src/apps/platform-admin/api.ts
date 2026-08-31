@@ -67,6 +67,17 @@ export interface UserIdentity extends Record<string, unknown> {
   version: number;
 }
 
+export interface UserForm extends Record<string, unknown> {
+  username: string;
+  display_name: string;
+  email: string;
+  phone: string;
+  password: string;
+  status: string;
+  reason: string;
+  version: number;
+}
+
 export interface TenantDirectoryItem extends Record<string, unknown> {
   id: string;
   code: string;
@@ -98,6 +109,13 @@ export interface ApplicationGrantForm {
 }
 
 export interface TenantDirectoryQuery {
+  page: number;
+  pageSize: number;
+  keyword?: string;
+  status?: string;
+}
+
+export interface UserQuery {
   page: number;
   pageSize: number;
   keyword?: string;
@@ -244,12 +262,38 @@ export function publishMenus(applicationID: string, applicationVersion: number, 
   );
 }
 
-export function listUsers(_tenantID: string, page: number, pageSize: number) {
+export function listUsers(query: UserQuery) {
   return unwrap(
     identityRequest<ResourcePage<UserIdentity>>({
       url: '/api/v1/identities/list',
       method: 'post',
-      data: { page, page_size: pageSize }
+      data: { page: query.page, page_size: query.pageSize, keyword: query.keyword || '', status: query.status || '' }
+    })
+  );
+}
+
+export async function createUser(form: UserForm) {
+  await unwrap<UserIdentity>(
+    identityRequest({
+      url: '/api/v1/identities/register',
+      method: 'post',
+      data: {
+        username: form.username,
+        display_name: form.display_name,
+        email: form.email,
+        phone: form.phone,
+        password: form.password
+      }
+    })
+  );
+}
+
+export async function updateUserStatus(id: string, form: UserForm) {
+  await unwrap<UserIdentity>(
+    identityRequest({
+      url: '/api/v1/identities/update-status',
+      method: 'post',
+      data: { id, status: form.status, reason: form.reason, version: form.version }
     })
   );
 }
