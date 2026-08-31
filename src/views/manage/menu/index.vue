@@ -8,11 +8,10 @@ import { fetchGetAllPages, fetchGetMenuList } from '@/service/api';
 import { defaultTransform, useTableOperate, useUIPaginatedTable } from '@/hooks/common/table';
 import { $t } from '@/locales';
 import SvgIcon from '@/components/custom/svg-icon.vue';
+import { BizTreeCrudPage } from '@/components/business/crud';
 import MenuOperateModal, { type OperateType } from './modules/menu-operate-modal.vue';
 
 const { bool: visible, setTrue: openModal } = useBoolean();
-
-const wrapperRef = ref<HTMLElement | null>(null);
 
 const { columns, columnChecks, data, loading, pagination, getData, getDataByPage } = useUIPaginatedTable({
   api: () => fetchGetMenuList(),
@@ -147,6 +146,10 @@ async function handleBatchDelete() {
   onBatchDeleted();
 }
 
+function handleSelectionChange(rows: Api.SystemManage.Menu[]) {
+  checkedRowKeys.value = rows.map(row => String(row.id));
+}
+
 function handleDelete(id: number) {
   // eslint-disable-next-line no-console
   console.log(id);
@@ -189,58 +192,31 @@ init();
 </script>
 
 <template>
-  <div ref="wrapperRef" class="flex-col-stretch gap-16px overflow-hidden lt-sm:overflow-auto">
-    <ElCard class="card-wrapper sm:flex-1-hidden">
-      <template #header>
-        <div class="flex items-center justify-between">
-          <p>{{ $t('page.manage.menu.title') }}</p>
-          <TableHeaderOperation
-            v-model:columns="columnChecks"
-            :disabled-delete="checkedRowKeys.length === 0"
-            :loading="loading"
-            @add="handleAdd"
-            @delete="handleBatchDelete"
-            @refresh="getData"
-          />
-        </div>
-      </template>
-      <div class="h-[calc(100%-52px)]">
-        <ElTable
-          v-loading="loading"
-          height="100%"
-          border
-          class="sm:h-full"
-          :data="data"
-          row-key="id"
-          @selection-change="checkedRowKeys = $event"
-        >
-          <ElTableColumn v-for="col in columns" :key="col.prop" v-bind="col" />
-        </ElTable>
-        <div class="mt-20px flex justify-end">
-          <ElPagination
-            v-if="pagination.total"
-            layout="total,prev,pager,next,sizes"
-            v-bind="pagination"
-            @current-change="pagination['current-change']"
-            @size-change="pagination['size-change']"
-          />
-        </div>
-      </div>
-      <MenuOperateModal
-        v-model:visible="visible"
-        :operate-type="operateType"
-        :row-data="editingData"
-        :all-pages="allPages"
-        @submitted="getDataByPage"
-      />
-    </ElCard>
-  </div>
+  <BizTreeCrudPage
+    v-model:column-checks="columnChecks"
+    :title="$t('page.manage.menu.title')"
+    :data="data"
+    :columns="columns"
+    :loading="loading"
+    row-key="id"
+    :total="pagination.total"
+    :current-page="pagination.currentPage"
+    :page-size="pagination.pageSize"
+    :page-sizes="pagination.pageSizes"
+    :can-delete="checkedRowKeys.length > 0"
+    @add="handleAdd"
+    @delete="handleBatchDelete"
+    @refresh="getData"
+    @selection-change="handleSelectionChange"
+    @page-change="page => pagination['current-change']?.(page)"
+    @page-size-change="size => pagination['size-change']?.(size)"
+  >
+    <MenuOperateModal
+      v-model:visible="visible"
+      :operate-type="operateType"
+      :row-data="editingData"
+      :all-pages="allPages"
+      @submitted="getDataByPage"
+    />
+  </BizTreeCrudPage>
 </template>
-
-<style lang="scss" scoped>
-:deep(.el-card) {
-  .ht50 {
-    height: calc(100% - 50px);
-  }
-}
-</style>

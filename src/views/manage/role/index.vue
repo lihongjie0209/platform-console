@@ -1,175 +1,142 @@
-<script setup lang="tsx">
-import { ref } from 'vue';
-import { enableStatusRecord } from '@/constants/business';
+<script setup lang="ts">
+import { computed } from 'vue';
+import { useBoolean } from '@sa/hooks';
+import { enableStatusOptions } from '@/constants/business';
 import { fetchGetRoleList } from '@/service/api';
-import { defaultTransform, useTableOperate, useUIPaginatedTable } from '@/hooks/common/table';
+import { useFormRules } from '@/hooks/common/form';
+import type { BizCrudAdapter, BizCrudConfig } from '@/components/business/crud';
+import { BizDictTag } from '@/components/business/common';
+import { BizCrudPage, BizRowActions } from '@/components/business/crud';
 import { $t } from '@/locales';
-import RoleOperateDrawer from './modules/role-operate-drawer.vue';
-import RoleSearch from './modules/role-search.vue';
+import ButtonAuthModal from './modules/button-auth-modal.vue';
+import MenuAuthModal from './modules/menu-auth-modal.vue';
 
-const searchParams = ref(getInitSearchParams());
+defineOptions({ name: 'RoleManage' });
 
-function getInitSearchParams(): Api.SystemManage.RoleSearchParams {
-  return {
-    current: 1,
-    size: 10,
-    status: undefined,
-    roleName: undefined,
-    roleCode: undefined
-  };
+type Row = Api.SystemManage.Role;
+type Query = Api.SystemManage.RoleSearchParams;
+type Form = Pick<Row, 'roleName' | 'roleCode' | 'roleDesc' | 'status'>;
+
+const { defaultRequiredRule } = useFormRules();
+const { bool: menuAuthVisible, setTrue: openMenuAuthModal } = useBoolean();
+const { bool: buttonAuthVisible, setTrue: openButtonAuthModal } = useBoolean();
+
+function createQuery(): Query {
+  return { current: 1, size: 10, status: undefined, roleName: undefined, roleCode: undefined };
 }
 
-const { columns, columnChecks, data, loading, getData, getDataByPage, mobilePagination } = useUIPaginatedTable({
-  paginationProps: {
-    currentPage: searchParams.value.current,
-    pageSize: searchParams.value.size
-  },
-  api: () => fetchGetRoleList(searchParams.value),
-  transform: response => defaultTransform(response),
-  onPaginationParamsChange: params => {
-    searchParams.value.current = params.currentPage;
-    searchParams.value.size = params.pageSize;
-  },
+function createForm(): Form {
+  return { roleName: '', roleCode: '', roleDesc: '', status: undefined };
+}
+
+const config: BizCrudConfig<Row, Query, Form, number> = {
+  title: () => $t('page.manage.role.title'),
+  rowKey: 'id',
+  createQuery,
+  searchFields: [
+    {
+      key: 'roleName',
+      label: () => $t('page.manage.role.roleName'),
+      placeholder: () => $t('page.manage.role.form.roleName'),
+      grid: { xs: 24, sm: 12, md: 8, lg: 6 }
+    },
+    {
+      key: 'roleCode',
+      label: () => $t('page.manage.role.roleCode'),
+      placeholder: () => $t('page.manage.role.form.roleCode'),
+      grid: { xs: 24, sm: 12, md: 8, lg: 6 }
+    },
+    {
+      key: 'status',
+      label: () => $t('page.manage.role.roleStatus'),
+      type: 'select',
+      placeholder: () => $t('page.manage.role.form.roleStatus'),
+      options: computed(() => enableStatusOptions.map(item => ({ label: $t(item.label), value: item.value }))),
+      props: { clearable: true },
+      grid: { xs: 24, sm: 12, md: 8, lg: 6 }
+    }
+  ],
   columns: () => [
     { prop: 'selection', type: 'selection', width: 48 },
     { prop: 'index', type: 'index', label: $t('common.index'), width: 64 },
     { prop: 'roleName', label: $t('page.manage.role.roleName'), minWidth: 120 },
     { prop: 'roleCode', label: $t('page.manage.role.roleCode'), minWidth: 120 },
-    { prop: 'roleDesc', label: $t('page.manage.role.roleDesc'), minWidth: 120 },
-    {
-      prop: 'status',
-      label: $t('page.manage.role.roleStatus'),
-      width: 100,
-      formatter: row => {
-        if (row.status === undefined) {
-          return '';
-        }
-
-        const tagMap: Record<Api.Common.EnableStatus, UI.ThemeColor> = {
-          1: 'success',
-          2: 'warning'
-        };
-
-        const label = $t(enableStatusRecord[row.status]);
-
-        return <ElTag type={tagMap[row.status]}>{label}</ElTag>;
+    { prop: 'roleDesc', label: $t('page.manage.role.roleDesc'), minWidth: 160 },
+    { prop: 'status', label: $t('page.manage.role.roleStatus'), width: 100, align: 'center', slot: 'status' },
+    { prop: 'operate', label: $t('common.operate'), width: 140, align: 'center', slot: 'actions' }
+  ],
+  form: {
+    mode: 'dialog',
+    width: 560,
+    createTitle: () => $t('page.manage.role.addRole'),
+    editTitle: () => $t('page.manage.role.editRole'),
+    createModel: createForm,
+    fields: [
+      {
+        key: 'roleName',
+        label: () => $t('page.manage.role.roleName'),
+        placeholder: () => $t('page.manage.role.form.roleName'),
+        rules: defaultRequiredRule
+      },
+      {
+        key: 'roleCode',
+        label: () => $t('page.manage.role.roleCode'),
+        placeholder: () => $t('page.manage.role.form.roleCode'),
+        rules: defaultRequiredRule
+      },
+      {
+        key: 'status',
+        label: () => $t('page.manage.role.roleStatus'),
+        type: 'radio',
+        rules: defaultRequiredRule,
+        options: computed(() => enableStatusOptions.map(item => ({ label: $t(item.label), value: item.value })))
+      },
+      {
+        key: 'roleDesc',
+        label: () => $t('page.manage.role.roleDesc'),
+        type: 'textarea',
+        placeholder: () => $t('page.manage.role.form.roleDesc'),
+        props: { rows: 3 }
       }
-    },
-    {
-      prop: 'operate',
-      label: $t('common.operate'),
-      width: 130,
-      formatter: row => (
-        <div class="flex-center">
-          <ElButton type="primary" plain size="small" onClick={() => edit(row.id)}>
-            {$t('common.edit')}
-          </ElButton>
-          <ElPopconfirm title={$t('common.confirmDelete')} onConfirm={() => handleDelete(row.id)}>
-            {{
-              reference: () => (
-                <ElButton type="danger" plain size="small">
-                  {$t('common.delete')}
-                </ElButton>
-              )
-            }}
-          </ElPopconfirm>
-        </div>
-      )
-    }
-  ]
-});
+    ]
+  }
+};
 
-const {
-  drawerVisible,
-  operateType,
-  editingData,
-  handleAdd,
-  handleEdit,
-  checkedRowKeys,
-  onBatchDeleted,
-  onDeleted
-  // closeDrawer
-} = useTableOperate(data, 'id', getData);
+const adapter: BizCrudAdapter<Row, Query, Form, number> = {
+  async list(query) {
+    const { data, error } = await fetchGetRoleList(query);
+    if (error) throw error;
+    return { items: data.records, total: data.total, page: data.current, pageSize: data.size };
+  },
+  async create() {},
+  async update() {},
+  async remove() {}
+};
 
-async function handleBatchDelete() {
-  // eslint-disable-next-line no-console
-  console.log(checkedRowKeys.value);
-  // request
-
-  onBatchDeleted();
-}
-
-function handleDelete(id: number) {
-  // request
-
-  // eslint-disable-next-line no-console
-  console.log(id);
-
-  onDeleted();
-}
-
-function resetSearchParams() {
-  searchParams.value = getInitSearchParams();
-}
-
-function edit(id: number) {
-  handleEdit(id);
-}
+const statusDict = computed(() =>
+  enableStatusOptions.map(item => ({
+    label: $t(item.label),
+    value: item.value,
+    tagType: item.value === '1' ? ('success' as const) : ('warning' as const)
+  }))
+);
 </script>
 
 <template>
-  <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden lt-sm:overflow-auto">
-    <RoleSearch v-model:model="searchParams" @reset="resetSearchParams" @search="getDataByPage" />
-    <ElCard class="card-wrapper sm:flex-1-hidden">
-      <template #header>
-        <div class="flex items-center justify-between">
-          <p>{{ $t('page.manage.role.title') }}</p>
-          <TableHeaderOperation
-            v-model:columns="columnChecks"
-            :disabled-delete="checkedRowKeys.length === 0"
-            :loading="loading"
-            @add="handleAdd"
-            @delete="handleBatchDelete"
-            @refresh="getData"
-          />
-        </div>
-      </template>
-      <div class="h-[calc(100%-52px)]">
-        <ElTable
-          v-loading="loading"
-          height="100%"
-          border
-          class="sm:h-full"
-          :data="data"
-          row-key="id"
-          @selection-change="checkedRowKeys = $event"
-        >
-          <ElTableColumn v-for="col in columns" :key="col.prop" v-bind="col" />
-        </ElTable>
-        <div class="mt-20px flex justify-end">
-          <ElPagination
-            v-if="mobilePagination.total"
-            layout="total,prev,pager,next,sizes"
-            v-bind="mobilePagination"
-            @current-change="mobilePagination['current-change']"
-            @size-change="mobilePagination['size-change']"
-          />
-        </div>
-      </div>
-      <RoleOperateDrawer
-        v-model:visible="drawerVisible"
-        :operate-type="operateType"
-        :row-data="editingData"
-        @submitted="getDataByPage"
-      />
-    </ElCard>
-  </div>
+  <BizCrudPage :config="config" :adapter="adapter">
+    <template #cell-status="{ row }">
+      <BizDictTag :value="row.status" :options="statusDict" />
+    </template>
+    <template #cell-actions="{ row, edit, remove, canEdit, canDelete }">
+      <BizRowActions :can-edit="canEdit" :can-delete="canDelete" @edit="edit(row)" @delete="remove(row)" />
+    </template>
+    <template #form-extra="{ operateType, editingKey }">
+      <ElSpace v-if="operateType === 'edit'" class="mt-4px">
+        <ElButton @click="openMenuAuthModal">{{ $t('page.manage.role.menuAuth') }}</ElButton>
+        <ElButton @click="openButtonAuthModal">{{ $t('page.manage.role.buttonAuth') }}</ElButton>
+      </ElSpace>
+      <MenuAuthModal v-model:visible="menuAuthVisible" :role-id="editingKey || -1" />
+      <ButtonAuthModal v-model:visible="buttonAuthVisible" :role-id="editingKey || -1" />
+    </template>
+  </BizCrudPage>
 </template>
-
-<style lang="scss" scoped>
-:deep(.el-card) {
-  .ht50 {
-    height: calc(100% - 50px);
-  }
-}
-</style>

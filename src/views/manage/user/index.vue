@@ -1,17 +1,57 @@
-<script setup lang="tsx">
-import { ref } from 'vue';
-import { enableStatusRecord, userGenderRecord } from '@/constants/business';
-import { fetchGetUserList } from '@/service/api';
-import { defaultTransform, useTableOperate, useUIPaginatedTable } from '@/hooks/common/table';
+<script setup lang="ts">
+import { computed, ref } from 'vue';
+import { enableStatusOptions, userGenderOptions } from '@/constants/business';
+import { fetchGetAllRoles, fetchGetUserList } from '@/service/api';
+import { useFormRules } from '@/hooks/common/form';
+import type { BizCrudAdapter, BizCrudConfig } from '@/components/business/crud';
+import { BizDictTag, BizRemoteSelect } from '@/components/business/common';
+import { BizCrudPage, BizRowActions } from '@/components/business/crud';
 import { $t } from '@/locales';
-import UserOperateDrawer from './modules/user-operate-drawer.vue';
-import UserSearch from './modules/user-search.vue';
 
 defineOptions({ name: 'UserManage' });
 
-const searchParams = ref(getInitSearchParams());
+type Row = Api.SystemManage.User;
+type Query = Api.SystemManage.UserSearchParams;
+type Form = Pick<Row, 'userName' | 'userGender' | 'nickName' | 'userPhone' | 'userEmail' | 'userRoles' | 'status'>;
 
-function getInitSearchParams(): Api.SystemManage.UserSearchParams {
+const { defaultRequiredRule, patternRules } = useFormRules();
+const roleOptions = ref<CommonType.Option<string>[]>([]);
+
+async function loadRoleOptions() {
+  const { data, error } = await fetchGetAllRoles();
+  if (!error) roleOptions.value = data.map(item => ({ label: item.roleName, value: item.roleCode }));
+}
+
+loadRoleOptions();
+
+const genderDict = computed(() =>
+  userGenderOptions.map(item => ({
+    label: $t(item.label),
+    value: item.value,
+    tagType: item.value === '1' ? ('primary' as const) : ('danger' as const)
+  }))
+);
+const statusDict = computed(() =>
+  enableStatusOptions.map(item => ({
+    label: $t(item.label),
+    value: item.value,
+    tagType: item.value === '1' ? ('success' as const) : ('warning' as const)
+  }))
+);
+
+async function loadRoles(keyword: string, page: number, pageSize: number) {
+  if (!roleOptions.value.length) await loadRoleOptions();
+  const matched = roleOptions.value.filter(item => item.label.toLowerCase().includes(keyword.toLowerCase()));
+  const start = (page - 1) * pageSize;
+  return { items: matched.slice(start, start + pageSize), total: matched.length };
+}
+
+async function resolveRoles(values: string[]) {
+  if (!roleOptions.value.length) await loadRoleOptions();
+  return values.map(value => roleOptions.value.find(item => item.value === value) || { label: value, value });
+}
+
+function createQuery(): Query {
   return {
     current: 1,
     size: 30,
@@ -24,179 +64,164 @@ function getInitSearchParams(): Api.SystemManage.UserSearchParams {
   };
 }
 
-const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagination } = useUIPaginatedTable({
-  paginationProps: {
-    currentPage: searchParams.value.current,
-    pageSize: searchParams.value.size
-  },
-  api: () => fetchGetUserList(searchParams.value),
-  transform: response => {
-    return defaultTransform(response);
-  },
-  onPaginationParamsChange: params => {
-    searchParams.value.current = params.currentPage;
-    searchParams.value.size = params.pageSize;
-  },
+function createForm(): Form {
+  return {
+    userName: '',
+    userGender: undefined,
+    nickName: '',
+    userPhone: '',
+    userEmail: '',
+    userRoles: [],
+    status: undefined
+  };
+}
+
+const config: BizCrudConfig<Row, Query, Form, number> = {
+  title: () => $t('page.manage.user.title'),
+  rowKey: 'id',
+  createQuery,
+  showSelection: true,
+  searchFields: [
+    {
+      key: 'userName',
+      label: () => $t('page.manage.user.userName'),
+      placeholder: () => $t('page.manage.user.form.userName'),
+      grid: { xs: 24, sm: 12, md: 8, lg: 6 }
+    },
+    {
+      key: 'userGender',
+      label: () => $t('page.manage.user.userGender'),
+      type: 'select',
+      placeholder: () => $t('page.manage.user.form.userGender'),
+      options: computed(() => userGenderOptions.map(item => ({ label: $t(item.label), value: item.value }))),
+      props: { clearable: true },
+      grid: { xs: 24, sm: 12, md: 8, lg: 6 }
+    },
+    {
+      key: 'nickName',
+      label: () => $t('page.manage.user.nickName'),
+      placeholder: () => $t('page.manage.user.form.nickName'),
+      grid: { xs: 24, sm: 12, md: 8, lg: 6 }
+    },
+    {
+      key: 'userPhone',
+      label: () => $t('page.manage.user.userPhone'),
+      placeholder: () => $t('page.manage.user.form.userPhone'),
+      rules: patternRules.phone,
+      grid: { xs: 24, sm: 12, md: 8, lg: 6 }
+    },
+    {
+      key: 'userEmail',
+      label: () => $t('page.manage.user.userEmail'),
+      placeholder: () => $t('page.manage.user.form.userEmail'),
+      rules: patternRules.email,
+      grid: { xs: 24, sm: 12, md: 8, lg: 6 }
+    },
+    {
+      key: 'status',
+      label: () => $t('page.manage.user.userStatus'),
+      type: 'select',
+      placeholder: () => $t('page.manage.user.form.userStatus'),
+      options: computed(() => enableStatusOptions.map(item => ({ label: $t(item.label), value: item.value }))),
+      props: { clearable: true },
+      grid: { xs: 24, sm: 12, md: 8, lg: 6 }
+    }
+  ],
   columns: () => [
     { prop: 'selection', type: 'selection', width: 48 },
     { prop: 'index', type: 'index', label: $t('common.index'), width: 64 },
-    { prop: 'userName', label: $t('page.manage.user.userName'), minWidth: 100 },
-    {
-      prop: 'userGender',
-      label: $t('page.manage.user.userGender'),
-      width: 100,
-      formatter: row => {
-        if (row.userGender === undefined) {
-          return '';
-        }
-
-        const tagMap: Record<Api.SystemManage.UserGender, UI.ThemeColor> = {
-          1: 'primary',
-          2: 'danger'
-        };
-
-        const label = $t(userGenderRecord[row.userGender]);
-
-        return <ElTag type={tagMap[row.userGender]}>{label}</ElTag>;
-      }
-    },
-    { prop: 'nickName', label: $t('page.manage.user.nickName'), minWidth: 100 },
-    { prop: 'userPhone', label: $t('page.manage.user.userPhone'), width: 120 },
+    { prop: 'userName', label: $t('page.manage.user.userName'), minWidth: 110 },
+    { prop: 'userGender', label: $t('page.manage.user.userGender'), width: 100, slot: 'gender' },
+    { prop: 'nickName', label: $t('page.manage.user.nickName'), minWidth: 110 },
+    { prop: 'userPhone', label: $t('page.manage.user.userPhone'), width: 130 },
     { prop: 'userEmail', label: $t('page.manage.user.userEmail'), minWidth: 200 },
-    {
-      prop: 'status',
-      label: $t('page.manage.user.userStatus'),
-      align: 'center',
-      formatter: row => {
-        if (row.status === undefined) {
-          return '';
-        }
-
-        const tagMap: Record<Api.Common.EnableStatus, UI.ThemeColor> = {
-          1: 'success',
-          2: 'warning'
-        };
-
-        const label = $t(enableStatusRecord[row.status]);
-
-        return <ElTag type={tagMap[row.status]}>{label}</ElTag>;
+    { prop: 'status', label: $t('page.manage.user.userStatus'), width: 100, align: 'center', slot: 'status' },
+    { prop: 'operate', label: $t('common.operate'), width: 140, align: 'center', slot: 'actions' }
+  ],
+  form: {
+    mode: 'drawer',
+    width: 420,
+    createTitle: () => $t('page.manage.user.addUser'),
+    editTitle: () => $t('page.manage.user.editUser'),
+    createModel: createForm,
+    fields: [
+      {
+        key: 'userName',
+        label: () => $t('page.manage.user.userName'),
+        placeholder: () => $t('page.manage.user.form.userName'),
+        rules: defaultRequiredRule
+      },
+      {
+        key: 'userGender',
+        label: () => $t('page.manage.user.userGender'),
+        type: 'radio',
+        options: computed(() => userGenderOptions.map(item => ({ label: $t(item.label), value: item.value })))
+      },
+      {
+        key: 'nickName',
+        label: () => $t('page.manage.user.nickName'),
+        placeholder: () => $t('page.manage.user.form.nickName')
+      },
+      {
+        key: 'userPhone',
+        label: () => $t('page.manage.user.userPhone'),
+        placeholder: () => $t('page.manage.user.form.userPhone'),
+        rules: patternRules.phone
+      },
+      {
+        key: 'userEmail',
+        label: () => $t('page.manage.user.userEmail'),
+        placeholder: () => $t('page.manage.user.form.userEmail'),
+        rules: patternRules.email
+      },
+      {
+        key: 'status',
+        label: () => $t('page.manage.user.userStatus'),
+        type: 'radio',
+        rules: defaultRequiredRule,
+        options: computed(() => enableStatusOptions.map(item => ({ label: $t(item.label), value: item.value })))
+      },
+      {
+        key: 'userRoles',
+        label: () => $t('page.manage.user.userRole'),
+        type: 'slot',
+        slot: 'roles'
       }
-    },
-    {
-      prop: 'operate',
-      label: $t('common.operate'),
-      align: 'center',
-      width: 130,
-      formatter: row => (
-        <div class="flex-center">
-          <ElButton type="primary" plain size="small" onClick={() => edit(row.id)}>
-            {$t('common.edit')}
-          </ElButton>
-          <ElPopconfirm title={$t('common.confirmDelete')} onConfirm={() => handleDelete(row.id)}>
-            {{
-              reference: () => (
-                <ElButton type="danger" plain size="small">
-                  {$t('common.delete')}
-                </ElButton>
-              )
-            }}
-          </ElPopconfirm>
-        </div>
-      )
-    }
-  ]
-});
+    ]
+  }
+};
 
-const {
-  drawerVisible,
-  operateType,
-  editingData,
-  handleAdd,
-  handleEdit,
-  checkedRowKeys,
-  onBatchDeleted,
-  onDeleted
-  // closeDrawer
-} = useTableOperate(data, 'id', getData);
-
-async function handleBatchDelete() {
-  // eslint-disable-next-line no-console
-  console.log(checkedRowKeys.value);
-  // request
-
-  onBatchDeleted();
-}
-
-function handleDelete(id: number) {
-  // eslint-disable-next-line no-console
-  console.log(id);
-  // request
-
-  onDeleted();
-}
-
-function resetSearchParams() {
-  searchParams.value = getInitSearchParams();
-}
-
-function edit(id: number) {
-  handleEdit(id);
-}
+const adapter: BizCrudAdapter<Row, Query, Form, number> = {
+  async list(query) {
+    const { data, error } = await fetchGetUserList(query);
+    if (error) throw error;
+    return { items: data.records, total: data.total, page: data.current, pageSize: data.size };
+  },
+  async create() {},
+  async update() {},
+  async remove() {}
+};
 </script>
 
 <template>
-  <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden lt-sm:overflow-auto">
-    <UserSearch v-model:model="searchParams" @reset="resetSearchParams" @search="getDataByPage" />
-    <ElCard class="card-wrapper sm:flex-1-hidden">
-      <template #header>
-        <div class="flex items-center justify-between">
-          <p>{{ $t('page.manage.user.title') }}</p>
-          <TableHeaderOperation
-            v-model:columns="columnChecks"
-            :disabled-delete="checkedRowKeys.length === 0"
-            :loading="loading"
-            @add="handleAdd"
-            @delete="handleBatchDelete"
-            @refresh="getData"
-          />
-        </div>
-      </template>
-      <div class="h-[calc(100%-52px)]">
-        <ElTable
-          v-loading="loading"
-          height="100%"
-          border
-          class="sm:h-full"
-          :data="data"
-          row-key="id"
-          @selection-change="checkedRowKeys = $event"
-        >
-          <ElTableColumn v-for="col in columns" :key="col.prop" v-bind="col" />
-        </ElTable>
-      </div>
-      <div class="mt-20px flex justify-end">
-        <ElPagination
-          v-if="mobilePagination.total"
-          layout="total,prev,pager,next,sizes"
-          v-bind="mobilePagination"
-          @current-change="mobilePagination['current-change']"
-          @size-change="mobilePagination['size-change']"
-        />
-      </div>
-      <UserOperateDrawer
-        v-model:visible="drawerVisible"
-        :operate-type="operateType"
-        :row-data="editingData"
-        @submitted="getDataByPage"
+  <BizCrudPage :config="config" :adapter="adapter">
+    <template #cell-gender="{ row }">
+      <BizDictTag :value="row.userGender" :options="genderDict" />
+    </template>
+    <template #cell-status="{ row }">
+      <BizDictTag :value="row.status" :options="statusDict" />
+    </template>
+    <template #field-roles="{ model }">
+      <BizRemoteSelect
+        v-model="model.userRoles"
+        multiple
+        :loader="loadRoles"
+        :resolver="resolveRoles"
+        :placeholder="$t('page.manage.user.form.userRole')"
       />
-    </ElCard>
-  </div>
+    </template>
+    <template #cell-actions="{ row, edit, remove, canEdit, canDelete }">
+      <BizRowActions :can-edit="canEdit" :can-delete="canDelete" @edit="edit(row)" @delete="remove(row)" />
+    </template>
+  </BizCrudPage>
 </template>
-
-<style lang="scss" scoped>
-:deep(.el-card) {
-  .ht50 {
-    height: calc(100% - 50px);
-  }
-}
-</style>
