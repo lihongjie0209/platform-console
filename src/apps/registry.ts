@@ -9,6 +9,7 @@ export interface ApplicationModule {
 
 const pageLoaders = {
   'platform-admin.applications': () => import('./platform-admin/pages/applications/index.vue'),
+  'platform-admin.menus': () => import('./platform-admin/pages/menus/index.vue'),
   'platform-admin.users': () => import('./platform-admin/pages/users/index.vue'),
   'platform-admin.roles': () => import('./platform-admin/pages/roles/index.vue'),
   'platform-admin.permissions': () => import('./platform-admin/pages/permissions/index.vue'),
@@ -16,6 +17,8 @@ const pageLoaders = {
 } as const;
 
 export type ApplicationPageKey = keyof typeof pageLoaders;
+
+export const applicationPageOptions = Object.freeze(Object.keys(pageLoaders).map(value => ({ value, label: value })));
 
 export const applicationModules: readonly ApplicationModule[] = [
   {

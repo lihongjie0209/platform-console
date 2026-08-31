@@ -84,7 +84,7 @@ function childrenByParent(menus: ApplicationMenu[], parentID: string) {
 export function navigationToRoutes(navigation: PublishedNavigation): ElegantConstRoute[] {
   const { application } = navigation;
   const menus = navigation.menus
-    .filter(menu => menu.status === 'active' && menu.type !== 'button')
+    .filter(menu => menu.status === 'active' && menu.type !== 'action' && menu.type !== 'button')
     .sort((left, right) => left.sort_order - right.sort_order);
   const roots = menus.filter(menu => !menu.parent_id || !menus.some(candidate => candidate.id === menu.parent_id));
 

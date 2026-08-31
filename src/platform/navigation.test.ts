@@ -40,6 +40,57 @@ test('navigationToRoutes scopes routes and never evaluates backend component nam
   assert.equal(route.name, 'platform_identity-service_accounts');
 });
 
+test('navigationToRoutes excludes action permission nodes', () => {
+  const navigation = {
+    application: {
+      id: 'app-1',
+      code: 'platform-admin',
+      name: '平台管理',
+      description: '',
+      icon: '',
+      default_route: '',
+      status: 'active'
+    },
+    menus: [] as Array<{
+      id: string;
+      application_id: string;
+      parent_id: string;
+      code: string;
+      type: string;
+      name: string;
+      i18n_key: string;
+      route: string;
+      component: string;
+      icon: string;
+      external_url: string;
+      permission_code: string;
+      sort_order: number;
+      visible: boolean;
+      status: string;
+    }>
+  };
+  navigation.menus.push({
+    id: 'action-1',
+    application_id: navigation.application.id,
+    parent_id: '',
+    code: 'users.create',
+    type: 'action',
+    name: '创建用户',
+    i18n_key: '',
+    route: '',
+    component: '',
+    icon: '',
+    external_url: '',
+    permission_code: 'identity.users.create',
+    sort_order: 99,
+    visible: false,
+    status: 'active'
+  });
+
+  const routes = navigationToRoutes(navigation);
+  assert.equal(JSON.stringify(routes).includes('users.create'), false);
+});
+
 test('applicationEntryPath uses a valid configured default and falls back to the first page', () => {
   const navigation = {
     application: {

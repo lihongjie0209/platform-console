@@ -1,8 +1,11 @@
 import type { components as ApplicationContract } from '@/service/contracts/generated/application';
 import type { components as TenantContract } from '@/service/contracts/generated/tenant';
 import { platformRequest } from '@/service/request';
+import { parseJSONObject } from './metadata';
 
 export type Application = ApplicationContract['schemas']['application.Application'] & Record<string, unknown>;
+export type ApplicationMenu = ApplicationContract['schemas']['application.Menu'] & Record<string, unknown>;
+export type MenuRelease = ApplicationContract['schemas']['application.MenuRelease'] & Record<string, unknown>;
 export type Group = TenantContract['schemas']['tenant.Group'] & Record<string, unknown>;
 
 export interface Role extends Record<string, unknown> {
@@ -43,6 +46,18 @@ export interface ResourcePage<T> {
   page_size: number;
 }
 
+export interface ApplicationForm extends Record<string, unknown> {
+  code: string;
+  name: string;
+  description: string;
+  icon: string;
+  default_route: string;
+  sort_order: number;
+  status: string;
+  metadata_json: string;
+  version: number;
+}
+
 const applicationRequest = platformRequest('application');
 const authorizationRequest = platformRequest('authorization');
 const tenantRequest = platformRequest('tenant');
@@ -55,12 +70,94 @@ async function unwrap<T>(request: PromiseLike<{ data: T | null; error: unknown }
   return data;
 }
 
-export function listApplications(page: number, pageSize: number) {
+export function listApplications(page: number, pageSize: number, status = '') {
   return unwrap(
     applicationRequest<ResourcePage<Application>>({
       url: '/api/v1/applications/list',
       method: 'post',
-      data: { page, page_size: pageSize }
+      data: { page, page_size: pageSize, status }
+    })
+  );
+}
+
+export function getApplication(id: string) {
+  return unwrap(applicationRequest<Application>({ url: '/api/v1/applications/get', method: 'post', data: { id } }));
+}
+
+export async function createApplication(form: ApplicationForm) {
+  await unwrap(
+    applicationRequest<Application>({
+      url: '/api/v1/applications/create',
+      method: 'post',
+      data: {
+        code: form.code,
+        name: form.name,
+        description: form.description,
+        icon: form.icon,
+        default_route: form.default_route,
+        sort_order: form.sort_order,
+        metadata_json: parseJSONObject(form.metadata_json)
+      }
+    })
+  );
+}
+
+export async function updateApplication(id: string, form: ApplicationForm) {
+  await unwrap(
+    applicationRequest<Application>({
+      url: '/api/v1/applications/update',
+      method: 'post',
+      data: {
+        id,
+        name: form.name,
+        description: form.description,
+        icon: form.icon,
+        default_route: form.default_route,
+        sort_order: form.sort_order,
+        status: form.status,
+        metadata_json: parseJSONObject(form.metadata_json),
+        version: form.version
+      }
+    })
+  );
+}
+
+export function listMenuDraft(applicationID: string) {
+  return unwrap(
+    applicationRequest<ApplicationMenu[]>({
+      url: '/api/v1/applications/menus/draft/list',
+      method: 'post',
+      data: { application_id: applicationID }
+    })
+  );
+}
+
+export function upsertMenu(menu: ApplicationMenu, expectedVersion: number) {
+  return unwrap(
+    applicationRequest<ApplicationMenu>({
+      url: '/api/v1/applications/menus/upsert',
+      method: 'post',
+      data: { menu, expected_version: expectedVersion }
+    })
+  );
+}
+
+export async function deleteMenu(id: string, version: number) {
+  await unwrap(
+    applicationRequest<Record<string, never>>({
+      url: '/api/v1/applications/menus/delete',
+      method: 'post',
+      data: { id, version }
+    })
+  );
+}
+
+export function publishMenus(applicationID: string, applicationVersion: number, comment: string) {
+  return unwrap<{ release: MenuRelease; menus: ApplicationMenu[] }>(
+    applicationRequest({
+      url: '/api/v1/applications/menus/publish',
+      method: 'post',
+      data: { application_id: applicationID, application_version: applicationVersion, comment }
     })
   );
 }
