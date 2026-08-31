@@ -14,6 +14,7 @@ const pageLoaders = {
   'platform-admin.tenants': () => import('./platform-admin/pages/tenants/index.vue'),
   'platform-admin.organization-units': () => import('./platform-admin/pages/organization-units/index.vue'),
   'platform-admin.memberships': () => import('./platform-admin/pages/memberships/index.vue'),
+  'platform-admin.invitations': () => import('./platform-admin/pages/invitations/index.vue'),
   'platform-admin.users': () => import('./platform-admin/pages/users/index.vue'),
   'platform-admin.roles': () => import('./platform-admin/pages/roles/index.vue'),
   'platform-admin.permissions': () => import('./platform-admin/pages/permissions/index.vue'),

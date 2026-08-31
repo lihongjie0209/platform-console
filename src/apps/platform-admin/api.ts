@@ -10,6 +10,8 @@ export type ApplicationGrant = ApplicationContract['schemas']['application.Grant
 export type Group = TenantContract['schemas']['tenant.Group'] & Record<string, unknown>;
 export type OrganizationUnit = TenantContract['schemas']['tenant.OrganizationUnit'] & Record<string, unknown>;
 export type Membership = TenantContract['schemas']['tenant.Membership'] & Record<string, unknown>;
+export type Invitation = TenantContract['schemas']['tenant.Invitation'] & Record<string, unknown>;
+export type CreateInvitationResult = TenantContract['schemas']['httptransport.CreateInvitationResponseBody'];
 
 export interface Role extends Record<string, unknown> {
   id: string;
@@ -126,6 +128,11 @@ export interface MembershipQuery {
   status?: string;
   page: number;
   pageSize: number;
+}
+
+export interface InvitationForm {
+  email: string;
+  expires_in_hours: number;
 }
 
 export interface ApplicationGrantForm {
@@ -644,6 +651,36 @@ export async function updateMembership(id: string, form: MembershipForm) {
         version: form.version,
         reason: form.reason
       }
+    })
+  );
+}
+
+export function listInvitations(tenantID: string, page: number, pageSize: number) {
+  return unwrap<{ invitations: Invitation[]; total: number; page: number; page_size: number }>(
+    tenantRequest({
+      url: '/api/v1/invitations/list',
+      method: 'post',
+      data: { tenant_id: tenantID, page, page_size: pageSize }
+    })
+  );
+}
+
+export function createInvitation(tenantID: string, form: InvitationForm) {
+  return unwrap<CreateInvitationResult>(
+    tenantRequest({
+      url: '/api/v1/invitations/create',
+      method: 'post',
+      data: { tenant_id: tenantID, email: form.email, expires_in_seconds: form.expires_in_hours * 60 * 60 }
+    })
+  );
+}
+
+export function revokeInvitation(id: string, version: number) {
+  return unwrap<Invitation>(
+    tenantRequest({
+      url: '/api/v1/invitations/revoke',
+      method: 'post',
+      data: { invitation_id: id, version }
     })
   );
 }

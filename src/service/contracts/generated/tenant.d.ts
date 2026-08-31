@@ -284,7 +284,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.CreateInvitationResponseBody"];
+                        };
                     };
                 };
             };
@@ -974,6 +976,10 @@ export interface components {
             email: string;
             expires_in_seconds: number;
             tenant_id: string;
+        };
+        "httptransport.CreateInvitationResponseBody": {
+            invitation?: components["schemas"]["tenant.Invitation"];
+            token?: string;
         };
         "httptransport.CreateOrganizationUnitRequest": {
             code: string;

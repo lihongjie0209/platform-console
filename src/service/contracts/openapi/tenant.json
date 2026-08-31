@@ -275,7 +275,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.CreateInvitationResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -1086,6 +1098,17 @@
                         "type": "integer"
                     },
                     "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.CreateInvitationResponseBody": {
+                "type": "object",
+                "properties": {
+                    "invitation": {
+                        "$ref": "#/components/schemas/tenant.Invitation"
+                    },
+                    "token": {
                         "type": "string"
                     }
                 }
