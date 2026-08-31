@@ -10,8 +10,8 @@ RUN pnpm build
 FROM nginxinc/nginx-unprivileged:1.29-alpine
 
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-COPY docker/platform-config.js.template /usr/share/nginx/html/platform-config.js.template
-COPY docker/40-platform-runtime-config.sh /docker-entrypoint.d/40-platform-runtime-config.sh
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY --chown=101:101 docker/platform-config.js.template /usr/share/nginx/html/platform-config.js.template
+COPY --chown=101:101 docker/40-platform-runtime-config.sh /docker-entrypoint.d/40-platform-runtime-config.sh
+COPY --chown=101:101 --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 8080

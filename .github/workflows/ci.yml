@@ -40,4 +40,24 @@ jobs:
         with:
           context: .
           file: docker/Dockerfile
+          load: true
           push: false
+          tags: platform-console:ci
+      - name: Verify non-root runtime configuration
+        run: |
+          docker run -d --name platform-console-ci \
+            -e PLATFORM_IDENTITY_URL=https://identity.example.test \
+            -e PLATFORM_TENANT_URL=https://tenant.example.test \
+            -e PLATFORM_AUTHORIZATION_URL=https://authorization.example.test \
+            -e PLATFORM_APPLICATION_URL=https://application.example.test \
+            platform-console:ci
+          for attempt in $(seq 1 20); do
+            if docker exec platform-console-ci wget -qO /tmp/runtime-config.js http://127.0.0.1:8080/platform-config.js; then
+              break
+            fi
+            sleep 1
+          done
+          docker exec platform-console-ci grep -q "identity: 'https://identity.example.test'" /tmp/runtime-config.js
+          [ "$(docker inspect -f '{{.Config.User}}' platform-console-ci)" = "101" ]
+      - if: always()
+        run: docker rm -f platform-console-ci || true
