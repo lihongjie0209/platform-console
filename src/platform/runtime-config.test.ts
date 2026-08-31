@@ -9,11 +9,29 @@ test('parseRuntimeConfig accepts a complete development configuration', () => {
       identity: 'http://identity.dev.example.test',
       tenant: 'http://tenant.dev.example.test',
       authorization: 'http://authorization.dev.example.test',
-      application: 'http://application.dev.example.test'
+      application: 'http://application.dev.example.test',
+      audit: 'http://audit.dev.example.test'
     }
   });
 
   assert.equal(config.environment, 'development');
+});
+
+test('parseRuntimeConfig validates optional production service URLs', () => {
+  assert.throws(
+    () =>
+      parseRuntimeConfig({
+        environment: 'production',
+        services: {
+          identity: 'https://identity.example.test',
+          tenant: 'https://tenant.example.test',
+          authorization: 'https://authorization.example.test',
+          application: 'https://application.example.test',
+          audit: 'http://audit.example.test'
+        }
+      }),
+    /production audit service URL must use HTTPS/
+  );
 });
 
 test('parseRuntimeConfig rejects plaintext production service URLs', () => {

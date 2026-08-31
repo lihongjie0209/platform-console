@@ -19,7 +19,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-编辑 `public/platform-config.js` 连接本地服务。生产部署通过 `PLATFORM_ENV`、`PLATFORM_IDENTITY_URL`、`PLATFORM_TENANT_URL`、`PLATFORM_AUTHORIZATION_URL` 和 `PLATFORM_APPLICATION_URL` 注入配置；生产服务地址必须使用 HTTPS。
+编辑 `public/platform-config.js` 连接本地服务。生产部署通过 `PLATFORM_ENV`、`PLATFORM_IDENTITY_URL`、`PLATFORM_TENANT_URL`、`PLATFORM_AUTHORIZATION_URL`、`PLATFORM_APPLICATION_URL` 和各应用对应的可选地址（如 `PLATFORM_AUDIT_URL`）注入配置；生产服务地址必须使用 HTTPS。
 
 ## 常用命令
 

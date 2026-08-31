@@ -23,9 +23,13 @@ export function parseRuntimeConfig(value: unknown): PlatformRuntimeConfig {
     if (!baseURL) {
       throw new Error(`platform runtime configuration requires ${service} service URL`);
     }
-    const parsed = new URL(baseURL);
-    if (config.environment === 'production' && parsed.protocol !== 'https:') {
-      throw new Error(`production ${service} service URL must use HTTPS`);
+  }
+  for (const [service, baseURL] of Object.entries(config.services)) {
+    if (baseURL) {
+      const parsed = new URL(baseURL);
+      if (config.environment === 'production' && parsed.protocol !== 'https:') {
+        throw new Error(`production ${service} service URL must use HTTPS`);
+      }
     }
   }
   return config;
