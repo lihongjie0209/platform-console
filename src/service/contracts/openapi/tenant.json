@@ -426,6 +426,201 @@
                 }
             }
         },
+        "/api/v1/organization-units/create": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "organization-units"
+                ],
+                "summary": "Create an organization unit",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.CreateOrganizationUnitRequest"
+                            }
+                        }
+                    },
+                    "description": "Organization unit",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/tenant.OrganizationUnit"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/organization-units/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "organization-units"
+                ],
+                "summary": "Get an organization unit",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GetOrganizationUnitRequest"
+                            }
+                        }
+                    },
+                    "description": "Organization unit ID",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/tenant.OrganizationUnit"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/organization-units/list": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "organization-units"
+                ],
+                "summary": "List a tenant's organization units",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.ListOrganizationUnitsRequest"
+                            }
+                        }
+                    },
+                    "description": "Tenant",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/tenant.OrganizationUnit"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/organization-units/update": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "organization-units"
+                ],
+                "summary": "Update or move an organization unit using optimistic locking",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.UpdateOrganizationUnitRequest"
+                            }
+                        }
+                    },
+                    "description": "Organization unit and current version",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/tenant.OrganizationUnit"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/quotas/consume": {
             "post": {
                 "security": [
@@ -847,6 +1042,39 @@
                     }
                 }
             },
+            "httptransport.CreateOrganizationUnitRequest": {
+                "type": "object",
+                "required": [
+                    "code",
+                    "name",
+                    "tenant_id"
+                ],
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "parent_id": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.GetOrganizationUnitRequest": {
+                "type": "object",
+                "required": [
+                    "organization_unit_id"
+                ],
+                "properties": {
+                    "organization_unit_id": {
+                        "type": "string"
+                    }
+                }
+            },
             "httptransport.GetQuotaRequest": {
                 "type": "object",
                 "required": [
@@ -900,6 +1128,17 @@
                     "page_size": {
                         "type": "integer"
                     },
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.ListOrganizationUnitsRequest": {
+                "type": "object",
+                "required": [
+                    "tenant_id"
+                ],
+                "properties": {
                     "tenant_id": {
                         "type": "string"
                     }
@@ -1025,6 +1264,32 @@
                     }
                 }
             },
+            "httptransport.UpdateOrganizationUnitRequest": {
+                "type": "object",
+                "required": [
+                    "name",
+                    "organization_unit_id",
+                    "status",
+                    "version"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "organization_unit_id": {
+                        "type": "string"
+                    },
+                    "parent_id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
             "tenant.Group": {
                 "type": "object",
                 "properties": {
@@ -1114,6 +1379,47 @@
                         "type": "integer"
                     },
                     "total": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "tenant.OrganizationUnit": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "parent_id": {
+                        "type": "string"
+                    },
+                    "path": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "version": {
                         "type": "integer"
                     }
                 }

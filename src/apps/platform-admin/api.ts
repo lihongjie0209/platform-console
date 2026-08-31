@@ -8,6 +8,7 @@ export type ApplicationMenu = ApplicationContract['schemas']['application.Menu']
 export type MenuRelease = ApplicationContract['schemas']['application.MenuRelease'] & Record<string, unknown>;
 export type ApplicationGrant = ApplicationContract['schemas']['application.Grant'] & Record<string, unknown>;
 export type Group = TenantContract['schemas']['tenant.Group'] & Record<string, unknown>;
+export type OrganizationUnit = TenantContract['schemas']['tenant.OrganizationUnit'] & Record<string, unknown>;
 
 export interface Role extends Record<string, unknown> {
   id: string;
@@ -95,6 +96,15 @@ export interface TenantForm extends Record<string, unknown> {
 }
 
 export interface GroupForm extends Record<string, unknown> {
+  code: string;
+  name: string;
+  status: string;
+  version: number;
+}
+
+export interface OrganizationUnitForm {
+  id: string;
+  parent_id: string;
   code: string;
   name: string;
   status: string;
@@ -539,6 +549,38 @@ export async function updateGroup(id: string, form: GroupForm) {
       url: '/api/v1/groups/update',
       method: 'post',
       data: { group_id: id, name: form.name, status: form.status, version: form.version }
+    })
+  );
+}
+
+export function listOrganizationUnits(tenantID: string) {
+  return unwrap<{ organization_units: OrganizationUnit[] }>(
+    tenantRequest({ url: '/api/v1/organization-units/list', method: 'post', data: { tenant_id: tenantID } })
+  ).then(result => result.organization_units || []);
+}
+
+export function createOrganizationUnit(tenantID: string, form: OrganizationUnitForm) {
+  return unwrap<OrganizationUnit>(
+    tenantRequest({
+      url: '/api/v1/organization-units/create',
+      method: 'post',
+      data: { tenant_id: tenantID, parent_id: form.parent_id, code: form.code, name: form.name }
+    })
+  );
+}
+
+export function updateOrganizationUnit(form: OrganizationUnitForm) {
+  return unwrap<OrganizationUnit>(
+    tenantRequest({
+      url: '/api/v1/organization-units/update',
+      method: 'post',
+      data: {
+        organization_unit_id: form.id,
+        parent_id: form.parent_id,
+        name: form.name,
+        status: form.status,
+        version: form.version
+      }
     })
   );
 }

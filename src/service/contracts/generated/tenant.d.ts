@@ -428,6 +428,178 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organization-units/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create an organization unit */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Organization unit */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.CreateOrganizationUnitRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["tenant.OrganizationUnit"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization-units/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get an organization unit */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Organization unit ID */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetOrganizationUnitRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["tenant.OrganizationUnit"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization-units/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List a tenant's organization units */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Tenant */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListOrganizationUnitsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["tenant.OrganizationUnit"][];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization-units/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update or move an organization unit using optimistic locking */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Organization unit and current version */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.UpdateOrganizationUnitRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["tenant.OrganizationUnit"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/quotas/consume": {
         parameters: {
             query?: never;
@@ -760,6 +932,15 @@ export interface components {
             expires_in_seconds: number;
             tenant_id: string;
         };
+        "httptransport.CreateOrganizationUnitRequest": {
+            code: string;
+            name: string;
+            parent_id?: string;
+            tenant_id: string;
+        };
+        "httptransport.GetOrganizationUnitRequest": {
+            organization_unit_id: string;
+        };
         "httptransport.GetQuotaRequest": {
             key: string;
             tenant_id: string;
@@ -774,6 +955,9 @@ export interface components {
         "httptransport.ListInvitationsRequest": {
             page?: number;
             page_size?: number;
+            tenant_id: string;
+        };
+        "httptransport.ListOrganizationUnitsRequest": {
             tenant_id: string;
         };
         "httptransport.ListTenantsRequest": {
@@ -812,6 +996,13 @@ export interface components {
             status: string;
             version: number;
         };
+        "httptransport.UpdateOrganizationUnitRequest": {
+            name: string;
+            organization_unit_id: string;
+            parent_id?: string;
+            status: string;
+            version: number;
+        };
         "tenant.Group": {
             code?: string;
             created_at?: string;
@@ -842,6 +1033,20 @@ export interface components {
             page?: number;
             page_size?: number;
             total?: number;
+        };
+        "tenant.OrganizationUnit": {
+            code?: string;
+            created_at?: string;
+            created_by?: string;
+            id?: string;
+            name?: string;
+            parent_id?: string;
+            path?: string;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
         };
         "tenant.Quota": {
             created_at?: string;
