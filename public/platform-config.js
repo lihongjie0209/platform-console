@@ -12,6 +12,8 @@ window.__PLATFORM_CONFIG__ = {
     file: 'http://127.0.0.1:18087',
     scheduler: 'http://127.0.0.1:18088',
     dictionary: 'http://127.0.0.1:18091',
-    'service-registry': 'http://127.0.0.1:18092'
+    'service-registry': 'http://127.0.0.1:18092',
+    workflow: 'http://127.0.0.1:18094',
+    search: 'http://127.0.0.1:18095'
   }
 };

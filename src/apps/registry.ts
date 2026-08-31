@@ -33,7 +33,11 @@ const pageLoaders = {
   'scheduler-center.jobs': () => import('./scheduler-center/pages/jobs/index.vue'),
   'dictionary-center.definitions': () => import('./dictionary-center/pages/definitions/index.vue'),
   'dictionary-center.providers': () => import('./dictionary-center/pages/providers/index.vue'),
-  'registry-center.services': () => import('./registry-center/pages/services/index.vue')
+  'registry-center.services': () => import('./registry-center/pages/services/index.vue'),
+  'workflow-center.definitions': () => import('./workflow-center/pages/definitions/index.vue'),
+  'workflow-center.instances': () => import('./workflow-center/pages/instances/index.vue'),
+  'workflow-center.tasks': () => import('./workflow-center/pages/tasks/index.vue'),
+  'search-center.search': () => import('./search-center/pages/search/index.vue')
 } as const;
 
 export type ApplicationPageKey = keyof typeof pageLoaders;
@@ -80,6 +84,16 @@ export const applicationModules: readonly ApplicationModule[] = [
     code: 'registry-center',
     name: '服务注册中心',
     pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('registry-center.')))
+  },
+  {
+    code: 'workflow-center',
+    name: '工作流中心',
+    pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('workflow-center.')))
+  },
+  {
+    code: 'search-center',
+    name: '全局搜索',
+    pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('search-center.')))
   }
 ];
 
