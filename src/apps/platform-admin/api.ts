@@ -75,6 +75,21 @@ export interface TenantDirectoryItem extends Record<string, unknown> {
   version: number;
 }
 
+export interface TenantForm extends Record<string, unknown> {
+  code: string;
+  name: string;
+  owner_user_id: string;
+  status: string;
+  version: number;
+}
+
+export interface GroupForm extends Record<string, unknown> {
+  code: string;
+  name: string;
+  status: string;
+  version: number;
+}
+
 export interface ApplicationGrantForm {
   source: string;
   valid_from: string;
@@ -250,6 +265,32 @@ export function listTenantDirectory(query: TenantDirectoryQuery) {
         keyword: query.keyword || '',
         status: query.status || ''
       }
+    })
+  );
+}
+
+export function getTenant(tenantID: string) {
+  return unwrap<TenantDirectoryItem>(
+    tenantRequest({ url: '/api/v1/tenants/get', method: 'post', data: { tenant_id: tenantID } })
+  );
+}
+
+export async function createTenant(form: TenantForm) {
+  await unwrap<{ tenant: TenantDirectoryItem }>(
+    tenantRequest({
+      url: '/api/v1/tenants/create',
+      method: 'post',
+      data: { code: form.code, name: form.name, owner_user_id: form.owner_user_id }
+    })
+  );
+}
+
+export async function updateTenant(id: string, form: TenantForm) {
+  await unwrap<TenantDirectoryItem>(
+    tenantRequest({
+      url: '/api/v1/tenants/update',
+      method: 'post',
+      data: { tenant_id: id, name: form.name, status: form.status, version: form.version }
     })
   );
 }
@@ -436,4 +477,24 @@ export async function listGroups(tenantID: string, page: number, pageSize: numbe
     page,
     page_size: pageSize
   };
+}
+
+export async function createGroup(tenantID: string, form: GroupForm) {
+  await unwrap<Group>(
+    tenantRequest({
+      url: '/api/v1/groups/create',
+      method: 'post',
+      data: { tenant_id: tenantID, code: form.code, name: form.name }
+    })
+  );
+}
+
+export async function updateGroup(id: string, form: GroupForm) {
+  await unwrap<Group>(
+    tenantRequest({
+      url: '/api/v1/groups/update',
+      method: 'post',
+      data: { group_id: id, name: form.name, status: form.status, version: form.version }
+    })
+  );
 }

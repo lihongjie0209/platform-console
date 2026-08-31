@@ -291,6 +291,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/authorization/permissions/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update a tenant permission */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Permission update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.UpdatePermissionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/authorization/role-permissions/grant": {
         parameters: {
             query?: never;
@@ -806,6 +847,13 @@ export interface components {
         };
         "httptransport.RevokeRolePermissionRequest": {
             role_permission_id: string;
+            version: number;
+        };
+        "httptransport.UpdatePermissionRequest": {
+            condition_expression?: string;
+            name: string;
+            permission_id: string;
+            status: string;
             version: number;
         };
         "httptransport.UpdateRoleRequest": {

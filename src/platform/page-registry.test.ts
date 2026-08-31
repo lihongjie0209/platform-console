@@ -9,6 +9,8 @@ test('application pages are registered under an application namespace', () => {
   );
   assert.equal(isApplicationPageKey('platform-admin.applications'), true);
   assert.equal(isApplicationPageKey('platform-admin.users'), true);
+  assert.equal(isApplicationPageKey('platform-admin.tenants'), true);
+  assert.equal(isApplicationPageKey('platform-admin.role-permissions'), true);
   assert.equal(isApplicationPageKey('application-service.applications'), false);
 });
 

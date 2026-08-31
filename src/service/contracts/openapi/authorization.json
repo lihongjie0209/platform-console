@@ -259,6 +259,42 @@
                 }
             }
         },
+        "/api/v1/authorization/permissions/update": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "authorization-permissions"
+                ],
+                "summary": "Update a tenant permission",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.UpdatePermissionRequest"
+                            }
+                        }
+                    },
+                    "description": "Permission update",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/authorization/role-permissions/grant": {
             "post": {
                 "security": [
@@ -974,6 +1010,32 @@
                 ],
                 "properties": {
                     "role_permission_id": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.UpdatePermissionRequest": {
+                "type": "object",
+                "required": [
+                    "name",
+                    "permission_id",
+                    "status",
+                    "version"
+                ],
+                "properties": {
+                    "condition_expression": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "permission_id": {
+                        "type": "string"
+                    },
+                    "status": {
                         "type": "string"
                     },
                     "version": {
