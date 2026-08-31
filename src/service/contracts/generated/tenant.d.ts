@@ -729,6 +729,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/quotas/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List tenant quotas */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Tenant, keyword and pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListQuotasRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["tenant.QuotaPage"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/quotas/set": {
         parameters: {
             query?: never;
@@ -1016,6 +1059,12 @@ export interface components {
         "httptransport.ListOrganizationUnitsRequest": {
             tenant_id: string;
         };
+        "httptransport.ListQuotasRequest": {
+            keyword?: string;
+            page?: number;
+            page_size?: number;
+            tenant_id: string;
+        };
         "httptransport.ListTenantsRequest": {
             keyword?: string;
             page?: number;
@@ -1133,6 +1182,12 @@ export interface components {
             updated_by?: string;
             used?: number;
             version?: number;
+        };
+        "tenant.QuotaPage": {
+            page?: number;
+            page_size?: number;
+            quotas?: components["schemas"]["tenant.Quota"][];
+            total?: number;
         };
     };
     responses: never;

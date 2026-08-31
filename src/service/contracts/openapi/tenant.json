@@ -765,6 +765,54 @@
                 }
             }
         },
+        "/api/v1/quotas/list": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "quotas"
+                ],
+                "summary": "List tenant quotas",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.ListQuotasRequest"
+                            }
+                        }
+                    },
+                    "description": "Tenant, keyword and pagination",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/tenant.QuotaPage"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/quotas/set": {
             "post": {
                 "security": [
@@ -1238,6 +1286,26 @@
                     }
                 }
             },
+            "httptransport.ListQuotasRequest": {
+                "type": "object",
+                "required": [
+                    "tenant_id"
+                ],
+                "properties": {
+                    "keyword": {
+                        "type": "string"
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
             "httptransport.ListTenantsRequest": {
                 "type": "object",
                 "properties": {
@@ -1604,6 +1672,26 @@
                         "type": "integer"
                     },
                     "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "tenant.QuotaPage": {
+                "type": "object",
+                "properties": {
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "quotas": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/tenant.Quota"
+                        }
+                    },
+                    "total": {
                         "type": "integer"
                     }
                 }

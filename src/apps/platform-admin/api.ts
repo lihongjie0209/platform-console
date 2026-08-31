@@ -11,6 +11,7 @@ export type Group = TenantContract['schemas']['tenant.Group'] & Record<string, u
 export type OrganizationUnit = TenantContract['schemas']['tenant.OrganizationUnit'] & Record<string, unknown>;
 export type Membership = TenantContract['schemas']['tenant.Membership'] & Record<string, unknown>;
 export type Invitation = TenantContract['schemas']['tenant.Invitation'] & Record<string, unknown>;
+export type Quota = TenantContract['schemas']['tenant.Quota'] & Record<string, unknown>;
 export type CreateInvitationResult = TenantContract['schemas']['httptransport.CreateInvitationResponseBody'];
 
 export interface Role extends Record<string, unknown> {
@@ -133,6 +134,19 @@ export interface MembershipQuery {
 export interface InvitationForm {
   email: string;
   expires_in_hours: number;
+}
+
+export interface QuotaForm extends Record<string, unknown> {
+  key: string;
+  limit: number;
+  version: number;
+}
+
+export interface QuotaQuery {
+  tenantID: string;
+  keyword?: string;
+  page: number;
+  pageSize: number;
 }
 
 export interface ApplicationGrantForm {
@@ -681,6 +695,31 @@ export function revokeInvitation(id: string, version: number) {
       url: '/api/v1/invitations/revoke',
       method: 'post',
       data: { invitation_id: id, version }
+    })
+  );
+}
+
+export function listQuotas(query: QuotaQuery) {
+  return unwrap<{ quotas: Quota[]; total: number; page: number; page_size: number }>(
+    tenantRequest({
+      url: '/api/v1/quotas/list',
+      method: 'post',
+      data: {
+        tenant_id: query.tenantID,
+        keyword: query.keyword || '',
+        page: query.page,
+        page_size: query.pageSize
+      }
+    })
+  );
+}
+
+export async function setQuota(tenantID: string, form: QuotaForm) {
+  await unwrap<Quota>(
+    tenantRequest({
+      url: '/api/v1/quotas/set',
+      method: 'post',
+      data: { tenant_id: tenantID, key: form.key, limit: form.limit, version: form.version }
     })
   );
 }
