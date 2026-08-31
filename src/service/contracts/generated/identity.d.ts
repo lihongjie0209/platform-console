@@ -439,7 +439,52 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.CreateServiceAccountResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-accounts/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List service accounts */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Filters and pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListServiceAccountsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ServiceAccountPageResponseBody"];
+                        };
                     };
                 };
             };
@@ -641,6 +686,10 @@ export interface components {
             audiences: string[];
             name: string;
         };
+        "httptransport.CreateServiceAccountResponseBody": {
+            account?: components["schemas"]["httptransport.ServiceAccountResponseBody"];
+            client_secret?: string;
+        };
         "httptransport.IdentityResponseBody": {
             display_name?: string;
             email?: string;
@@ -651,6 +700,12 @@ export interface components {
             version?: number;
         };
         "httptransport.ListIdentitiesRequest": {
+            keyword?: string;
+            page?: number;
+            page_size?: number;
+            status?: string;
+        };
+        "httptransport.ListServiceAccountsRequest": {
             keyword?: string;
             page?: number;
             page_size?: number;
@@ -682,6 +737,24 @@ export interface components {
             code?: number;
             message?: string;
             request_id?: string;
+        };
+        "httptransport.ServiceAccountPageResponseBody": {
+            items?: components["schemas"]["httptransport.ServiceAccountResponseBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
+        "httptransport.ServiceAccountResponseBody": {
+            audiences?: string[];
+            client_id?: string;
+            created_at?: string;
+            created_by?: string;
+            id?: string;
+            name?: string;
+            status?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
         };
         "httptransport.ServiceAccountTokenRequest": {
             client_id: string;

@@ -1,5 +1,6 @@
 import type { components as ApplicationContract } from '@/service/contracts/generated/application';
 import type { components as AuthorizationContract } from '@/service/contracts/generated/authorization';
+import type { components as IdentityContract } from '@/service/contracts/generated/identity';
 import type { components as TenantContract } from '@/service/contracts/generated/tenant';
 import { platformRequest } from '@/service/request';
 import { parseJSONObject, parseJSONRecord } from './metadata';
@@ -16,6 +17,8 @@ export type Quota = TenantContract['schemas']['tenant.Quota'] & Record<string, u
 export type GroupMember = TenantContract['schemas']['tenant.GroupMember'] & Record<string, unknown>;
 export type CreateInvitationResult = TenantContract['schemas']['httptransport.CreateInvitationResponseBody'];
 export type Binding = AuthorizationContract['schemas']['authorization.Binding'] & Record<string, unknown>;
+export type ServiceAccountContract = IdentityContract['schemas']['httptransport.ServiceAccountResponseBody'];
+export type CreateServiceAccountResult = IdentityContract['schemas']['httptransport.CreateServiceAccountResponseBody'];
 
 export interface Role extends Record<string, unknown> {
   id: string;
@@ -84,6 +87,29 @@ export interface UserForm extends Record<string, unknown> {
   status: string;
   reason: string;
   version: number;
+}
+
+export interface ServiceAccount extends ServiceAccountContract, Record<string, unknown> {
+  id: string;
+  client_id: string;
+  name: string;
+  status: string;
+  audiences: string[];
+  version: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ServiceAccountForm {
+  name: string;
+  audiences: string[];
+}
+
+export interface ServiceAccountQuery {
+  page: number;
+  pageSize: number;
+  keyword?: string;
+  status?: string;
 }
 
 export interface TenantDirectoryItem extends Record<string, unknown> {
@@ -360,6 +386,41 @@ export async function updateUserStatus(id: string, form: UserForm) {
       url: '/api/v1/identities/update-status',
       method: 'post',
       data: { id, status: form.status, reason: form.reason, version: form.version }
+    })
+  );
+}
+
+export function listServiceAccounts(query: ServiceAccountQuery) {
+  return unwrap(
+    identityRequest<ResourcePage<ServiceAccount>>({
+      url: '/api/v1/service-accounts/list',
+      method: 'post',
+      data: {
+        page: query.page,
+        page_size: query.pageSize,
+        keyword: query.keyword || '',
+        status: query.status || ''
+      }
+    })
+  );
+}
+
+export function createServiceAccount(form: ServiceAccountForm) {
+  return unwrap<CreateServiceAccountResult>(
+    identityRequest({
+      url: '/api/v1/service-accounts/create',
+      method: 'post',
+      data: { name: form.name, audiences: form.audiences }
+    })
+  );
+}
+
+export async function updateServiceAccountStatus(id: string, status: string, version: number) {
+  await unwrap<{ updated: boolean }>(
+    identityRequest({
+      url: '/api/v1/service-accounts/update-status',
+      method: 'post',
+      data: { id, status, version }
     })
   );
 }
