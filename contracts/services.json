@@ -11,5 +11,8 @@
   "dictionary": "https://raw.githubusercontent.com/lihongjie0209/dictionary-service/main/docs/swagger.json?revision=6ae9f8b",
   "service-registry": "https://raw.githubusercontent.com/lihongjie0209/service-registry-service/main/docs/swagger.json",
   "workflow": "https://raw.githubusercontent.com/lihongjie0209/workflow-service/main/docs/swagger.json?revision=3b78055",
-  "search": "https://raw.githubusercontent.com/lihongjie0209/search-service/main/docs/swagger.json"
+  "search": "https://raw.githubusercontent.com/lihongjie0209/search-service/main/docs/swagger.json",
+  "metering": "https://raw.githubusercontent.com/lihongjie0209/metering-service/main/docs/swagger.json",
+  "billing": "https://raw.githubusercontent.com/lihongjie0209/billing-service/main/docs/swagger.json?revision=e1c3124",
+  "rule": "https://raw.githubusercontent.com/lihongjie0209/rule-service/main/docs/swagger.json"
 }

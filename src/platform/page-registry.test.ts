@@ -15,7 +15,10 @@ test('application pages are registered under an application namespace', () => {
       'dictionary-center',
       'registry-center',
       'workflow-center',
-      'search-center'
+      'search-center',
+      'metering-center',
+      'billing-center',
+      'rule-center'
     ]
   );
   assert.equal(isApplicationPageKey('platform-admin.applications'), true);
@@ -43,6 +46,12 @@ test('application pages are registered under an application namespace', () => {
   assert.equal(isApplicationPageKey('workflow-center.instances'), true);
   assert.equal(isApplicationPageKey('workflow-center.tasks'), true);
   assert.equal(isApplicationPageKey('search-center.search'), true);
+  assert.equal(isApplicationPageKey('metering-center.meters'), true);
+  assert.equal(isApplicationPageKey('metering-center.usage'), true);
+  assert.equal(isApplicationPageKey('billing-center.plans'), true);
+  assert.equal(isApplicationPageKey('billing-center.subscriptions'), true);
+  assert.equal(isApplicationPageKey('billing-center.invoices'), true);
+  assert.equal(isApplicationPageKey('rule-center.rules'), true);
   assert.equal(isApplicationPageKey('application-service.applications'), false);
 });
 

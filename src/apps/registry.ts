@@ -37,7 +37,13 @@ const pageLoaders = {
   'workflow-center.definitions': () => import('./workflow-center/pages/definitions/index.vue'),
   'workflow-center.instances': () => import('./workflow-center/pages/instances/index.vue'),
   'workflow-center.tasks': () => import('./workflow-center/pages/tasks/index.vue'),
-  'search-center.search': () => import('./search-center/pages/search/index.vue')
+  'search-center.search': () => import('./search-center/pages/search/index.vue'),
+  'metering-center.meters': () => import('./metering-center/pages/meters/index.vue'),
+  'metering-center.usage': () => import('./metering-center/pages/usage/index.vue'),
+  'billing-center.plans': () => import('./billing-center/pages/plans/index.vue'),
+  'billing-center.subscriptions': () => import('./billing-center/pages/subscriptions/index.vue'),
+  'billing-center.invoices': () => import('./billing-center/pages/invoices/index.vue'),
+  'rule-center.rules': () => import('./rule-center/pages/rules/index.vue')
 } as const;
 
 export type ApplicationPageKey = keyof typeof pageLoaders;
@@ -94,6 +100,21 @@ export const applicationModules: readonly ApplicationModule[] = [
     code: 'search-center',
     name: '全局搜索',
     pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('search-center.')))
+  },
+  {
+    code: 'metering-center',
+    name: '计量中心',
+    pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('metering-center.')))
+  },
+  {
+    code: 'billing-center',
+    name: '计费中心',
+    pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('billing-center.')))
+  },
+  {
+    code: 'rule-center',
+    name: '规则中心',
+    pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('rule-center.')))
   }
 ];
 

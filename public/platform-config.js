@@ -14,6 +14,9 @@ window.__PLATFORM_CONFIG__ = {
     dictionary: 'http://127.0.0.1:18091',
     'service-registry': 'http://127.0.0.1:18092',
     workflow: 'http://127.0.0.1:18094',
-    search: 'http://127.0.0.1:18095'
+    search: 'http://127.0.0.1:18095',
+    metering: 'http://127.0.0.1:18096',
+    billing: 'http://127.0.0.1:18097',
+    rule: 'http://127.0.0.1:18098'
   }
 };

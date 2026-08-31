@@ -1,0 +1,188 @@
+import { platformRequest } from '@/service/request';
+export interface Plan extends Record<string, unknown> {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  currency: string;
+  billing_interval: string;
+  base_amount_minor: number;
+  trial_days: number;
+  status: string;
+  entitlements_json: Record<string, unknown>;
+  version: number;
+}
+export interface UsagePrice extends Record<string, unknown> {
+  id: string;
+  plan_id: string;
+  meter_code: string;
+  included_quantity: number;
+  unit_quantity: number;
+  unit_amount_minor: number;
+  pricing_model: string;
+  tiers_json: Record<string, unknown>[];
+  version: number;
+}
+export interface Subscription extends Record<string, unknown> {
+  id: string;
+  tenant_id: string;
+  plan_id: string;
+  status: string;
+  current_period_start: string;
+  current_period_end: string;
+  cancel_at_period_end: boolean;
+  version: number;
+}
+export interface Invoice extends Record<string, unknown> {
+  id: string;
+  number: string;
+  tenant_id: string;
+  subscription_id: string;
+  currency: string;
+  status: string;
+  total_minor: number;
+  paid_minor: number;
+  refunded_minor: number;
+  period_start: string;
+  period_end: string;
+  version: number;
+}
+interface Page<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+const request = platformRequest('billing');
+async function unwrap<T>(value: PromiseLike<{ data: T | null; error: unknown }>): Promise<T> {
+  const { data, error } = await value;
+  if (error) throw error;
+  if (data === null) throw new Error('billing service returned an empty response');
+  return data;
+}
+export const listPlans = (input: { status: string; keyword: string; page: number; pageSize: number }) =>
+  unwrap<Page<Plan>>(
+    request({
+      url: '/api/v1/plans/list',
+      method: 'post',
+      data: {
+        status: input.status,
+        keyword: input.keyword,
+        page: input.page,
+        page_size: input.pageSize
+      }
+    })
+  );
+export function savePlan(current: Plan | undefined, input: Omit<Plan, 'id' | 'version'>) {
+  return unwrap<Plan>(
+    request({
+      url: current ? '/api/v1/plans/update' : '/api/v1/plans/create',
+      method: 'post',
+      data: current
+        ? {
+            id: current.id,
+            name: input.name,
+            description: input.description,
+            base_amount_minor: input.base_amount_minor,
+            trial_days: input.trial_days,
+            status: input.status,
+            entitlements_json: input.entitlements_json,
+            version: current.version
+          }
+        : input
+    })
+  );
+}
+export const getPlan = (id: string) =>
+  unwrap<{ plan: Plan; usage_prices: UsagePrice[] }>(
+    request({ url: '/api/v1/plans/get', method: 'post', data: { id } })
+  );
+export const upsertUsagePrice = (value: Partial<UsagePrice> & Pick<UsagePrice, 'plan_id' | 'meter_code'>) =>
+  unwrap<UsagePrice>(
+    request({
+      url: '/api/v1/plans/usage-prices/upsert',
+      method: 'post',
+      data: { ...value, expected_version: value.version || 0 }
+    })
+  );
+export const deleteUsagePrice = (value: UsagePrice) =>
+  unwrap<null>(
+    request({
+      url: '/api/v1/plans/usage-prices/delete',
+      method: 'post',
+      data: { id: value.id, version: value.version }
+    })
+  );
+export const listSubscriptions = (input: { tenantID: string; status: string; page: number; pageSize: number }) =>
+  unwrap<Page<Subscription>>(
+    request({
+      url: '/api/v1/subscriptions/list',
+      method: 'post',
+      data: { tenant_id: input.tenantID, status: input.status, page: input.page, page_size: input.pageSize }
+    })
+  );
+export const createSubscription = (input: {
+  tenantID: string;
+  planID: string;
+  startsAt: string;
+  externalReference: string;
+}) =>
+  unwrap<Subscription>(
+    request({
+      url: '/api/v1/subscriptions/create',
+      method: 'post',
+      data: {
+        tenant_id: input.tenantID,
+        plan_id: input.planID,
+        starts_at: input.startsAt,
+        external_reference: input.externalReference
+      }
+    })
+  );
+export const cancelSubscription = (value: Subscription, atPeriodEnd: boolean) =>
+  unwrap<Subscription>(
+    request({
+      url: '/api/v1/subscriptions/cancel',
+      method: 'post',
+      data: {
+        tenant_id: value.tenant_id,
+        id: value.id,
+        at_period_end: atPeriodEnd,
+        version: value.version
+      }
+    })
+  );
+export const listInvoices = (input: { tenantID: string; status: string; page: number; pageSize: number }) =>
+  unwrap<Page<Invoice>>(
+    request({
+      url: '/api/v1/invoices/list',
+      method: 'post',
+      data: { tenant_id: input.tenantID, status: input.status, page: input.page, page_size: input.pageSize }
+    })
+  );
+export const finalizeInvoice = (value: Invoice, dueAt: string) =>
+  unwrap<Invoice>(
+    request({
+      url: '/api/v1/invoices/finalize',
+      method: 'post',
+      data: {
+        tenant_id: value.tenant_id,
+        id: value.id,
+        due_at: dueAt,
+        version: value.version
+      }
+    })
+  );
+export const voidInvoice = (value: Invoice, reason: string) =>
+  unwrap<Invoice>(
+    request({
+      url: '/api/v1/invoices/void',
+      method: 'post',
+      data: {
+        tenant_id: value.tenant_id,
+        id: value.id,
+        reason,
+        version: value.version
+      }
+    })
+  );
