@@ -1,0 +1,170 @@
+<script setup lang="ts">
+import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { usePlatformStore } from '@/store/modules/platform';
+import type { NotificationTemplate } from '../../api';
+import { listTemplates, putTemplate } from '../../api';
+
+defineOptions({ name: 'NotificationCenterTemplates' });
+const platformStore = usePlatformStore();
+const tenantID = computed(() => platformStore.selectedTenantId);
+const loading = ref(false);
+const saving = ref(false);
+const rows = ref<NotificationTemplate[]>([]);
+const total = ref(0);
+const page = ref(1);
+const pageSize = ref(20);
+const keyword = ref('');
+const channel = ref('');
+const status = ref('');
+const visible = ref(false);
+const form = reactive({
+  code: '',
+  channel: 'email',
+  locale: 'zh-cn',
+  subject: '',
+  content: '',
+  status: 'active',
+  version: 0
+});
+
+async function loadData() {
+  if (!tenantID.value) return;
+  loading.value = true;
+  try {
+    const result = await listTemplates({
+      tenantID: tenantID.value,
+      keyword: keyword.value,
+      channel: channel.value,
+      status: status.value,
+      page: page.value,
+      pageSize: pageSize.value
+    });
+    rows.value = result.templates || [];
+    total.value = result.total || 0;
+  } finally {
+    loading.value = false;
+  }
+}
+function search() {
+  page.value = 1;
+  loadData();
+}
+function edit(row?: NotificationTemplate) {
+  Object.assign(
+    form,
+    row || { code: '', channel: 'email', locale: 'zh-cn', subject: '', content: '', status: 'active', version: 0 }
+  );
+  visible.value = true;
+}
+async function save() {
+  if (!tenantID.value || !form.code.trim() || !form.content) return;
+  saving.value = true;
+  try {
+    await putTemplate(tenantID.value, form);
+    visible.value = false;
+    window.$message?.success('模板已保存');
+    await loadData();
+  } finally {
+    saving.value = false;
+  }
+}
+watch(tenantID, search);
+onMounted(loadData);
+</script>
+
+<template>
+  <ElCard class="card-wrapper" shadow="never">
+    <template #header>
+      <div class="flex-y-center justify-between">
+        <div>
+          <h2 class="m-0 text-18px font-semibold">通知模板</h2>
+          <p class="mb-0 mt-6px text-13px text-#999">维护租户级多渠道、多语言模板。</p>
+        </div>
+        <ElButton type="primary" :disabled="!tenantID" @click="edit()">新建模板</ElButton>
+      </div>
+    </template>
+    <ElAlert v-if="!tenantID" title="请先选择租户" type="warning" show-icon :closable="false" />
+    <template v-else>
+      <ElForm inline class="mb-16px" @submit.prevent="search">
+        <ElFormItem label="搜索"><ElInput v-model="keyword" clearable placeholder="编码或主题" /></ElFormItem>
+        <ElFormItem label="渠道">
+          <ElSelect v-model="channel" clearable class="w-130px">
+            <ElOption v-for="item in ['email', 'sms', 'webhook', 'in_app']" :key="item" :label="item" :value="item" />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem label="状态">
+          <ElSelect v-model="status" clearable class="w-120px">
+            <ElOption label="启用" value="active" />
+            <ElOption label="停用" value="disabled" />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem><ElButton type="primary" @click="search">查询</ElButton></ElFormItem>
+      </ElForm>
+      <ElTable v-loading="loading" :data="rows" border stripe>
+        <ElTableColumn prop="code" label="模板编码" min-width="180" />
+        <ElTableColumn prop="channel" label="渠道" width="110" />
+        <ElTableColumn prop="locale" label="语言" width="100" />
+        <ElTableColumn prop="subject" label="主题" min-width="200" />
+        <ElTableColumn prop="status" label="状态" width="100" />
+        <ElTableColumn prop="version" label="版本" width="80" />
+        <ElTableColumn prop="updated_at" label="更新时间" min-width="180" />
+        <ElTableColumn label="操作" width="90" fixed="right">
+          <template #default="{ row }"><ElButton link type="primary" @click="edit(row)">编辑</ElButton></template>
+        </ElTableColumn>
+      </ElTable>
+      <div class="mt-16px flex justify-end">
+        <ElPagination
+          background
+          layout="total, sizes, prev, pager, next"
+          :total="total"
+          :current-page="page"
+          :page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          @update:current-page="
+            value => {
+              page = value;
+              loadData();
+            }
+          "
+          @update:page-size="
+            value => {
+              page = 1;
+              pageSize = value;
+              loadData();
+            }
+          "
+        />
+      </div>
+    </template>
+  </ElCard>
+  <ElDialog v-model="visible" :title="form.version ? '编辑模板' : '新建模板'" width="720px">
+    <ElForm label-width="90px">
+      <ElFormItem label="编码" required><ElInput v-model="form.code" :disabled="form.version > 0" /></ElFormItem>
+      <ElFormItem label="渠道" required>
+        <ElSelect v-model="form.channel" :disabled="form.version > 0">
+          <ElOption v-for="item in ['email', 'sms', 'webhook', 'in_app']" :key="item" :label="item" :value="item" />
+        </ElSelect>
+      </ElFormItem>
+      <ElFormItem label="语言" required><ElInput v-model="form.locale" :disabled="form.version > 0" /></ElFormItem>
+      <ElFormItem label="主题"><ElInput v-model="form.subject" /></ElFormItem>
+      <ElFormItem label="内容" required>
+        <ElInput
+          v-model="form.content"
+          type="textarea"
+          :rows="10"
+          placeholder="支持 Go template，例如 Hello {{.name}}"
+        />
+      </ElFormItem>
+      <ElFormItem label="状态">
+        <ElRadioGroup v-model="form.status">
+          <ElRadio value="active">启用</ElRadio>
+          <ElRadio value="disabled">停用</ElRadio>
+        </ElRadioGroup>
+      </ElFormItem>
+    </ElForm>
+    <template #footer>
+      <ElButton @click="visible = false">取消</ElButton>
+      <ElButton type="primary" :loading="saving" @click="save">保存</ElButton>
+    </template>
+  </ElDialog>
+</template>

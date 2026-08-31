@@ -6,6 +6,7 @@ window.__PLATFORM_CONFIG__ = {
     authorization: '${PLATFORM_AUTHORIZATION_URL}',
     application: '${PLATFORM_APPLICATION_URL}',
     audit: '${PLATFORM_AUDIT_URL}',
-    config: '${PLATFORM_CONFIG_URL}'
+    config: '${PLATFORM_CONFIG_URL}',
+    notification: '${PLATFORM_NOTIFICATION_URL}'
   }
 };

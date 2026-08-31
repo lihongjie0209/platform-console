@@ -7,6 +7,7 @@ window.__PLATFORM_CONFIG__ = {
     authorization: 'http://127.0.0.1:18082',
     application: 'http://127.0.0.1:18083',
     audit: 'http://127.0.0.1:18084',
-    config: 'http://127.0.0.1:18085'
+    config: 'http://127.0.0.1:18085',
+    notification: 'http://127.0.0.1:18086'
   }
 };

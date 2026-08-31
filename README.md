@@ -8,7 +8,7 @@
 - 登录后按租户展示已授权应用，支持搜索、切换租户和默认页面跳转；
 - 租户 → 已授权应用 → 已发布菜单驱动的动态路由；
 - 菜单配置安全映射：后端组件字符串不会被动态导入；
-- 独立的审计中心与配置中心应用模块；
+- 独立的审计中心、配置中心与通知中心应用模块；
 - 可在容器启动时注入的服务地址配置；
 - Swagger 2 → OpenAPI 3 → TypeScript 契约生成与 CI 一致性检查。
 
@@ -20,7 +20,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-编辑 `public/platform-config.js` 连接本地服务。生产部署通过 `PLATFORM_ENV`、`PLATFORM_IDENTITY_URL`、`PLATFORM_TENANT_URL`、`PLATFORM_AUTHORIZATION_URL`、`PLATFORM_APPLICATION_URL` 和各应用对应的可选地址（如 `PLATFORM_AUDIT_URL`、`PLATFORM_CONFIG_URL`）注入配置；生产服务地址必须使用 HTTPS。
+编辑 `public/platform-config.js` 连接本地服务。生产部署通过 `PLATFORM_ENV`、`PLATFORM_IDENTITY_URL`、`PLATFORM_TENANT_URL`、`PLATFORM_AUTHORIZATION_URL`、`PLATFORM_APPLICATION_URL` 和各应用对应的可选地址（如 `PLATFORM_AUDIT_URL`、`PLATFORM_CONFIG_URL`、`PLATFORM_NOTIFICATION_URL`）注入配置；生产服务地址必须使用 HTTPS。
 
 ## 常用命令
 
