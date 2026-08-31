@@ -8,6 +8,7 @@ window.__PLATFORM_CONFIG__ = {
     application: 'http://127.0.0.1:18083',
     audit: 'http://127.0.0.1:18084',
     config: 'http://127.0.0.1:18085',
-    notification: 'http://127.0.0.1:18086'
+    notification: 'http://127.0.0.1:18086',
+    file: 'http://127.0.0.1:18087'
   }
 };
