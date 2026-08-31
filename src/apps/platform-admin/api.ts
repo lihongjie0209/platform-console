@@ -9,6 +9,7 @@ export type MenuRelease = ApplicationContract['schemas']['application.MenuReleas
 export type ApplicationGrant = ApplicationContract['schemas']['application.Grant'] & Record<string, unknown>;
 export type Group = TenantContract['schemas']['tenant.Group'] & Record<string, unknown>;
 export type OrganizationUnit = TenantContract['schemas']['tenant.OrganizationUnit'] & Record<string, unknown>;
+export type Membership = TenantContract['schemas']['tenant.Membership'] & Record<string, unknown>;
 
 export interface Role extends Record<string, unknown> {
   id: string;
@@ -109,6 +110,22 @@ export interface OrganizationUnitForm {
   name: string;
   status: string;
   version: number;
+}
+
+export interface MembershipForm extends Record<string, unknown> {
+  user_id: string;
+  primary_organization_unit_id: string;
+  status: string;
+  reason: string;
+  version: number;
+}
+
+export interface MembershipQuery {
+  tenantID: string;
+  userID?: string;
+  status?: string;
+  page: number;
+  pageSize: number;
 }
 
 export interface ApplicationGrantForm {
@@ -580,6 +597,52 @@ export function updateOrganizationUnit(form: OrganizationUnitForm) {
         name: form.name,
         status: form.status,
         version: form.version
+      }
+    })
+  );
+}
+
+export function listMemberships(query: MembershipQuery) {
+  return unwrap<{ memberships: Membership[]; total: number; page: number; page_size: number }>(
+    tenantRequest({
+      url: '/api/v1/memberships/list',
+      method: 'post',
+      data: {
+        tenant_id: query.tenantID,
+        user_id: query.userID || '',
+        status: query.status || '',
+        page: query.page,
+        page_size: query.pageSize
+      }
+    })
+  );
+}
+
+export async function addMembership(tenantID: string, form: MembershipForm) {
+  await unwrap<Membership>(
+    tenantRequest({
+      url: '/api/v1/memberships/add',
+      method: 'post',
+      data: {
+        tenant_id: tenantID,
+        user_id: form.user_id,
+        primary_organization_unit_id: form.primary_organization_unit_id
+      }
+    })
+  );
+}
+
+export async function updateMembership(id: string, form: MembershipForm) {
+  await unwrap<Membership>(
+    tenantRequest({
+      url: '/api/v1/memberships/update',
+      method: 'post',
+      data: {
+        membership_id: id,
+        status: form.status,
+        primary_organization_unit_id: form.primary_organization_unit_id,
+        version: form.version,
+        reason: form.reason
       }
     })
   );

@@ -428,6 +428,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/memberships/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List tenant memberships */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Tenant, filters and pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListMembershipsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["tenant.MembershipPage"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organization-units/create": {
         parameters: {
             query?: never;
@@ -957,6 +1000,13 @@ export interface components {
             page_size?: number;
             tenant_id: string;
         };
+        "httptransport.ListMembershipsRequest": {
+            page?: number;
+            page_size?: number;
+            status?: string;
+            tenant_id: string;
+            user_id?: string;
+        };
         "httptransport.ListOrganizationUnitsRequest": {
             tenant_id: string;
         };
@@ -1030,6 +1080,25 @@ export interface components {
         };
         "tenant.InvitationPage": {
             invitations?: components["schemas"]["tenant.Invitation"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
+        "tenant.Membership": {
+            created_at?: string;
+            created_by?: string;
+            id?: string;
+            joined_at?: string;
+            primary_organization_unit_id?: string;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            user_id?: string;
+            version?: number;
+        };
+        "tenant.MembershipPage": {
+            memberships?: components["schemas"]["tenant.Membership"][];
             page?: number;
             page_size?: number;
             total?: number;
