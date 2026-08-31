@@ -1,4 +1,5 @@
 import type { components as ApplicationContract } from '@/service/contracts/generated/application';
+import type { components as AuthorizationContract } from '@/service/contracts/generated/authorization';
 import type { components as TenantContract } from '@/service/contracts/generated/tenant';
 import { platformRequest } from '@/service/request';
 import { parseJSONObject, parseJSONRecord } from './metadata';
@@ -14,6 +15,7 @@ export type Invitation = TenantContract['schemas']['tenant.Invitation'] & Record
 export type Quota = TenantContract['schemas']['tenant.Quota'] & Record<string, unknown>;
 export type GroupMember = TenantContract['schemas']['tenant.GroupMember'] & Record<string, unknown>;
 export type CreateInvitationResult = TenantContract['schemas']['httptransport.CreateInvitationResponseBody'];
+export type Binding = AuthorizationContract['schemas']['authorization.Binding'] & Record<string, unknown>;
 
 export interface Role extends Record<string, unknown> {
   id: string;
@@ -146,6 +148,21 @@ export interface QuotaForm extends Record<string, unknown> {
 export interface QuotaQuery {
   tenantID: string;
   keyword?: string;
+  page: number;
+  pageSize: number;
+}
+
+export interface BindingForm {
+  subject_type: string;
+  subject_id: string;
+  role_id: string;
+  organization_unit_id: string;
+}
+
+export interface BindingQuery {
+  tenantID: string;
+  subjectID?: string;
+  subjectType?: string;
   page: number;
   pageSize: number;
 }
@@ -551,6 +568,48 @@ export function revokeRolePermission(rolePermissionID: string, version: number) 
       url: '/api/v1/authorization/role-permissions/revoke',
       method: 'post',
       data: { role_permission_id: rolePermissionID, version }
+    })
+  );
+}
+
+export function listBindings(query: BindingQuery) {
+  return unwrap<{ items: Binding[]; total: number; page: number; page_size: number }>(
+    authorizationRequest({
+      url: '/api/v1/authorization/bindings/list',
+      method: 'post',
+      data: {
+        tenant_id: query.tenantID,
+        subject_id: query.subjectID || '',
+        subject_type: query.subjectType || '',
+        page: query.page,
+        page_size: query.pageSize
+      }
+    })
+  );
+}
+
+export function createBinding(tenantID: string, form: BindingForm) {
+  return unwrap<Binding>(
+    authorizationRequest({
+      url: '/api/v1/authorization/bindings/create',
+      method: 'post',
+      data: {
+        tenant_id: tenantID,
+        subject_id: form.subject_id,
+        subject_type: form.subject_type,
+        role_id: form.role_id,
+        organization_unit_id: form.organization_unit_id
+      }
+    })
+  );
+}
+
+export function revokeBinding(id: string, version: number) {
+  return unwrap<Binding>(
+    authorizationRequest({
+      url: '/api/v1/authorization/bindings/revoke',
+      method: 'post',
+      data: { binding_id: id, version }
     })
   );
 }

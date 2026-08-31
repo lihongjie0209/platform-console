@@ -75,7 +75,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["authorization.Binding"];
+                        };
                     };
                 };
             };
@@ -116,7 +118,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.BindingPageResponseBody"];
+                        };
                     };
                 };
             };
@@ -157,7 +161,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["authorization.Binding"];
+                        };
                     };
                 };
             };
@@ -754,6 +760,20 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        "authorization.Binding": {
+            created_at?: string;
+            created_by?: string;
+            id?: string;
+            organization_unit_id?: string;
+            role_id?: string;
+            status?: string;
+            subject_id?: string;
+            subject_type?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
         "buildinfo.Info": {
             build_time?: string;
             commit?: string;
@@ -773,6 +793,12 @@ export interface components {
         };
         "httptransport.BatchCheckAuthorizationRequest": {
             checks: components["schemas"]["httptransport.CheckAuthorizationRequest"][];
+        };
+        "httptransport.BindingPageResponseBody": {
+            items?: components["schemas"]["authorization.Binding"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
         };
         "httptransport.CheckAuthorizationRequest": {
             action: string;
