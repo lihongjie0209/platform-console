@@ -34,6 +34,7 @@
     "build": "vite build --mode prod",
     "build:test": "vite build --mode test",
     "check:contracts": "node scripts/check-contract-types.mjs",
+    "check:runtime-config": "node scripts/check-runtime-config.mjs",
     "cleanup": "sa cleanup",
     "commit": "sa git-commit",
     "commit:zh": "sa git-commit -l=zh-cn",

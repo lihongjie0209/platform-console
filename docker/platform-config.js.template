@@ -7,6 +7,19 @@ window.__PLATFORM_CONFIG__ = {
     application: '${PLATFORM_APPLICATION_URL}',
     audit: '${PLATFORM_AUDIT_URL}',
     config: '${PLATFORM_CONFIG_URL}',
-    notification: '${PLATFORM_NOTIFICATION_URL}'
+    notification: '${PLATFORM_NOTIFICATION_URL}',
+    file: '${PLATFORM_FILE_URL}',
+    scheduler: '${PLATFORM_SCHEDULER_URL}',
+    dictionary: '${PLATFORM_DICTIONARY_URL}',
+    'service-registry': '${PLATFORM_SERVICE_REGISTRY_URL}',
+    webhook: '${PLATFORM_WEBHOOK_URL}',
+    workflow: '${PLATFORM_WORKFLOW_URL}',
+    search: '${PLATFORM_SEARCH_URL}',
+    metering: '${PLATFORM_METERING_URL}',
+    billing: '${PLATFORM_BILLING_URL}',
+    rule: '${PLATFORM_RULE_URL}',
+    'data-export': '${PLATFORM_DATA_EXPORT_URL}',
+    import: '${PLATFORM_IMPORT_URL}',
+    swagger: '${PLATFORM_SWAGGER_URL}'
   }
 };
