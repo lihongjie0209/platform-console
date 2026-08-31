@@ -30,6 +30,33 @@ export interface Permission extends Record<string, unknown> {
   version: number;
 }
 
+export interface RoleForm extends Record<string, unknown> {
+  code: string;
+  name: string;
+  description: string;
+  data_scope: string;
+  status: string;
+  version: number;
+}
+
+export interface PermissionForm extends Record<string, unknown> {
+  code: string;
+  name: string;
+  resource_type: string;
+  action: string;
+  condition_expression: string;
+  status: string;
+  version: number;
+}
+
+export interface RolePermission extends Record<string, unknown> {
+  id: string;
+  role_id: string;
+  permission_id: string;
+  status: string;
+  version: number;
+}
+
 export interface UserIdentity extends Record<string, unknown> {
   id: string;
   username: string;
@@ -111,7 +138,13 @@ export function listApplications(page: number, pageSize: number, status = '') {
 }
 
 export function getApplication(id: string) {
-  return unwrap(applicationRequest<Application>({ url: '/api/v1/applications/get', method: 'post', data: { id } }));
+  return unwrap(
+    applicationRequest<Application>({
+      url: '/api/v1/applications/get',
+      method: 'post',
+      data: { id }
+    })
+  );
 }
 
 export async function createApplication(form: ApplicationForm) {
@@ -187,7 +220,11 @@ export function publishMenus(applicationID: string, applicationVersion: number, 
     applicationRequest({
       url: '/api/v1/applications/menus/publish',
       method: 'post',
-      data: { application_id: applicationID, application_version: applicationVersion, comment }
+      data: {
+        application_id: applicationID,
+        application_version: applicationVersion,
+        comment
+      }
     })
   );
 }
@@ -207,17 +244,30 @@ export function listTenantDirectory(query: TenantDirectoryQuery) {
     tenantRequest<ResourcePage<TenantDirectoryItem>>({
       url: '/api/v1/tenants/list',
       method: 'post',
-      data: { page: query.page, page_size: query.pageSize, keyword: query.keyword || '', status: query.status || '' }
+      data: {
+        page: query.page,
+        page_size: query.pageSize,
+        keyword: query.keyword || '',
+        status: query.status || ''
+      }
     })
   );
 }
 
 export function listTenantApplicationGrants(tenantID: string) {
-  return unwrap<{ grants: ResourcePage<ApplicationGrant>; applications: Application[] }>(
+  return unwrap<{
+    grants: ResourcePage<ApplicationGrant>;
+    applications: Application[];
+  }>(
     applicationRequest({
       url: '/api/v1/applications/tenant-grants/list',
       method: 'post',
-      data: { tenant_id: tenantID, active_only: false, page: 1, page_size: 100 }
+      data: {
+        tenant_id: tenantID,
+        active_only: false,
+        page: 1,
+        page_size: 100
+      }
     })
   );
 }
@@ -233,7 +283,11 @@ export function grantApplication(input: GrantApplicationInput) {
   if (input.form.valid_from) data.valid_from = input.form.valid_from;
   if (input.form.valid_until) data.valid_until = input.form.valid_until;
   return unwrap<ApplicationGrant>(
-    applicationRequest({ url: '/api/v1/applications/tenant-grants/grant', method: 'post', data })
+    applicationRequest({
+      url: '/api/v1/applications/tenant-grants/grant',
+      method: 'post',
+      data
+    })
   );
 }
 
@@ -257,6 +311,39 @@ export function listRoles(tenantID: string, page: number, pageSize: number) {
   );
 }
 
+export async function createRole(tenantID: string, form: RoleForm) {
+  await unwrap(
+    authorizationRequest<Role>({
+      url: '/api/v1/authorization/roles/create',
+      method: 'post',
+      data: {
+        tenant_id: tenantID,
+        code: form.code,
+        name: form.name,
+        description: form.description,
+        data_scope: form.data_scope
+      }
+    })
+  );
+}
+
+export async function updateRole(id: string, form: RoleForm) {
+  await unwrap(
+    authorizationRequest<Role>({
+      url: '/api/v1/authorization/roles/update',
+      method: 'post',
+      data: {
+        role_id: id,
+        name: form.name,
+        description: form.description,
+        data_scope: form.data_scope,
+        status: form.status,
+        version: form.version
+      }
+    })
+  );
+}
+
 export function listPermissions(tenantID: string, page: number, pageSize: number) {
   return unwrap(
     authorizationRequest<ResourcePage<Permission>>({
@@ -267,9 +354,80 @@ export function listPermissions(tenantID: string, page: number, pageSize: number
   );
 }
 
+export async function createPermission(tenantID: string, form: PermissionForm) {
+  await unwrap(
+    authorizationRequest<Permission>({
+      url: '/api/v1/authorization/permissions/create',
+      method: 'post',
+      data: {
+        tenant_id: tenantID,
+        code: form.code,
+        name: form.name,
+        resource_type: form.resource_type,
+        action: form.action,
+        condition_expression: form.condition_expression
+      }
+    })
+  );
+}
+
+export async function updatePermission(id: string, form: PermissionForm) {
+  await unwrap(
+    authorizationRequest<Permission>({
+      url: '/api/v1/authorization/permissions/update',
+      method: 'post',
+      data: {
+        permission_id: id,
+        name: form.name,
+        condition_expression: form.condition_expression,
+        status: form.status,
+        version: form.version
+      }
+    })
+  );
+}
+
+export function listRolePermissions(roleID: string) {
+  return unwrap<{ role_permissions: RolePermission[] }>(
+    authorizationRequest({
+      url: '/api/v1/authorization/role-permissions/list',
+      method: 'post',
+      data: { role_id: roleID }
+    })
+  );
+}
+
+export function grantRolePermission(tenantID: string, roleID: string, permissionID: string) {
+  return unwrap<RolePermission>(
+    authorizationRequest({
+      url: '/api/v1/authorization/role-permissions/grant',
+      method: 'post',
+      data: {
+        tenant_id: tenantID,
+        role_id: roleID,
+        permission_id: permissionID
+      }
+    })
+  );
+}
+
+export function revokeRolePermission(rolePermissionID: string, version: number) {
+  return unwrap<RolePermission>(
+    authorizationRequest({
+      url: '/api/v1/authorization/role-permissions/revoke',
+      method: 'post',
+      data: { role_permission_id: rolePermissionID, version }
+    })
+  );
+}
+
 export async function listGroups(tenantID: string, page: number, pageSize: number): Promise<ResourcePage<Group>> {
   const data = await unwrap<{ groups: Group[] }>(
-    tenantRequest<{ groups: Group[] }>({ url: '/api/v1/groups/list', method: 'post', data: { tenant_id: tenantID } })
+    tenantRequest<{ groups: Group[] }>({
+      url: '/api/v1/groups/list',
+      method: 'post',
+      data: { tenant_id: tenantID }
+    })
   );
   const start = (page - 1) * pageSize;
   return {

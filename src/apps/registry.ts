@@ -14,6 +14,7 @@ const pageLoaders = {
   'platform-admin.users': () => import('./platform-admin/pages/users/index.vue'),
   'platform-admin.roles': () => import('./platform-admin/pages/roles/index.vue'),
   'platform-admin.permissions': () => import('./platform-admin/pages/permissions/index.vue'),
+  'platform-admin.role-permissions': () => import('./platform-admin/pages/role-permissions/index.vue'),
   'platform-admin.groups': () => import('./platform-admin/pages/groups/index.vue')
 } as const;
 

@@ -1,24 +1,119 @@
 <script setup lang="ts">
-import ResourceList from '../../components/resource-list.vue';
-import { listPermissions } from '../../api';
+import { computed } from 'vue';
+import { usePlatformStore } from '@/store/modules/platform';
+import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
+import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
+import type { Permission, PermissionForm } from '../../api';
+import { createPermission, listPermissions, updatePermission } from '../../api';
 
 defineOptions({ name: 'PlatformAdminPermissions' });
-const columns = [
-  { key: 'code', label: '权限编码', minWidth: 180 },
-  { key: 'name', label: '权限名称', minWidth: 160 },
-  { key: 'resource_type', label: '资源类型', minWidth: 150 },
-  { key: 'action', label: '操作', width: 120 },
-  { key: 'condition_expression', label: '条件表达式', minWidth: 220 },
-  { key: 'version', label: '版本', width: 90 }
-];
+interface Query extends Record<string, unknown> {
+  current: number;
+  size: number;
+}
+const platformStore = usePlatformStore();
+const tenantID = computed(() => platformStore.selectedTenantId);
+const emptyForm = (): PermissionForm => ({
+  code: '',
+  name: '',
+  resource_type: '',
+  action: '',
+  condition_expression: '',
+  status: 'active',
+  version: 0
+});
+const config: BizCrudConfig<Permission, Query, PermissionForm, string> = {
+  title: '权限管理',
+  rowKey: 'id',
+  createQuery: () => ({ current: 1, size: 20 }),
+  columns: () => [
+    { prop: 'code', label: '权限编码', minWidth: 180 },
+    { prop: 'name', label: '权限名称', minWidth: 160 },
+    { prop: 'resource_type', label: '资源类型', minWidth: 150 },
+    { prop: 'action', label: '操作', width: 120 },
+    {
+      prop: 'condition_expression',
+      label: 'ABAC 条件',
+      minWidth: 220,
+      showOverflowTooltip: true
+    },
+    { prop: 'status', label: '状态', width: 100, slot: 'status' },
+    { prop: 'version', label: '版本', width: 90 },
+    { prop: 'id', label: '操作', width: 100, fixed: 'right', slot: 'actions' }
+  ],
+  form: {
+    mode: 'drawer',
+    width: 560,
+    createModel: emptyForm,
+    createTitle: '创建权限',
+    editTitle: '编辑权限',
+    fields: [
+      {
+        key: 'code',
+        label: '权限编码',
+        disabled: model => Number(model.version) > 0,
+        rules: [{ required: true, message: '请输入权限编码' }]
+      },
+      {
+        key: 'name',
+        label: '权限名称',
+        rules: [{ required: true, message: '请输入权限名称' }]
+      },
+      {
+        key: 'resource_type',
+        label: '资源类型',
+        disabled: model => Number(model.version) > 0,
+        rules: [{ required: true, message: '请输入资源类型' }]
+      },
+      {
+        key: 'action',
+        label: '操作',
+        disabled: model => Number(model.version) > 0,
+        rules: [{ required: true, message: '请输入操作' }]
+      },
+      {
+        key: 'condition_expression',
+        label: 'ABAC 条件表达式',
+        type: 'textarea',
+        props: { rows: 5 },
+        placeholder: '例如 attributes["department"] == "finance"'
+      },
+      {
+        key: 'status',
+        label: '状态',
+        type: 'select',
+        options: [
+          { label: '启用', value: 'active' },
+          { label: '停用', value: 'disabled' }
+        ]
+      }
+    ]
+  },
+  mapRowToForm: row => ({ ...emptyForm(), ...row })
+};
+const adapter: BizCrudAdapter<Permission, Query, PermissionForm, string> = {
+  async list(query) {
+    const result = await listPermissions(tenantID.value, query.current, query.size);
+    return {
+      items: result.items,
+      total: result.total,
+      page: result.page,
+      pageSize: result.page_size
+    };
+  },
+  create: form => createPermission(tenantID.value, form),
+  update: updatePermission
+};
 </script>
 
 <template>
-  <ResourceList
-    title="权限管理"
-    description="当前租户的资源、操作与 ABAC 条件定义。"
-    :columns="columns"
-    tenant-scoped
-    :load="listPermissions"
-  />
+  <ElAlert v-if="!tenantID" title="请先在应用选择页选择租户" type="warning" show-icon :closable="false" />
+  <BizCrudPage v-else :key="tenantID" :config="config" :adapter="adapter">
+    <template #cell-status="{ row }">
+      <BizStatusTag :label="String(row.status)" :type="row.status === 'active' ? 'success' : 'danger'" />
+    </template>
+    <template #cell-actions="{ row, edit, canEdit }">
+      <BizRowActions :can-edit="canEdit" :can-delete="false" @edit="edit(row)" />
+    </template>
+  </BizCrudPage>
 </template>
