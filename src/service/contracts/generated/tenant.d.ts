@@ -170,6 +170,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/groups/members/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List assignments for a member group */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Member group */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListGroupMembersRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.GroupMembersResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/groups/update": {
         parameters: {
             query?: never;
@@ -1041,6 +1084,12 @@ export interface components {
             group_id: string;
             membership_id: string;
         };
+        "httptransport.GroupMembersResponseBody": {
+            group_members?: components["schemas"]["tenant.GroupMember"][];
+        };
+        "httptransport.ListGroupMembersRequest": {
+            group_id: string;
+        };
         "httptransport.ListGroupsRequest": {
             tenant_id: string;
         };
@@ -1114,6 +1163,18 @@ export interface components {
             created_by?: string;
             id?: string;
             name?: string;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
+        "tenant.GroupMember": {
+            created_at?: string;
+            created_by?: string;
+            group_id?: string;
+            id?: string;
+            membership_id?: string;
             status?: string;
             tenant_id?: string;
             updated_at?: string;

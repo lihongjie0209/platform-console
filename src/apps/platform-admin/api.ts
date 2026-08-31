@@ -12,6 +12,7 @@ export type OrganizationUnit = TenantContract['schemas']['tenant.OrganizationUni
 export type Membership = TenantContract['schemas']['tenant.Membership'] & Record<string, unknown>;
 export type Invitation = TenantContract['schemas']['tenant.Invitation'] & Record<string, unknown>;
 export type Quota = TenantContract['schemas']['tenant.Quota'] & Record<string, unknown>;
+export type GroupMember = TenantContract['schemas']['tenant.GroupMember'] & Record<string, unknown>;
 export type CreateInvitationResult = TenantContract['schemas']['httptransport.CreateInvitationResponseBody'];
 
 export interface Role extends Record<string, unknown> {
@@ -587,6 +588,32 @@ export async function updateGroup(id: string, form: GroupForm) {
       url: '/api/v1/groups/update',
       method: 'post',
       data: { group_id: id, name: form.name, status: form.status, version: form.version }
+    })
+  );
+}
+
+export function listGroupMembers(groupID: string) {
+  return unwrap<{ group_members: GroupMember[] }>(
+    tenantRequest({ url: '/api/v1/groups/members/list', method: 'post', data: { group_id: groupID } })
+  );
+}
+
+export async function addGroupMember(groupID: string, membershipID: string) {
+  await unwrap<{ added: boolean }>(
+    tenantRequest({
+      url: '/api/v1/groups/member-add',
+      method: 'post',
+      data: { group_id: groupID, membership_id: membershipID }
+    })
+  );
+}
+
+export async function removeGroupMember(groupID: string, membershipID: string, version: number) {
+  await unwrap<{ removed: boolean }>(
+    tenantRequest({
+      url: '/api/v1/groups/member-remove',
+      method: 'post',
+      data: { group_id: groupID, membership_id: membershipID, version }
     })
   );
 }

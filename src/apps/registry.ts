@@ -20,7 +20,8 @@ const pageLoaders = {
   'platform-admin.roles': () => import('./platform-admin/pages/roles/index.vue'),
   'platform-admin.permissions': () => import('./platform-admin/pages/permissions/index.vue'),
   'platform-admin.role-permissions': () => import('./platform-admin/pages/role-permissions/index.vue'),
-  'platform-admin.groups': () => import('./platform-admin/pages/groups/index.vue')
+  'platform-admin.groups': () => import('./platform-admin/pages/groups/index.vue'),
+  'platform-admin.group-members': () => import('./platform-admin/pages/group-members/index.vue')
 } as const;
 
 export type ApplicationPageKey = keyof typeof pageLoaders;

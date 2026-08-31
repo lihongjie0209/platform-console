@@ -163,6 +163,54 @@
                 }
             }
         },
+        "/api/v1/groups/members/list": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "List assignments for a member group",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.ListGroupMembersRequest"
+                            }
+                        }
+                    },
+                    "description": "Member group",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.GroupMembersResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/groups/update": {
             "post": {
                 "security": [
@@ -1224,6 +1272,28 @@
                     }
                 }
             },
+            "httptransport.GroupMembersResponseBody": {
+                "type": "object",
+                "properties": {
+                    "group_members": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/tenant.GroupMember"
+                        }
+                    }
+                }
+            },
+            "httptransport.ListGroupMembersRequest": {
+                "type": "object",
+                "required": [
+                    "group_id"
+                ],
+                "properties": {
+                    "group_id": {
+                        "type": "string"
+                    }
+                }
+            },
             "httptransport.ListGroupsRequest": {
                 "type": "object",
                 "required": [
@@ -1468,6 +1538,41 @@
                         "type": "string"
                     },
                     "name": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "tenant.GroupMember": {
+                "type": "object",
+                "properties": {
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "group_id": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "membership_id": {
                         "type": "string"
                     },
                     "status": {
