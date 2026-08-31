@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+import { resolveApplicationPage } from '@/apps/registry';
+
 defineOptions({ name: 'PlatformPage' });
 
 const props = defineProps<{
@@ -10,13 +13,16 @@ const props = defineProps<{
   externalURL?: string;
 }>();
 
+const pageComponent = computed(() => resolveApplicationPage(props.componentKey));
+
 function openExternalURL() {
   if (props.externalURL) window.open(props.externalURL, '_blank', 'noopener,noreferrer');
 }
 </script>
 
 <template>
-  <ElCard class="card-wrapper" shadow="never">
+  <component :is="pageComponent" v-if="pageComponent" />
+  <ElCard v-else class="card-wrapper" shadow="never">
     <template #header>
       <div class="flex-y-center justify-between gap-12px">
         <div>

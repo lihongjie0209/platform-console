@@ -13,11 +13,28 @@ const openAPIDir = path.join(outputDir, 'openapi');
 const typesDir = path.join(outputDir, 'generated');
 const binDir = path.join(rootDir, 'node_modules/.bin');
 
+async function fetchWithRetry(url, attempts = 3, attempt = 1) {
+  try {
+    const response = await fetch(url);
+    if (response.ok || response.status < 500) return response;
+    if (attempt >= attempts) return response;
+  } catch (error) {
+    if (attempt >= attempts) {
+      throw new Error(`unable to download contract after ${attempts} attempts`, { cause: error });
+    }
+  }
+  await new Promise(resolve => {
+    setTimeout(resolve, 500 * 2 ** (attempt - 1));
+  });
+  return fetchWithRetry(url, attempts, attempt + 1);
+}
+
 await Promise.all([mkdir(openAPIDir, { recursive: true }), mkdir(typesDir, { recursive: true })]);
 
 await Promise.all(
   Object.entries(manifest).map(async ([service, sourceURL]) => {
-    const response = await fetch(sourceURL);
+    const separator = sourceURL.includes('?') ? '&' : '?';
+    const response = await fetchWithRetry(`${sourceURL}${separator}contract_refresh=${Date.now()}`);
     if (!response.ok)
       throw new Error(`unable to download ${service} contract: ${response.status} ${response.statusText}`);
 
