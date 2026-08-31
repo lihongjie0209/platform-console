@@ -17,6 +17,9 @@ window.__PLATFORM_CONFIG__ = {
     search: 'http://127.0.0.1:18095',
     metering: 'http://127.0.0.1:18096',
     billing: 'http://127.0.0.1:18097',
-    rule: 'http://127.0.0.1:18098'
+    rule: 'http://127.0.0.1:18098',
+    'data-export': 'http://127.0.0.1:18099',
+    import: 'http://127.0.0.1:18100',
+    webhook: 'http://127.0.0.1:18093'
   }
 };

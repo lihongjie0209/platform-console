@@ -1,0 +1,133 @@
+import { platformRequest } from '@/service/request';
+export interface ImportDataset extends Record<string, unknown> {
+  provider_service: string;
+  code: string;
+  title: string;
+  formats: string[];
+  healthy_instances: number;
+}
+export interface ImportJob extends Record<string, unknown> {
+  id: string;
+  tenant_id: string;
+  dataset_code: string;
+  provider_service: string;
+  format: string;
+  filename: string;
+  status: string;
+  source_bytes: number;
+  total_rows: number;
+  valid_rows: number;
+  invalid_rows: number;
+  applied_rows: number;
+  progress_percent: number;
+  error_message: string;
+  version: number;
+}
+interface Page<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+interface UploadResult {
+  job: ImportJob;
+  upload_url: string;
+  upload_headers: Record<string, string>;
+  duplicate: boolean;
+}
+const request = platformRequest('import');
+async function unwrap<T>(value: PromiseLike<{ data: T | null; error: unknown }>): Promise<T> {
+  const { data, error } = await value;
+  if (error) throw error;
+  if (data === null) throw new Error('import service returned an empty response');
+  return data;
+}
+export const listDatasets = (tenantID: string, search: string) =>
+  unwrap<Page<ImportDataset>>(
+    request({
+      url: '/api/v1/imports/datasets/list',
+      method: 'post',
+      data: { tenant_id: tenantID, search, page: 1, page_size: 100 }
+    })
+  );
+export const listImports = (input: { tenantID: string; status: string; datasetCode: string }) =>
+  unwrap<Page<ImportJob>>(
+    request({
+      url: '/api/v1/imports/list',
+      method: 'post',
+      data: {
+        tenant_id: input.tenantID,
+        status: input.status,
+        dataset_code: input.datasetCode,
+        page: 1,
+        page_size: 100
+      }
+    })
+  );
+export const createImport = (input: { tenantID: string; dataset: ImportDataset; format: string; filename: string }) =>
+  unwrap<UploadResult>(
+    request({
+      url: '/api/v1/imports/create',
+      method: 'post',
+      data: {
+        tenant_id: input.tenantID,
+        dataset_code: input.dataset.code,
+        provider_service: input.dataset.provider_service,
+        format: input.format,
+        filename: input.filename,
+        idempotency_key: crypto.randomUUID()
+      }
+    })
+  );
+export async function putImportFile(value: UploadResult, file: File) {
+  const headers = new Headers(value.upload_headers || {});
+  headers.delete('content-length');
+  const response = await fetch(value.upload_url, { method: 'PUT', headers, body: file });
+  if (!response.ok) throw new Error(`对象存储上传失败（HTTP ${response.status}）`);
+}
+export const completeImportUpload = (job: ImportJob, size: number, checksum: string) =>
+  unwrap<ImportJob>(
+    request({
+      url: '/api/v1/imports/complete-upload',
+      method: 'post',
+      data: {
+        tenant_id: job.tenant_id,
+        id: job.id,
+        version: job.version,
+        source_bytes: size,
+        source_checksum: checksum
+      }
+    })
+  );
+export const confirmImport = (job: ImportJob) =>
+  unwrap<{ job: ImportJob; duplicate: boolean }>(
+    request({
+      url: '/api/v1/imports/confirm',
+      method: 'post',
+      data: { tenant_id: job.tenant_id, id: job.id, version: job.version, idempotency_key: crypto.randomUUID() }
+    })
+  );
+export const cancelImport = (job: ImportJob) =>
+  unwrap<ImportJob>(
+    request({
+      url: '/api/v1/imports/cancel',
+      method: 'post',
+      data: { tenant_id: job.tenant_id, id: job.id, version: job.version }
+    })
+  );
+export const retryImport = (job: ImportJob) =>
+  unwrap<UploadResult>(
+    request({
+      url: '/api/v1/imports/retry',
+      method: 'post',
+      data: { tenant_id: job.tenant_id, id: job.id, version: job.version, idempotency_key: crypto.randomUUID() }
+    })
+  );
+export const errorReport = (job: ImportJob) =>
+  unwrap<{ url: string; filename: string }>(
+    request({
+      url: '/api/v1/imports/error-report',
+      method: 'post',
+      data: { tenant_id: job.tenant_id, id: job.id, ttl_seconds: 300 }
+    })
+  );

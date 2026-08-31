@@ -43,7 +43,11 @@ const pageLoaders = {
   'billing-center.plans': () => import('./billing-center/pages/plans/index.vue'),
   'billing-center.subscriptions': () => import('./billing-center/pages/subscriptions/index.vue'),
   'billing-center.invoices': () => import('./billing-center/pages/invoices/index.vue'),
-  'rule-center.rules': () => import('./rule-center/pages/rules/index.vue')
+  'rule-center.rules': () => import('./rule-center/pages/rules/index.vue'),
+  'import-center.jobs': () => import('./import-center/pages/jobs/index.vue'),
+  'export-center.jobs': () => import('./export-center/pages/jobs/index.vue'),
+  'webhook-center.subscriptions': () => import('./webhook-center/pages/subscriptions/index.vue'),
+  'webhook-center.deliveries': () => import('./webhook-center/pages/deliveries/index.vue')
 } as const;
 
 export type ApplicationPageKey = keyof typeof pageLoaders;
@@ -115,6 +119,21 @@ export const applicationModules: readonly ApplicationModule[] = [
     code: 'rule-center',
     name: '规则中心',
     pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('rule-center.')))
+  },
+  {
+    code: 'import-center',
+    name: '数据导入',
+    pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('import-center.')))
+  },
+  {
+    code: 'export-center',
+    name: '数据导出',
+    pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('export-center.')))
+  },
+  {
+    code: 'webhook-center',
+    name: 'Webhook 中心',
+    pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('webhook-center.')))
   }
 ];
 
