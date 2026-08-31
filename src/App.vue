@@ -17,8 +17,8 @@ const locale = computed(() => {
 
 const watermarkProps = computed<WatermarkProps>(() => {
   const content =
-    themeStore.watermark.enableUserName && authStore.userInfo.userName
-      ? authStore.userInfo.userName
+    themeStore.watermark.enableUserName && authStore.userInfo.subject
+      ? authStore.userInfo.subject
       : themeStore.watermark.text;
 
   return {

@@ -1,0 +1,6 @@
+{
+  "identity": "https://raw.githubusercontent.com/lihongjie0209/identity-service/main/docs/swagger.json",
+  "tenant": "https://raw.githubusercontent.com/lihongjie0209/tenant-service/main/docs/swagger.json",
+  "authorization": "https://raw.githubusercontent.com/lihongjie0209/authorization-service/main/docs/swagger.json",
+  "application": "https://raw.githubusercontent.com/lihongjie0209/application-service/main/docs/swagger.json"
+}

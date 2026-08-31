@@ -1,6 +1,10 @@
 /** The storage namespace */
 declare namespace StorageType {
   interface Session {
+    /** The short-lived browser access token. */
+    token: string;
+    /** The rotating browser refresh token. */
+    refreshToken: string;
     /** The theme color */
     themeColor: string;
     // /**

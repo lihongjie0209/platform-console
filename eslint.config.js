@@ -3,6 +3,9 @@ import { defineConfig } from '@soybeanjs/eslint-config';
 export default defineConfig(
   { vue: true, unocss: true },
   {
+    ignores: ['src/service/contracts/**']
+  },
+  {
     rules: {
       'vue/multi-word-component-names': [
         'warn',
@@ -34,8 +37,12 @@ export default defineConfig(
           'no-direct-element-plus': {
             meta: {
               type: 'suggestion',
-              docs: { description: 'Require business CRUD structural components in migrated views' },
-              messages: { forbidden: 'Use the Biz CRUD component layer instead of <{{ name }}> in migrated views.' },
+              docs: {
+                description: 'Require business CRUD structural components in migrated views'
+              },
+              messages: {
+                forbidden: 'Use the Biz CRUD component layer instead of <{{ name }}> in migrated views.'
+              },
               schema: []
             },
             create(context) {
@@ -51,7 +58,11 @@ export default defineConfig(
               const visitor = {
                 VElement(node) {
                   if (forbidden.has(node.rawName)) {
-                    context.report({ node, messageId: 'forbidden', data: { name: node.rawName } });
+                    context.report({
+                      node,
+                      messageId: 'forbidden',
+                      data: { name: node.rawName }
+                    });
                   }
                 }
               };

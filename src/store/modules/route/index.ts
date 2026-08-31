@@ -4,7 +4,8 @@ import { defineStore } from 'pinia';
 import { useBoolean } from '@sa/hooks';
 import type { CustomRoute, ElegantConstRoute, LastLevelRouteKey, RouteKey, RouteMap } from '@elegant-router/types';
 import { router } from '@/router';
-import { fetchGetConstantRoutes, fetchGetUserRoutes, fetchIsRouteExist } from '@/service/api';
+import { fetchPublishedNavigation, fetchTenantApplications, fetchUserTenants } from '@/service/api';
+import { homeRoute, navigationToRoutes } from '@/platform/navigation';
 import { SetupStoreId } from '@/enum';
 import { createStaticRoutes, getAuthVueRoutes } from '@/router/routes';
 import { ROOT_ROUTE } from '@/router/routes/builtin';
@@ -154,18 +155,9 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
 
     const staticRoute = createStaticRoutes();
 
-    if (authRouteMode.value === 'static') {
-      addConstantRoutes(staticRoute.constantRoutes);
-    } else {
-      const { data, error } = await fetchGetConstantRoutes();
-
-      if (!error) {
-        addConstantRoutes(data);
-      } else {
-        // if fetch constant routes failed, use static constant routes
-        addConstantRoutes(staticRoute.constantRoutes);
-      }
-    }
+    // Login, 403/404 and other shell routes are bundled with the console. Only
+    // authenticated application navigation is fetched from platform services.
+    addConstantRoutes(staticRoute.constantRoutes);
 
     handleConstantAndAuthRoutes();
 
@@ -177,7 +169,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
   /** Init auth route */
   async function initAuthRoute() {
     // check if user info is initialized
-    if (!authStore.userInfo.userId) {
+    if (!authStore.userInfo.subject) {
       await authStore.initUserInfo();
     }
 
@@ -209,24 +201,29 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
 
   /** Init dynamic auth route */
   async function initDynamicAuthRoute() {
-    const { data, error } = await fetchGetUserRoutes();
+    const routes = [homeRoute()];
+    const { data: tenantPage, error: tenantError } = await fetchUserTenants(authStore.userInfo.subject);
 
-    if (!error) {
-      const { routes, home } = data;
-
-      addAuthRoutes(routes);
-
-      handleConstantAndAuthRoutes();
-
-      setRouteHome(home);
-
-      handleUpdateRootRouteRedirect(home);
-
-      setIsInitAuthRoute(true);
-    } else {
-      // if fetch user routes failed, reset store
-      authStore.resetStore();
+    if (!tenantError) {
+      const tenant = tenantPage.items.find(item => item.status === 'active');
+      if (tenant) {
+        const { data: grants, error: grantError } = await fetchTenantApplications(tenant.id);
+        if (!grantError) {
+          const navigations = await Promise.all(
+            grants.applications.map(application => fetchPublishedNavigation(application.id))
+          );
+          navigations.forEach(navigation => {
+            if (!navigation.error) routes.push(...navigationToRoutes(navigation.data));
+          });
+        }
+      }
     }
+
+    addAuthRoutes(routes);
+    handleConstantAndAuthRoutes();
+    setRouteHome('home');
+    handleUpdateRootRouteRedirect('home');
+    setIsInitAuthRoute(true);
   }
 
   /** handle constant and auth routes */
@@ -303,9 +300,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
       return isRouteExistByRouteName(routeName, staticAuthRoutes);
     }
 
-    const { data } = await fetchIsRouteExist(routeName);
-
-    return data;
+    return isRouteExistByRouteName(routeName, authRoutes.value);
   }
 
   /**

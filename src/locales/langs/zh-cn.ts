@@ -162,6 +162,8 @@ const local: App.I18n.Schema = {
     500: '服务器错误',
     'iframe-page': '外链页面',
     home: '首页',
+    platform: '平台',
+    platform_page: '平台功能页',
     document: '文档',
     document_project: '项目文档',
     'document_project-link': '项目文档(外链)',

@@ -1,0 +1,10 @@
+/* eslint-disable no-underscore-dangle */
+window.__PLATFORM_CONFIG__ = {
+  environment: 'development',
+  services: {
+    identity: 'http://127.0.0.1:18080',
+    tenant: 'http://127.0.0.1:18081',
+    authorization: 'http://127.0.0.1:18082',
+    application: 'http://127.0.0.1:18083'
+  }
+};

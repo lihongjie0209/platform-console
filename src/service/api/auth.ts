@@ -1,4 +1,6 @@
-import { request } from '../request';
+import { platformRequest } from '../request';
+
+const identityRequest = platformRequest('identity');
 
 /**
  * Login
@@ -6,12 +8,12 @@ import { request } from '../request';
  * @param userName User name
  * @param password Password
  */
-export function fetchLogin(userName: string, password: string) {
-  return request<Api.Auth.LoginToken>({
-    url: '/auth/login',
+export function fetchLogin(login: string, password: string) {
+  return identityRequest<Api.Auth.LoginToken>({
+    url: '/api/v1/auth/login',
     method: 'post',
     data: {
-      userName,
+      login,
       password
     }
   });
@@ -19,7 +21,7 @@ export function fetchLogin(userName: string, password: string) {
 
 /** Get user info */
 export function fetchGetUserInfo() {
-  return request<Api.Auth.UserInfo>({ url: '/auth/getUserInfo' });
+  return identityRequest<Api.Auth.UserInfo>({ url: '/api/v1/me', method: 'post' });
 }
 
 /**
@@ -28,21 +30,11 @@ export function fetchGetUserInfo() {
  * @param refreshToken Refresh token
  */
 export function fetchRefreshToken(refreshToken: string) {
-  return request<Api.Auth.LoginToken>({
-    url: '/auth/refreshToken',
+  return identityRequest<Api.Auth.LoginToken>({
+    url: '/api/v1/auth/refresh',
     method: 'post',
     data: {
-      refreshToken
+      refresh_token: refreshToken
     }
   });
-}
-
-/**
- * return custom backend error
- *
- * @param code error code
- * @param msg error message
- */
-export function fetchCustomBackendError(code: string, msg: string) {
-  return request({ url: '/auth/error', params: { code, msg } });
 }

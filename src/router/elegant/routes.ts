@@ -376,6 +376,26 @@ export const generatedRoutes: GeneratedRoute[] = [
     ]
   },
   {
+    name: 'platform',
+    path: '/platform',
+    component: 'layout.base',
+    meta: {
+      title: 'platform',
+      i18nKey: 'route.platform'
+    },
+    children: [
+      {
+        name: 'platform_page',
+        path: '/platform/page',
+        component: 'view.platform_page',
+        meta: {
+          title: 'platform_page',
+          i18nKey: 'route.platform_page'
+        }
+      }
+    ]
+  },
+  {
     name: 'plugin',
     path: '/plugin',
     component: 'layout.base',

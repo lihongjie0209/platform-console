@@ -1,10 +1,12 @@
 import { useAuthStore } from '@/store/modules/auth';
-import { localStg } from '@/utils/storage';
+import { sessionStg } from '@/utils/storage';
 import { fetchRefreshToken } from '../api';
 import type { RequestInstanceState } from './type';
 
+let refreshTokenPromise: Promise<boolean> | null = null;
+
 export function getAuthorization() {
-  const token = localStg.get('token');
+  const token = sessionStg.get('token');
   const Authorization = token ? `Bearer ${token}` : null;
 
   return Authorization;
@@ -14,11 +16,11 @@ export function getAuthorization() {
 async function handleRefreshToken() {
   const { resetStore } = useAuthStore();
 
-  const rToken = localStg.get('refreshToken') || '';
+  const rToken = sessionStg.get('refreshToken') || '';
   const { error, data } = await fetchRefreshToken(rToken);
   if (!error) {
-    localStg.set('token', data.token);
-    localStg.set('refreshToken', data.refreshToken);
+    sessionStg.set('token', data.access_token);
+    sessionStg.set('refreshToken', data.refresh_token);
     return true;
   }
 
@@ -27,15 +29,15 @@ async function handleRefreshToken() {
   return false;
 }
 
-export async function handleExpiredRequest(state: RequestInstanceState) {
-  if (!state.refreshTokenFn) {
-    state.refreshTokenFn = handleRefreshToken();
+export async function handleExpiredRequest() {
+  if (!refreshTokenPromise) {
+    refreshTokenPromise = handleRefreshToken();
   }
 
-  const success = await state.refreshTokenFn;
+  const success = await refreshTokenPromise;
 
   setTimeout(() => {
-    state.refreshTokenFn = null;
+    refreshTokenPromise = null;
   }, 1000);
 
   return success;

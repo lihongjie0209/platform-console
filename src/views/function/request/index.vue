@@ -1,37 +1,15 @@
 <script setup lang="ts">
-import { fetchCustomBackendError } from '@/service/api';
 import { $t } from '@/locales';
 
-async function logout() {
-  await fetchCustomBackendError('8888', $t('request.logoutMsg'));
+function showLegacyDemoDisabled() {
+  window.$message?.warning('平台控制台已移除模拟后端错误接口。');
 }
 
-async function logoutWithModal() {
-  await fetchCustomBackendError('7777', $t('request.logoutWithModalMsg'));
-}
-
-async function refreshToken() {
-  await fetchCustomBackendError('9999', $t('request.tokenExpired'));
-}
-
-async function handleRepeatedMessageError() {
-  await Promise.all([
-    fetchCustomBackendError('2222', $t('page.function.request.repeatedErrorMsg1')),
-    fetchCustomBackendError('2222', $t('page.function.request.repeatedErrorMsg1')),
-    fetchCustomBackendError('2222', $t('page.function.request.repeatedErrorMsg1')),
-    fetchCustomBackendError('3333', $t('page.function.request.repeatedErrorMsg2')),
-    fetchCustomBackendError('3333', $t('page.function.request.repeatedErrorMsg2')),
-    fetchCustomBackendError('3333', $t('page.function.request.repeatedErrorMsg2'))
-  ]);
-}
-
-async function handleRepeatedModalError() {
-  await Promise.all([
-    fetchCustomBackendError('7777', $t('request.logoutWithModalMsg')),
-    fetchCustomBackendError('7777', $t('request.logoutWithModalMsg')),
-    fetchCustomBackendError('7777', $t('request.logoutWithModalMsg'))
-  ]);
-}
+const logout = showLegacyDemoDisabled;
+const logoutWithModal = showLegacyDemoDisabled;
+const refreshToken = showLegacyDemoDisabled;
+const handleRepeatedMessageError = showLegacyDemoDisabled;
+const handleRepeatedModalError = showLegacyDemoDisabled;
 </script>
 
 <template>
