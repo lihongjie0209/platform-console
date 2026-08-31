@@ -536,6 +536,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sessions/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List user sessions for security administration */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Filters and pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListSessionsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.SessionPageResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sessions/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Administratively revoke a session with optimistic locking */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Session, reason, and expected version */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.RevokeSessionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.SessionResponseBody"];
+                        };
+                    };
+                };
+                /** @description Code 30009: stale resource version */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/version": {
         parameters: {
             query?: never;
@@ -711,6 +806,13 @@ export interface components {
             page_size?: number;
             status?: string;
         };
+        "httptransport.ListSessionsRequest": {
+            page?: number;
+            page_size?: number;
+            status?: string;
+            tenant_id?: string;
+            user_id?: string;
+        };
         "httptransport.LoginRequest": {
             login: string;
             password: string;
@@ -738,6 +840,11 @@ export interface components {
             message?: string;
             request_id?: string;
         };
+        "httptransport.RevokeSessionRequest": {
+            reason: string;
+            session_id: string;
+            version: number;
+        };
         "httptransport.ServiceAccountPageResponseBody": {
             items?: components["schemas"]["httptransport.ServiceAccountResponseBody"][];
             page?: number;
@@ -759,6 +866,28 @@ export interface components {
         "httptransport.ServiceAccountTokenRequest": {
             client_id: string;
             client_secret: string;
+        };
+        "httptransport.SessionPageResponseBody": {
+            items?: components["schemas"]["httptransport.SessionResponseBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
+        "httptransport.SessionResponseBody": {
+            created_at?: string;
+            created_by?: string;
+            expires_at?: string;
+            last_used_at?: string;
+            membership_id?: string;
+            revoke_reason?: string;
+            revoked_at?: string;
+            session_id?: string;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            user_id?: string;
+            version?: number;
         };
         "httptransport.UpdateIdentityStatusRequest": {
             id: string;

@@ -18,6 +18,7 @@ const pageLoaders = {
   'platform-admin.quotas': () => import('./platform-admin/pages/quotas/index.vue'),
   'platform-admin.users': () => import('./platform-admin/pages/users/index.vue'),
   'platform-admin.service-accounts': () => import('./platform-admin/pages/service-accounts/index.vue'),
+  'platform-admin.sessions': () => import('./platform-admin/pages/sessions/index.vue'),
   'platform-admin.roles': () => import('./platform-admin/pages/roles/index.vue'),
   'platform-admin.permissions': () => import('./platform-admin/pages/permissions/index.vue'),
   'platform-admin.role-permissions': () => import('./platform-admin/pages/role-permissions/index.vue'),

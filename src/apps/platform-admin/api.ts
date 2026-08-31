@@ -19,6 +19,7 @@ export type CreateInvitationResult = TenantContract['schemas']['httptransport.Cr
 export type Binding = AuthorizationContract['schemas']['authorization.Binding'] & Record<string, unknown>;
 export type ServiceAccountContract = IdentityContract['schemas']['httptransport.ServiceAccountResponseBody'];
 export type CreateServiceAccountResult = IdentityContract['schemas']['httptransport.CreateServiceAccountResponseBody'];
+export type SessionContract = IdentityContract['schemas']['httptransport.SessionResponseBody'];
 
 export interface Role extends Record<string, unknown> {
   id: string;
@@ -109,6 +110,25 @@ export interface ServiceAccountQuery {
   page: number;
   pageSize: number;
   keyword?: string;
+  status?: string;
+}
+
+export interface UserSession extends SessionContract, Record<string, unknown> {
+  session_id: string;
+  user_id: string;
+  tenant_id: string;
+  membership_id: string;
+  status: string;
+  expires_at: string;
+  last_used_at: string;
+  version: number;
+}
+
+export interface SessionQuery {
+  page: number;
+  pageSize: number;
+  userID?: string;
+  tenantID?: string;
   status?: string;
 }
 
@@ -421,6 +441,32 @@ export async function updateServiceAccountStatus(id: string, status: string, ver
       url: '/api/v1/service-accounts/update-status',
       method: 'post',
       data: { id, status, version }
+    })
+  );
+}
+
+export function listSessions(query: SessionQuery) {
+  return unwrap(
+    identityRequest<ResourcePage<UserSession>>({
+      url: '/api/v1/sessions/list',
+      method: 'post',
+      data: {
+        page: query.page,
+        page_size: query.pageSize,
+        user_id: query.userID || '',
+        tenant_id: query.tenantID || '',
+        status: query.status || ''
+      }
+    })
+  );
+}
+
+export function revokeSession(sessionID: string, reason: string, version: number) {
+  return unwrap<UserSession>(
+    identityRequest({
+      url: '/api/v1/sessions/revoke',
+      method: 'post',
+      data: { session_id: sessionID, reason, version }
     })
   );
 }
