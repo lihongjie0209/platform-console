@@ -1,11 +1,12 @@
 import type { components as ApplicationContract } from '@/service/contracts/generated/application';
 import type { components as TenantContract } from '@/service/contracts/generated/tenant';
 import { platformRequest } from '@/service/request';
-import { parseJSONObject } from './metadata';
+import { parseJSONObject, parseJSONRecord } from './metadata';
 
 export type Application = ApplicationContract['schemas']['application.Application'] & Record<string, unknown>;
 export type ApplicationMenu = ApplicationContract['schemas']['application.Menu'] & Record<string, unknown>;
 export type MenuRelease = ApplicationContract['schemas']['application.MenuRelease'] & Record<string, unknown>;
+export type ApplicationGrant = ApplicationContract['schemas']['application.Grant'] & Record<string, unknown>;
 export type Group = TenantContract['schemas']['tenant.Group'] & Record<string, unknown>;
 
 export interface Role extends Record<string, unknown> {
@@ -36,6 +37,35 @@ export interface UserIdentity extends Record<string, unknown> {
   email: string;
   phone: string;
   status: string;
+  version: number;
+}
+
+export interface TenantDirectoryItem extends Record<string, unknown> {
+  id: string;
+  code: string;
+  name: string;
+  status: string;
+  version: number;
+}
+
+export interface ApplicationGrantForm {
+  source: string;
+  valid_from: string;
+  valid_until: string;
+  entitlements_json: string;
+}
+
+export interface TenantDirectoryQuery {
+  page: number;
+  pageSize: number;
+  keyword?: string;
+  status?: string;
+}
+
+export interface GrantApplicationInput {
+  tenantID: string;
+  applicationID: string;
+  form: ApplicationGrantForm;
   version: number;
 }
 
@@ -168,6 +198,51 @@ export function listUsers(_tenantID: string, page: number, pageSize: number) {
       url: '/api/v1/identities/list',
       method: 'post',
       data: { page, page_size: pageSize }
+    })
+  );
+}
+
+export function listTenantDirectory(query: TenantDirectoryQuery) {
+  return unwrap(
+    tenantRequest<ResourcePage<TenantDirectoryItem>>({
+      url: '/api/v1/tenants/list',
+      method: 'post',
+      data: { page: query.page, page_size: query.pageSize, keyword: query.keyword || '', status: query.status || '' }
+    })
+  );
+}
+
+export function listTenantApplicationGrants(tenantID: string) {
+  return unwrap<{ grants: ResourcePage<ApplicationGrant>; applications: Application[] }>(
+    applicationRequest({
+      url: '/api/v1/applications/tenant-grants/list',
+      method: 'post',
+      data: { tenant_id: tenantID, active_only: false, page: 1, page_size: 100 }
+    })
+  );
+}
+
+export function grantApplication(input: GrantApplicationInput) {
+  const data: Record<string, unknown> = {
+    tenant_id: input.tenantID,
+    application_id: input.applicationID,
+    source: input.form.source,
+    entitlements_json: parseJSONRecord(input.form.entitlements_json, 'entitlements_json'),
+    expected_version: input.version
+  };
+  if (input.form.valid_from) data.valid_from = input.form.valid_from;
+  if (input.form.valid_until) data.valid_until = input.form.valid_until;
+  return unwrap<ApplicationGrant>(
+    applicationRequest({ url: '/api/v1/applications/tenant-grants/grant', method: 'post', data })
+  );
+}
+
+export function revokeApplicationGrant(tenantID: string, applicationID: string, version: number) {
+  return unwrap<ApplicationGrant>(
+    applicationRequest({
+      url: '/api/v1/applications/tenant-grants/revoke',
+      method: 'post',
+      data: { tenant_id: tenantID, application_id: applicationID, version }
     })
   );
 }

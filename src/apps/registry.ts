@@ -10,6 +10,7 @@ export interface ApplicationModule {
 const pageLoaders = {
   'platform-admin.applications': () => import('./platform-admin/pages/applications/index.vue'),
   'platform-admin.menus': () => import('./platform-admin/pages/menus/index.vue'),
+  'platform-admin.application-grants': () => import('./platform-admin/pages/application-grants/index.vue'),
   'platform-admin.users': () => import('./platform-admin/pages/users/index.vue'),
   'platform-admin.roles': () => import('./platform-admin/pages/roles/index.vue'),
   'platform-admin.permissions': () => import('./platform-admin/pages/permissions/index.vue'),
