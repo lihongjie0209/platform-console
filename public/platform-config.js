@@ -6,6 +6,7 @@ window.__PLATFORM_CONFIG__ = {
     tenant: 'http://127.0.0.1:18081',
     authorization: 'http://127.0.0.1:18082',
     application: 'http://127.0.0.1:18083',
-    audit: 'http://127.0.0.1:18084'
+    audit: 'http://127.0.0.1:18084',
+    config: 'http://127.0.0.1:18085'
   }
 };

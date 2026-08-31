@@ -25,7 +25,8 @@ const pageLoaders = {
   'platform-admin.role-bindings': () => import('./platform-admin/pages/role-bindings/index.vue'),
   'platform-admin.groups': () => import('./platform-admin/pages/groups/index.vue'),
   'platform-admin.group-members': () => import('./platform-admin/pages/group-members/index.vue'),
-  'audit-center.records': () => import('./audit-center/pages/records/index.vue')
+  'audit-center.records': () => import('./audit-center/pages/records/index.vue'),
+  'config-center.entries': () => import('./config-center/pages/entries/index.vue')
 } as const;
 
 export type ApplicationPageKey = keyof typeof pageLoaders;
@@ -42,6 +43,11 @@ export const applicationModules: readonly ApplicationModule[] = [
     code: 'audit-center',
     name: '审计中心',
     pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('audit-center.')))
+  },
+  {
+    code: 'config-center',
+    name: '配置中心',
+    pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('config-center.')))
   }
 ];
 

@@ -5,6 +5,7 @@ window.__PLATFORM_CONFIG__ = {
     tenant: '${PLATFORM_TENANT_URL}',
     authorization: '${PLATFORM_AUTHORIZATION_URL}',
     application: '${PLATFORM_APPLICATION_URL}',
-    audit: '${PLATFORM_AUDIT_URL}'
+    audit: '${PLATFORM_AUDIT_URL}',
+    config: '${PLATFORM_CONFIG_URL}'
   }
 };

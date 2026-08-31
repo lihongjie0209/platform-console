@@ -2,6 +2,8 @@
 
 `platform-console` is one browser application for platform administration and future business-system modules. It is deliberately a single SPA: shared navigation, authorization handling, UI primitives and deployment configuration live in one release unit.
 
+Feature pages are split by application namespace (`platform-admin`, `audit-center`, `config-center`, and later business applications). Each module owns its API adapter and pages while sharing only the shell, authentication, request client, and reusable UI primitives.
+
 ## Trust boundary
 
 The browser calls public HTTP APIs on the service subdomains directly. It uses the Identity service JSON login and refresh APIs, retaining tokens in `sessionStorage`; private gRPC, PSK and service credentials never enter this application. Every browser-facing service must allow the console origin through its CORS allowlist.
