@@ -30,7 +30,10 @@ const pageLoaders = {
   'notification-center.templates': () => import('./notification-center/pages/templates/index.vue'),
   'notification-center.deliveries': () => import('./notification-center/pages/deliveries/index.vue'),
   'file-center.files': () => import('./file-center/pages/files/index.vue'),
-  'scheduler-center.jobs': () => import('./scheduler-center/pages/jobs/index.vue')
+  'scheduler-center.jobs': () => import('./scheduler-center/pages/jobs/index.vue'),
+  'dictionary-center.definitions': () => import('./dictionary-center/pages/definitions/index.vue'),
+  'dictionary-center.providers': () => import('./dictionary-center/pages/providers/index.vue'),
+  'registry-center.services': () => import('./registry-center/pages/services/index.vue')
 } as const;
 
 export type ApplicationPageKey = keyof typeof pageLoaders;
@@ -67,6 +70,16 @@ export const applicationModules: readonly ApplicationModule[] = [
     code: 'scheduler-center',
     name: '调度中心',
     pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('scheduler-center.')))
+  },
+  {
+    code: 'dictionary-center',
+    name: '数据字典',
+    pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('dictionary-center.')))
+  },
+  {
+    code: 'registry-center',
+    name: '服务注册中心',
+    pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('registry-center.')))
   }
 ];
 

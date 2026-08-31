@@ -47,7 +47,7 @@
     "prepare": "simple-git-hooks",
     "preview": "vite preview",
     "release": "sa release",
-    "test": "tsx --test src/components/business/crud/*.test.ts src/components/business/common/*.test.ts src/platform/*.test.ts src/apps/config-center/*.test.ts src/apps/notification-center/*.test.ts src/apps/file-center/*.test.ts src/apps/scheduler-center/*.test.ts",
+    "test": "tsx --test src/components/business/crud/*.test.ts src/components/business/common/*.test.ts src/platform/*.test.ts src/apps/config-center/*.test.ts src/apps/notification-center/*.test.ts src/apps/file-center/*.test.ts src/apps/scheduler-center/*.test.ts src/apps/dictionary-center/*.test.ts",
     "typecheck": "vue-tsc --noEmit --skipLibCheck",
     "update-pkg": "sa update-pkg"
   },

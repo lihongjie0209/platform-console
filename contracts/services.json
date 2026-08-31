@@ -7,5 +7,7 @@
   "config": "https://raw.githubusercontent.com/lihongjie0209/config-service/main/docs/swagger.json",
   "notification": "https://raw.githubusercontent.com/lihongjie0209/notification-service/main/docs/swagger.json",
   "file": "https://raw.githubusercontent.com/lihongjie0209/file-service/main/docs/swagger.json",
-  "scheduler": "https://raw.githubusercontent.com/lihongjie0209/scheduler-service/main/docs/swagger.json"
+  "scheduler": "https://raw.githubusercontent.com/lihongjie0209/scheduler-service/main/docs/swagger.json",
+  "dictionary": "https://raw.githubusercontent.com/lihongjie0209/dictionary-service/main/docs/swagger.json?revision=6ae9f8b",
+  "service-registry": "https://raw.githubusercontent.com/lihongjie0209/service-registry-service/main/docs/swagger.json"
 }
