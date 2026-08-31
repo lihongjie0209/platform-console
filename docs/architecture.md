@@ -8,7 +8,7 @@ The browser calls public HTTP APIs on the service subdomains directly. It uses t
 
 ## Navigation and authorization
 
-On login, the console reads `/api/v1/me`, obtains the user's active tenant, lists applications granted to that tenant, then reads each application's published navigation. The application-service menu is configuration, not executable frontend code: `component` is never dynamically imported. Published pages map to an allowlisted generic platform page until a concrete page module is registered.
+On login, the console reads `/api/v1/me` and opens the application launcher. The user can switch among active memberships, search applications granted to the selected tenant, and enter the application's valid default or first published page. Tenant/application selection is session-scoped. The application-service menu is configuration, not executable frontend code: `component` is never dynamically imported. Published pages map to an allowlisted generic platform page until a concrete page module is registered.
 
 The server remains the authorization authority. A hidden menu is not a permission grant; every operation must be authorized again by the target service or authorization-service.
 

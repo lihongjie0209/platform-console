@@ -9,4 +9,6 @@ export function getToken() {
 export function clearAuthStorage() {
   sessionStg.remove('token');
   sessionStg.remove('refreshToken');
+  sessionStg.remove('selectedTenantId');
+  sessionStg.remove('selectedApplicationId');
 }

@@ -26,6 +26,10 @@ function routePath(application: PlatformApplication, menu: ApplicationMenu) {
   return `${scope}/${configured.replace(/^\/+/, '')}`;
 }
 
+function leafRoutePaths(routes: ElegantConstRoute[]): string[] {
+  return routes.flatMap(route => (route.children?.length ? leafRoutePaths(route.children) : [route.path]));
+}
+
 function menuRoute(
   application: PlatformApplication,
   menu: ApplicationMenu,
@@ -102,11 +106,26 @@ export function navigationToRoutes(navigation: PublishedNavigation): ElegantCons
   ];
 }
 
-export function homeRoute(): ElegantConstRoute {
+export function applicationEntryPath(navigation: PublishedNavigation) {
+  const [applicationRoute] = navigationToRoutes(navigation);
+  const paths = leafRoutePaths(applicationRoute.children || []);
+  if (!paths.length) return '';
+
+  const configured = navigation.application.default_route.trim();
+  if (configured) {
+    const scope = applicationRoute.path;
+    const candidate = configured.startsWith(`${scope}/`) ? configured : `${scope}/${configured.replace(/^\/+/, '')}`;
+    if (paths.includes(candidate)) return candidate;
+  }
+
+  return paths[0];
+}
+
+export function applicationSelectionRoute(): ElegantConstRoute {
   return {
-    name: 'home',
-    path: '/home',
-    component: 'layout.base$view.home',
-    meta: { title: '首页', icon: 'mdi:home-outline', order: -1 }
+    name: 'applications',
+    path: '/applications',
+    component: 'layout.base$view.applications',
+    meta: { title: '选择应用', icon: 'mdi:apps', order: -1 }
   } as ElegantConstRoute;
 }

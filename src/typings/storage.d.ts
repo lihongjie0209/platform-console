@@ -5,6 +5,10 @@ declare namespace StorageType {
     token: string;
     /** The rotating browser refresh token. */
     refreshToken: string;
+    /** The tenant selected in the application launcher. */
+    selectedTenantId: string;
+    /** The application selected in the application launcher. */
+    selectedApplicationId: string;
     /** The theme color */
     themeColor: string;
     // /**

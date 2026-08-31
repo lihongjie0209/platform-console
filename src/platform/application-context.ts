@@ -1,0 +1,22 @@
+import type { PlatformApplication, PublishedNavigation, TenantSummary } from '@/service/api/platform-navigation';
+
+export function selectActiveTenant(tenants: TenantSummary[], preferredTenantId: string) {
+  const active = tenants.filter(item => item.status === 'active');
+  return active.find(item => item.id === preferredTenantId) || active[0];
+}
+
+export function retainActiveNavigations(applications: PlatformApplication[], navigations: PublishedNavigation[]) {
+  const activeApplicationIds = new Set(applications.filter(item => item.status === 'active').map(item => item.id));
+  return navigations.filter(item => activeApplicationIds.has(item.application.id));
+}
+
+export function filterApplications(applications: PlatformApplication[], keyword: string) {
+  const normalized = keyword.trim().toLocaleLowerCase();
+  if (!normalized) return applications;
+
+  return applications.filter(application =>
+    [application.name, application.code, application.description].some(text =>
+      text.toLocaleLowerCase().includes(normalized)
+    )
+  );
+}

@@ -4,13 +4,13 @@ import { defineStore } from 'pinia';
 import { useBoolean } from '@sa/hooks';
 import type { CustomRoute, ElegantConstRoute, LastLevelRouteKey, RouteKey, RouteMap } from '@elegant-router/types';
 import { router } from '@/router';
-import { fetchPublishedNavigation, fetchTenantApplications, fetchUserTenants } from '@/service/api';
-import { homeRoute, navigationToRoutes } from '@/platform/navigation';
+import { applicationSelectionRoute, navigationToRoutes } from '@/platform/navigation';
 import { SetupStoreId } from '@/enum';
 import { createStaticRoutes, getAuthVueRoutes } from '@/router/routes';
 import { ROOT_ROUTE } from '@/router/routes/builtin';
 import { getRouteName, getRoutePath } from '@/router/elegant/transform';
 import { useAuthStore } from '../auth';
+import { usePlatformStore } from '../platform';
 import { useTabStore } from '../tab';
 import {
   filterAuthRoutesByRoles,
@@ -26,6 +26,7 @@ import {
 
 export const useRouteStore = defineStore(SetupStoreId.Route, () => {
   const authStore = useAuthStore();
+  const platformStore = usePlatformStore();
   const tabStore = useTabStore();
   const { bool: isInitConstantRoute, setBool: setIsInitConstantRoute } = useBoolean();
   const { bool: isInitAuthRoute, setBool: setIsInitAuthRoute } = useBoolean();
@@ -135,6 +136,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
   async function resetStore() {
     const routeStore = useRouteStore();
 
+    platformStore.resetContext();
     routeStore.$reset();
 
     resetVueRoutes();
@@ -201,29 +203,26 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
 
   /** Init dynamic auth route */
   async function initDynamicAuthRoute() {
-    const routes = [homeRoute()];
-    const { data: tenantPage, error: tenantError } = await fetchUserTenants(authStore.userInfo.subject);
-
-    if (!tenantError) {
-      const tenant = tenantPage.items.find(item => item.status === 'active');
-      if (tenant) {
-        const { data: grants, error: grantError } = await fetchTenantApplications(tenant.id);
-        if (!grantError) {
-          const navigations = await Promise.all(
-            grants.applications.map(application => fetchPublishedNavigation(application.id))
-          );
-          navigations.forEach(navigation => {
-            if (!navigation.error) routes.push(...navigationToRoutes(navigation.data));
-          });
-        }
-      }
+    try {
+      await platformStore.initialize(authStore.userInfo.subject);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '加载应用失败';
+      window.$message?.error(message);
     }
+
+    refreshPlatformRoutes();
+    setIsInitAuthRoute(true);
+  }
+
+  function refreshPlatformRoutes() {
+    const routes = [applicationSelectionRoute()];
+    platformStore.navigations.forEach(navigation => routes.push(...navigationToRoutes(navigation)));
 
     addAuthRoutes(routes);
     handleConstantAndAuthRoutes();
-    setRouteHome('home');
-    handleUpdateRootRouteRedirect('home');
-    setIsInitAuthRoute(true);
+    setRouteHome('applications');
+    handleUpdateRootRouteRedirect('applications');
+    tabStore.initHomeTab();
   }
 
   /** handle constant and auth routes */
@@ -333,6 +332,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
     initConstantRoute,
     isInitConstantRoute,
     initAuthRoute,
+    refreshPlatformRoutes,
     isInitAuthRoute,
     setIsInitAuthRoute,
     getIsAuthRouteExist,
