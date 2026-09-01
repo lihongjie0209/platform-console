@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { hasApplicationScope } from '@/platform/application-context';
 import type { SearchFacet, SearchHit } from '../../api';
 import { searchDocuments, suggestDocuments } from '../../api';
 defineOptions({ name: 'SearchCenterSearch' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
+const applicationID = computed(() => store.selectedApplicationId);
+const applicationName = computed(() => store.selectedApplication?.name || '当前应用');
+const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const query = ref('');
 const documentTypes = ref<string[]>([]);
-const applicationIDs = ref<string[]>([]);
 const sort = ref('relevance');
 const page = ref(1);
 const pageSize = ref(20);
@@ -18,32 +21,40 @@ const facets = ref<SearchFacet[]>([]);
 const total = ref(0);
 const took = ref(0);
 const suggestions = ref<Array<{ value: string }>>([]);
+let searchVersion = 0;
+let suggestVersion = 0;
 async function search() {
-  if (!tenantID.value) return;
+  searchVersion += 1;
+  const version = searchVersion;
+  if (!scopeReady.value) return;
   loading.value = true;
   try {
     const result = await searchDocuments({
       tenantID: tenantID.value,
+      applicationID: applicationID.value,
       query: query.value,
       documentTypes: documentTypes.value,
-      applicationIDs: applicationIDs.value,
       sort: sort.value,
       page: page.value,
       pageSize: pageSize.value
     });
+    if (version !== searchVersion) return;
     items.value = result.items || [];
     facets.value = result.facets || [];
     total.value = result.total || 0;
     took.value = result.took_milliseconds || 0;
   } finally {
-    loading.value = false;
+    if (version === searchVersion) loading.value = false;
   }
 }
 async function suggest(value: string) {
-  if (!tenantID.value || !value.trim()) {
+  suggestVersion += 1;
+  const version = suggestVersion;
+  if (!scopeReady.value || !value.trim()) {
     return [];
   }
-  const result = await suggestDocuments(tenantID.value, value);
+  const result = await suggestDocuments(tenantID.value, applicationID.value, value);
+  if (version !== suggestVersion) return [];
   suggestions.value = (result.items || []).map(item => ({ value: item.text }));
   return suggestions.value;
 }
@@ -51,9 +62,16 @@ function open(hit: SearchHit) {
   const url = hit.document?.url;
   if (url) window.open(url, '_blank', 'noopener');
 }
-watch(tenantID, () => {
+watch([tenantID, applicationID], () => {
+  searchVersion += 1;
+  suggestVersion += 1;
   items.value = [];
+  facets.value = [];
+  suggestions.value = [];
   total.value = 0;
+  took.value = 0;
+  loading.value = false;
+  page.value = 1;
 });
 </script>
 
@@ -61,13 +79,13 @@ watch(tenantID, () => {
   <ElCard class="card-wrapper" shadow="never">
     <template #header>
       <div>
-        <h2 class="m-0 text-18px font-semibold">全局搜索</h2>
+        <h2 class="m-0 text-18px font-semibold">应用内搜索</h2>
         <p class="mb-0 mt-6px text-13px text-#999">
-          搜索当前租户可见的跨域投影；结果是最终一致的导航索引，不作为业务事实来源。
+          搜索 {{ applicationName }} 内当前用户可见的跨域投影；结果是最终一致的导航索引，不作为业务事实来源。
         </p>
       </div>
     </template>
-    <ElAlert v-if="!tenantID" title="请先选择租户" type="warning" show-icon :closable="false" />
+    <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" show-icon :closable="false" />
     <template v-else>
       <div class="mb-20px flex gap-10px">
         <ElAutocomplete

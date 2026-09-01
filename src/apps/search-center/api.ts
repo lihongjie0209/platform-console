@@ -1,5 +1,6 @@
 import type { components as SearchContract } from '@/service/contracts/generated/search';
 import { platformRequest } from '@/service/request';
+import { applicationFilterScope } from '@/platform/application-context';
 type PageSchema = SearchContract['schemas']['httptransport.SearchPageDTO'];
 export type SearchHit = SearchContract['schemas']['httptransport.SearchHitDTO'];
 export type SearchFacet = SearchContract['schemas']['httptransport.FacetDTO'];
@@ -20,22 +21,22 @@ async function unwrap<T>(value: PromiseLike<{ data: T | null; error: unknown }>)
 }
 export function searchDocuments(input: {
   tenantID: string;
+  applicationID: string;
   query: string;
   documentTypes: string[];
-  applicationIDs: string[];
   sort: string;
   page: number;
   pageSize: number;
 }) {
+  const scope = applicationFilterScope(input.tenantID, input.applicationID);
   return unwrap<SearchPage>(
     request({
       url: '/api/v1/search/query',
       method: 'post',
       data: {
-        tenant_id: input.tenantID,
+        ...scope,
         query: input.query,
         document_types: input.documentTypes,
-        application_ids: input.applicationIDs,
         filters: {},
         sort: input.sort,
         page: input.page,
@@ -45,8 +46,13 @@ export function searchDocuments(input: {
     })
   );
 }
-export function suggestDocuments(tenantID: string, prefix: string) {
+export function suggestDocuments(tenantID: string, applicationID: string, prefix: string) {
+  const scope = applicationFilterScope(tenantID, applicationID);
   return unwrap<{ items: Array<{ text: string; document_type: string; source_id: string; url: string }> }>(
-    request({ url: '/api/v1/search/suggest', method: 'post', data: { tenant_id: tenantID, prefix, limit: 10 } })
+    request({
+      url: '/api/v1/search/suggest',
+      method: 'post',
+      data: { ...scope, prefix, limit: 10 }
+    })
   );
 }

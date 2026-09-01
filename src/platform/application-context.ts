@@ -31,3 +31,8 @@ export function applicationScope(tenantId: string, applicationId: string) {
   }
   return { tenant_id: tenantId, application_id: applicationId };
 }
+
+export function applicationFilterScope(tenantId: string, applicationId: string) {
+  const scope = applicationScope(tenantId, applicationId);
+  return { tenant_id: scope.tenant_id, application_ids: [scope.application_id] };
+}

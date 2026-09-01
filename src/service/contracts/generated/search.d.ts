@@ -435,6 +435,7 @@ export interface components {
             tenant_id: string;
         };
         "httptransport.SuggestRequest": {
+            application_ids?: string[];
             document_types?: string[];
             limit?: number;
             prefix: string;
