@@ -25,6 +25,7 @@ export interface WorkflowInstance
   extends Omit<InstanceSchema, 'variables_json' | 'result_json'>, Record<string, unknown> {
   id: string;
   tenant_id: string;
+  application_id: string;
   definition_id: string;
   business_key: string;
   title: string;
@@ -37,6 +38,7 @@ export interface WorkflowInstance
 export interface WorkflowTask extends Omit<TaskSchema, 'input_json' | 'output_json'>, Record<string, unknown> {
   id: string;
   tenant_id: string;
+  application_id: string;
   instance_id: string;
   name: string;
   assignee: string;
@@ -126,12 +128,18 @@ export function changeDefinitionStatus(value: WorkflowDefinition, action: 'publi
     request({
       url: `/api/v1/workflow/definitions/${action}`,
       method: 'post',
-      data: { id: value.id, tenant_id: value.tenant_id, expected_version: value.version }
+      data: {
+        id: value.id,
+        tenant_id: value.tenant_id,
+        application_id: value.application_id,
+        expected_version: value.version
+      }
     })
   );
 }
 export function listInstances(input: {
   tenantID: string;
+  applicationID: string;
   definitionID: string;
   status: string;
   search: string;
@@ -144,6 +152,7 @@ export function listInstances(input: {
       method: 'post',
       data: {
         tenant_id: input.tenantID,
+        application_id: input.applicationID,
         definition_id: input.definitionID,
         status: input.status,
         search: input.search,
@@ -155,6 +164,7 @@ export function listInstances(input: {
 }
 export function startInstance(input: {
   tenantID: string;
+  applicationID: string;
   definitionKey: string;
   businessKey: string;
   title: string;
@@ -166,6 +176,7 @@ export function startInstance(input: {
       method: 'post',
       data: {
         tenant_id: input.tenantID,
+        application_id: input.applicationID,
         definition_key: input.definitionKey,
         business_key: input.businessKey,
         title: input.title,
@@ -180,12 +191,19 @@ export function cancelInstance(value: WorkflowInstance, reason: string) {
     request({
       url: '/api/v1/workflow/instances/cancel',
       method: 'post',
-      data: { id: value.id, tenant_id: value.tenant_id, reason, expected_version: value.version }
+      data: {
+        id: value.id,
+        tenant_id: value.tenant_id,
+        application_id: value.application_id,
+        reason,
+        expected_version: value.version
+      }
     })
   );
 }
 export function listTasks(input: {
   tenantID: string;
+  applicationID: string;
   instanceID: string;
   status: string;
   search: string;
@@ -198,6 +216,7 @@ export function listTasks(input: {
       method: 'post',
       data: {
         tenant_id: input.tenantID,
+        application_id: input.applicationID,
         instance_id: input.instanceID,
         status: input.status,
         search: input.search,
@@ -212,7 +231,12 @@ export function claimTask(value: WorkflowTask) {
     request({
       url: '/api/v1/workflow/tasks/claim',
       method: 'post',
-      data: { id: value.id, tenant_id: value.tenant_id, expected_version: value.version }
+      data: {
+        id: value.id,
+        tenant_id: value.tenant_id,
+        application_id: value.application_id,
+        expected_version: value.version
+      }
     })
   );
 }
@@ -227,6 +251,7 @@ export function completeTask(
       data: {
         id: value.id,
         tenant_id: value.tenant_id,
+        application_id: value.application_id,
         decision: input.decision,
         comment: input.comment,
         output_json: input.output,
@@ -243,6 +268,7 @@ export function delegateTask(value: WorkflowTask, delegateTo: string, reason: st
       data: {
         id: value.id,
         tenant_id: value.tenant_id,
+        application_id: value.application_id,
         delegate_to: delegateTo,
         reason,
         expected_version: value.version

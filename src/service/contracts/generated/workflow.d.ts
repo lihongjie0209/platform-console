@@ -1554,12 +1554,14 @@ export interface components {
             status?: string;
         };
         "httptransport.CancelInstanceRequest": {
+            application_id: string;
             expected_version: number;
             id: string;
             reason: string;
             tenant_id: string;
         };
         "httptransport.CompleteTaskRequest": {
+            application_id: string;
             comment?: string;
             decision: string;
             expected_version: number;
@@ -1594,6 +1596,7 @@ export interface components {
             version?: number;
         };
         "httptransport.DelegateTaskRequest": {
+            application_id: string;
             delegate_to: string;
             expected_version: number;
             id: string;
@@ -1601,19 +1604,23 @@ export interface components {
             tenant_id: string;
         };
         "httptransport.GetDefinitionRequest": {
+            application_id: string;
             id: string;
             revision?: number;
             tenant_id: string;
         };
         "httptransport.GetInstanceRequest": {
+            application_id: string;
             id: string;
             tenant_id: string;
         };
         "httptransport.GetTaskRequest": {
+            application_id: string;
             id: string;
             tenant_id: string;
         };
         "httptransport.InstanceDTO": {
+            application_id?: string;
             business_key?: string;
             created_at?: string;
             created_by?: string;
@@ -1644,6 +1651,7 @@ export interface components {
             tenant_id: string;
         };
         "httptransport.ListInstancesRequest": {
+            application_id: string;
             definition_id?: string;
             page?: number;
             page_size?: number;
@@ -1655,6 +1663,7 @@ export interface components {
             tenant_id: string;
         };
         "httptransport.ListTasksRequest": {
+            application_id: string;
             instance_id?: string;
             page?: number;
             page_size?: number;
@@ -1690,6 +1699,7 @@ export interface components {
             request_id?: string;
         };
         "httptransport.StartInstanceRequest": {
+            application_id: string;
             business_key: string;
             definition_key: string;
             idempotency_key: string;
@@ -1698,6 +1708,7 @@ export interface components {
             variables_json?: Record<string, never>;
         };
         "httptransport.TaskDTO": {
+            application_id?: string;
             assignee?: string;
             assignee_type?: string;
             claimed_by?: string;
@@ -1720,6 +1731,7 @@ export interface components {
             version?: number;
         };
         "httptransport.TaskVersionRequest": {
+            application_id: string;
             expected_version: number;
             id: string;
             tenant_id: string;
@@ -1735,6 +1747,7 @@ export interface components {
             tenant_id: string;
         };
         "httptransport.VersionedDefinitionRequest": {
+            application_id: string;
             expected_version: number;
             id: string;
             tenant_id: string;

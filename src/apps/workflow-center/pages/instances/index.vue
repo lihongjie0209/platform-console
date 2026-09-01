@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { hasApplicationScope } from '@/platform/application-context';
 import type { WorkflowInstance } from '../../api';
 import { cancelInstance, listInstances, startInstance } from '../../api';
 import { parseJSONObject } from '../../json';
 defineOptions({ name: 'WorkflowCenterInstances' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
+const applicationID = computed(() => store.selectedApplicationId);
+const applicationName = computed(() => store.selectedApplication?.name || '当前应用');
+const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const rows = ref<WorkflowInstance[]>([]);
 const total = ref(0);
 const page = ref(1);
@@ -20,11 +24,12 @@ const detail = ref<WorkflowInstance>();
 const detailVisible = ref(false);
 const form = reactive({ definitionKey: '', businessKey: '', title: '', variables: '{}' });
 async function loadData() {
-  if (!tenantID.value) return;
+  if (!scopeReady.value) return;
   loading.value = true;
   try {
     const result = await listInstances({
       tenantID: tenantID.value,
+      applicationID: applicationID.value,
       definitionID: definitionID.value,
       status: status.value,
       search: searchText.value,
@@ -46,7 +51,7 @@ function openStart() {
   visible.value = true;
 }
 async function start() {
-  if (!tenantID.value) return;
+  if (!scopeReady.value) return;
   let variables: Record<string, unknown>;
   try {
     variables = parseJSONObject(form.variables, '流程变量');
@@ -56,6 +61,7 @@ async function start() {
   }
   await startInstance({
     tenantID: tenantID.value,
+    applicationID: applicationID.value,
     definitionKey: form.definitionKey,
     businessKey: form.businessKey,
     title: form.title,
@@ -73,7 +79,7 @@ function show(row: WorkflowInstance) {
   detail.value = row;
   detailVisible.value = true;
 }
-watch(tenantID, search);
+watch([tenantID, applicationID], search);
 onMounted(loadData);
 </script>
 
@@ -83,12 +89,12 @@ onMounted(loadData);
       <div class="flex-y-center justify-between">
         <div>
           <h2 class="m-0 text-18px font-semibold">流程实例</h2>
-          <p class="mb-0 mt-6px text-13px text-#999">启动、跟踪和取消持久工作流实例。</p>
+          <p class="mb-0 mt-6px text-13px text-#999">{{ applicationName }} · 启动、跟踪和取消持久工作流实例。</p>
         </div>
-        <ElButton type="primary" :disabled="!tenantID" @click="openStart">启动流程</ElButton>
+        <ElButton type="primary" :disabled="!scopeReady" @click="openStart">启动流程</ElButton>
       </div>
     </template>
-    <ElAlert v-if="!tenantID" title="请先选择租户" type="warning" show-icon :closable="false" />
+    <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" show-icon :closable="false" />
     <template v-else>
       <ElForm inline>
         <ElFormItem label="搜索"><ElInput v-model="searchText" /></ElFormItem>

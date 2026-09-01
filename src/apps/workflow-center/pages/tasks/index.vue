@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { hasApplicationScope } from '@/platform/application-context';
 import type { WorkflowTask } from '../../api';
 import { claimTask, completeTask, delegateTask, listTasks } from '../../api';
 import { parseJSONObject } from '../../json';
 defineOptions({ name: 'WorkflowCenterTasks' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
+const applicationID = computed(() => store.selectedApplicationId);
+const applicationName = computed(() => store.selectedApplication?.name || '当前应用');
+const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const rows = ref<WorkflowTask[]>([]);
 const total = ref(0);
 const page = ref(1);
@@ -21,11 +25,12 @@ const delegateVisible = ref(false);
 const form = reactive({ decision: 'approved', comment: '', output: '{}' });
 const delegation = reactive({ userID: '', reason: '' });
 async function loadData() {
-  if (!tenantID.value) return;
+  if (!scopeReady.value) return;
   loading.value = true;
   try {
     const result = await listTasks({
       tenantID: tenantID.value,
+      applicationID: applicationID.value,
       instanceID: instanceID.value,
       status: status.value,
       search: searchText.value,
@@ -75,7 +80,7 @@ async function delegate() {
   delegateVisible.value = false;
   await loadData();
 }
-watch(tenantID, search);
+watch([tenantID, applicationID], search);
 onMounted(loadData);
 </script>
 
@@ -85,11 +90,11 @@ onMounted(loadData);
       <div>
         <h2 class="m-0 text-18px font-semibold">我的任务</h2>
         <p class="mb-0 mt-6px text-13px text-#999">
-          任务可见性由后端根据用户、成员关系和授权角色计算，前端不提交可信角色。
+          {{ applicationName }} · 任务可见性由后端根据用户、成员关系和授权角色计算，前端不提交可信角色。
         </p>
       </div>
     </template>
-    <ElAlert v-if="!tenantID" title="请先选择租户" type="warning" show-icon :closable="false" />
+    <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" show-icon :closable="false" />
     <template v-else>
       <ElForm inline>
         <ElFormItem label="搜索"><ElInput v-model="searchText" /></ElFormItem>
