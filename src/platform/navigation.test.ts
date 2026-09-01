@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applicationEntryPath, navigationToRoutes } from './navigation';
+import { activeApplicationRoutes, applicationEntryPath, navigationToRoutes } from './navigation';
 
 test('navigationToRoutes scopes routes and never evaluates backend component names', () => {
   const [applicationRoute] = navigationToRoutes({
@@ -145,4 +145,49 @@ test('applicationEntryPath uses a valid configured default and falls back to the
   assert.equal(applicationEntryPath(navigation), '/apps/orders/reports');
   navigation.application.default_route = 'missing';
   assert.equal(applicationEntryPath(navigation), '/apps/orders/list');
+});
+
+test('activeApplicationRoutes mounts only the selected application workspace', () => {
+  const navigation = (id: string, code: string): Parameters<typeof activeApplicationRoutes>[0][number] => ({
+    application: {
+      id,
+      code,
+      name: code,
+      description: '',
+      icon: '',
+      default_route: '',
+      status: 'active'
+    },
+    menus: [
+      {
+        id: `${id}-home`,
+        application_id: id,
+        parent_id: '',
+        code: 'home',
+        type: 'page',
+        name: '首页',
+        i18n_key: '',
+        route: 'home',
+        component: `${code}.home`,
+        icon: '',
+        external_url: '',
+        permission_code: '',
+        sort_order: 1,
+        visible: true,
+        status: 'active'
+      }
+    ]
+  });
+  const navigations = [navigation('app-a', 'orders'), navigation('app-b', 'billing')];
+
+  const routes = activeApplicationRoutes(navigations, 'app-b');
+  assert.deepEqual(
+    routes.map(route => route.path),
+    ['/applications', '/apps/billing']
+  );
+  assert.equal(JSON.stringify(routes).includes('/apps/orders'), false);
+  assert.deepEqual(
+    activeApplicationRoutes(navigations, '').map(route => route.path),
+    ['/applications']
+  );
 });

@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePlatformStore } from '@/store/modules/platform';
+import { useRouteStore } from '@/store/modules/route';
 import { applicationEntryPath } from '@/platform/navigation';
 
 defineOptions({ name: 'ApplicationSwitcher' });
@@ -9,6 +10,7 @@ defineOptions({ name: 'ApplicationSwitcher' });
 const launcherCommand = '__application_launcher__';
 const router = useRouter();
 const platformStore = usePlatformStore();
+const routeStore = useRouteStore();
 
 const selectedName = computed(() => platformStore.selectedApplication?.name || '选择应用');
 const selectedIcon = computed(() => platformStore.selectedApplication?.icon || 'mdi:apps');
@@ -27,6 +29,7 @@ async function handleCommand(command: string) {
   }
 
   platformStore.selectApplication(command);
+  routeStore.refreshPlatformRoutes();
   await router.push(entryPath);
 }
 </script>
@@ -48,7 +51,9 @@ async function handleCommand(command: string) {
           v-for="application in platformStore.applications"
           :key="application.id"
           :command="application.id"
-          :class="{ 'text-primary font-semibold': application.id === platformStore.selectedApplicationId }"
+          :class="{
+            'text-primary font-semibold': application.id === platformStore.selectedApplicationId
+          }"
         >
           <SvgIcon :icon="application.icon || 'mdi:application-outline'" class="mr-8px text-17px" />
           <span class="max-w-240px truncate">{{ application.name }}</span>

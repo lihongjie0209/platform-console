@@ -131,3 +131,19 @@ export function applicationSelectionRoute(): ElegantConstRoute {
     meta: { title: '选择应用', icon: 'mdi:apps', order: -1 }
   } as ElegantConstRoute;
 }
+
+/**
+ * Builds the authenticated route set for the application shell. The launcher is
+ * always available, while business routes are mounted for exactly one selected
+ * application so menus, breadcrumbs and global search cannot leak across app
+ * workspaces.
+ */
+export function activeApplicationRoutes(navigations: PublishedNavigation[], applicationId: string) {
+  const routes = [applicationSelectionRoute()];
+  if (!applicationId) return routes;
+
+  const navigation = navigations.find(item => item.application.id === applicationId);
+  if (navigation) routes.push(...navigationToRoutes(navigation));
+
+  return routes;
+}

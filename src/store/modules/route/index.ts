@@ -4,7 +4,7 @@ import { defineStore } from 'pinia';
 import { useBoolean } from '@sa/hooks';
 import type { CustomRoute, ElegantConstRoute, LastLevelRouteKey, RouteKey, RouteMap } from '@elegant-router/types';
 import { router } from '@/router';
-import { applicationSelectionRoute, navigationToRoutes } from '@/platform/navigation';
+import { activeApplicationRoutes } from '@/platform/navigation';
 import { SetupStoreId } from '@/enum';
 import { createStaticRoutes, getAuthVueRoutes } from '@/router/routes';
 import { ROOT_ROUTE } from '@/router/routes/builtin';
@@ -215,8 +215,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
   }
 
   function refreshPlatformRoutes() {
-    const routes = [applicationSelectionRoute()];
-    platformStore.navigations.forEach(navigation => routes.push(...navigationToRoutes(navigation)));
+    const routes = activeApplicationRoutes(platformStore.navigations, platformStore.selectedApplicationId);
 
     addAuthRoutes(routes);
     handleConstantAndAuthRoutes();

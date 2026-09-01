@@ -61,6 +61,7 @@ async function openApplication(applicationId: string) {
   }
 
   platformStore.selectApplication(applicationId);
+  routeStore.refreshPlatformRoutes();
   await router.push(entryPath);
 }
 </script>
@@ -114,8 +115,12 @@ async function openApplication(applicationId: string) {
                 <SvgIcon :icon="application.icon || 'mdi:application-outline'" class="text-28px" />
               </div>
               <div class="min-w-0 flex-1">
-                <div class="truncate text-16px font-semibold">{{ application.name }}</div>
-                <div class="mt-3px truncate text-12px text-gray-400">{{ application.code }}</div>
+                <div class="truncate text-16px font-semibold">
+                  {{ application.name }}
+                </div>
+                <div class="mt-3px truncate text-12px text-gray-400">
+                  {{ application.code }}
+                </div>
                 <p class="mb-0 mt-12px min-h-40px text-13px text-gray-500 leading-20px">
                   {{ application.description || '暂无应用说明' }}
                 </p>
