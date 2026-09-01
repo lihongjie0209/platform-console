@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
-import { fetchChangePassword } from '@/service/api';
+import dayjs from 'dayjs';
+import { fetchChangePassword, fetchOwnSessions, fetchRevokeOwnSession } from '@/service/api';
 import { useAuthStore } from '@/store/modules/auth';
 import { validatePasswordChange } from '@/platform/password-policy';
+import { canRevokeSession, isCurrentSession } from '@/platform/session-view';
 import { BizCopyText } from '@/components/business';
 
 defineOptions({ name: 'UserCenter' });
@@ -11,6 +13,13 @@ defineOptions({ name: 'UserCenter' });
 const authStore = useAuthStore();
 const formRef = ref<FormInstance>();
 const submitting = ref(false);
+const sessionsLoading = ref(false);
+const revokingSessionID = ref('');
+const sessions = ref<Api.Auth.Session[]>([]);
+const sessionTotal = ref(0);
+const sessionPage = ref(1);
+const sessionPageSize = ref(10);
+const sessionStatus = ref('active');
 const form = reactive({ currentPassword: '', newPassword: '', confirmPassword: '' });
 const rules: FormRules<typeof form> = {
   currentPassword: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
@@ -57,10 +66,76 @@ async function changePassword() {
     resetForm();
     const suffix = data.revoked_sessions > 0 ? `，已退出其他 ${data.revoked_sessions} 个会话` : '';
     window.$message?.success(`密码修改成功${suffix}`);
+    await loadSessions();
   } finally {
     submitting.value = false;
   }
 }
+
+function sessionStatusType(status: string) {
+  if (status === 'active') return 'success';
+  if (status === 'expired') return 'warning';
+  return 'danger';
+}
+
+function sessionStatusLabel(status: string) {
+  if (status === 'active') return '活跃';
+  if (status === 'expired') return '已过期';
+  if (status === 'revoked') return '已撤销';
+  return status;
+}
+
+function formatTime(value: string) {
+  return value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : '-';
+}
+
+async function loadSessions() {
+  sessionsLoading.value = true;
+  try {
+    const { data, error } = await fetchOwnSessions(sessionStatus.value, sessionPage.value, sessionPageSize.value);
+    if (error) return;
+    sessions.value = data.items || [];
+    sessionTotal.value = data.total || 0;
+  } finally {
+    sessionsLoading.value = false;
+  }
+}
+
+function searchSessions() {
+  sessionPage.value = 1;
+  loadSessions();
+}
+
+function changeSessionPage(value: number) {
+  sessionPage.value = value;
+  loadSessions();
+}
+
+function changeSessionPageSize(value: number) {
+  sessionPage.value = 1;
+  sessionPageSize.value = value;
+  loadSessions();
+}
+
+async function revokeSession(session: Api.Auth.Session) {
+  if (!canRevokeSession(session, authStore.userInfo.session_id)) return;
+  await ElMessageBox.confirm('撤销后，该设备需要重新登录。确认撤销此会话吗？', '撤销会话', {
+    type: 'warning',
+    confirmButtonText: '确认撤销',
+    cancelButtonText: '取消'
+  });
+  revokingSessionID.value = session.session_id;
+  try {
+    const { error } = await fetchRevokeOwnSession(session.session_id, session.version);
+    if (error) return;
+    window.$message?.success('会话已撤销');
+    await loadSessions();
+  } finally {
+    revokingSessionID.value = '';
+  }
+}
+
+onMounted(loadSessions);
 </script>
 
 <template>
@@ -87,6 +162,88 @@ async function changePassword() {
           <span v-else>-</span>
         </ElDescriptionsItem>
       </ElDescriptions>
+    </ElCard>
+
+    <ElCard shadow="never">
+      <template #header>
+        <div class="flex-y-center justify-between gap-12px">
+          <div>
+            <div class="font-600">我的会话</div>
+            <div class="mt-4px text-12px text-#999">查看账号的登录会话，并撤销不再使用的设备。</div>
+          </div>
+          <ElButton :loading="sessionsLoading" @click="loadSessions">刷新</ElButton>
+        </div>
+      </template>
+
+      <div class="mb-16px flex items-center gap-8px">
+        <span class="text-14px">状态</span>
+        <ElSelect v-model="sessionStatus" clearable class="w-140px" placeholder="全部" @change="searchSessions">
+          <ElOption label="活跃" value="active" />
+          <ElOption label="已撤销" value="revoked" />
+          <ElOption label="已过期" value="expired" />
+        </ElSelect>
+      </div>
+
+      <ElTable v-loading="sessionsLoading" :data="sessions" border stripe>
+        <ElTableColumn label="会话 ID" min-width="330">
+          <template #default="{ row }">
+            <div class="flex-y-center gap-8px">
+              <BizCopyText :value="row.session_id" />
+              <ElTag v-if="isCurrentSession(row, authStore.userInfo.session_id)" type="primary" effect="plain">
+                当前
+              </ElTag>
+            </div>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="作用域" min-width="220">
+          <template #default="{ row }">
+            <BizCopyText v-if="row.tenant_id" :value="row.tenant_id" />
+            <span v-else>平台级</span>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="状态" width="110">
+          <template #default="{ row }">
+            <ElTag :type="sessionStatusType(row.status)" effect="plain">
+              {{ sessionStatusLabel(row.status) }}
+            </ElTag>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="最后使用" min-width="180">
+          <template #default="{ row }">{{ formatTime(row.last_used_at) }}</template>
+        </ElTableColumn>
+        <ElTableColumn label="过期时间" min-width="180">
+          <template #default="{ row }">{{ formatTime(row.expires_at) }}</template>
+        </ElTableColumn>
+        <ElTableColumn label="撤销原因" min-width="180">
+          <template #default="{ row }">{{ row.revoke_reason || '-' }}</template>
+        </ElTableColumn>
+        <ElTableColumn label="操作" width="110" fixed="right">
+          <template #default="{ row }">
+            <ElButton
+              v-if="canRevokeSession(row, authStore.userInfo.session_id)"
+              link
+              type="danger"
+              :loading="revokingSessionID === row.session_id"
+              @click="revokeSession(row)"
+            >
+              撤销
+            </ElButton>
+            <span v-else>-</span>
+          </template>
+        </ElTableColumn>
+      </ElTable>
+      <div class="mt-16px flex justify-end">
+        <ElPagination
+          background
+          layout="total, sizes, prev, pager, next"
+          :total="sessionTotal"
+          :current-page="sessionPage"
+          :page-size="sessionPageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          @update:current-page="changeSessionPage"
+          @update:page-size="changeSessionPageSize"
+        />
+      </div>
     </ElCard>
 
     <ElCard shadow="never">

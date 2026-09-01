@@ -62,3 +62,29 @@ export function fetchLogout(sessionID: string) {
     }
   });
 }
+
+/** List sessions owned by the current authenticated user. */
+export function fetchOwnSessions(status: string, page: number, pageSize: number) {
+  return identityRequest<Api.Auth.SessionPage>({
+    url: '/api/v1/auth/sessions/list',
+    method: 'post',
+    data: {
+      status,
+      page,
+      page_size: pageSize
+    }
+  });
+}
+
+/** Revoke a non-current session owned by the current authenticated user. */
+export function fetchRevokeOwnSession(sessionID: string, version: number) {
+  return identityRequest<Api.Auth.Session>({
+    url: '/api/v1/auth/sessions/revoke',
+    method: 'post',
+    data: {
+      session_id: sessionID,
+      reason: 'user security revocation',
+      version
+    }
+  });
+}

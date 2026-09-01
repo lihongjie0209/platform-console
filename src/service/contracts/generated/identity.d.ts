@@ -296,6 +296,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/sessions/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List sessions owned by the authenticated user */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Status and pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListOwnSessionsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.SessionPageResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/sessions/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke a session owned by the authenticated user */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Session and expected version */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.RevokeOwnSessionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.SessionResponseBody"];
+                        };
+                    };
+                };
+                /** @description Code 30009: stale resource version */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/identities/list": {
         parameters: {
             query?: never;
@@ -869,6 +964,11 @@ export interface components {
             page_size?: number;
             status?: string;
         };
+        "httptransport.ListOwnSessionsRequest": {
+            page?: number;
+            page_size?: number;
+            status?: string;
+        };
         "httptransport.ListServiceAccountsRequest": {
             keyword?: string;
             page?: number;
@@ -919,6 +1019,11 @@ export interface components {
             code?: number;
             message?: string;
             request_id?: string;
+        };
+        "httptransport.RevokeOwnSessionRequest": {
+            reason?: string;
+            session_id: string;
+            version: number;
         };
         "httptransport.RevokeSessionRequest": {
             reason: string;
