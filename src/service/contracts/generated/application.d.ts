@@ -468,6 +468,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/applications/tenant-grants/manage/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List tenant application grants as a platform administrator */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Target tenant and pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListTenantApplicationsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.TenantApplicationsResponse"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/applications/tenant-grants/revoke": {
         parameters: {
             query?: never;

@@ -535,7 +535,7 @@ export function listTenantApplicationGrants(tenantID: string) {
     applications: Application[];
   }>(
     applicationRequest({
-      url: '/api/v1/applications/tenant-grants/list',
+      url: '/api/v1/applications/tenant-grants/manage/list',
       method: 'post',
       data: {
         tenant_id: tenantID,
