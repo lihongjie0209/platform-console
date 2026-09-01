@@ -1,4 +1,5 @@
 import { platformRequest } from '@/service/request';
+import { applicationScope } from '@/platform/application-context';
 export interface Plan extends Record<string, unknown> {
   id: string;
   code: string;
@@ -26,6 +27,7 @@ export interface UsagePrice extends Record<string, unknown> {
 export interface Subscription extends Record<string, unknown> {
   id: string;
   tenant_id: string;
+  application_id: string;
   plan_id: string;
   status: string;
   current_period_start: string;
@@ -37,6 +39,7 @@ export interface Invoice extends Record<string, unknown> {
   id: string;
   number: string;
   tenant_id: string;
+  application_id: string;
   subscription_id: string;
   currency: string;
   status: string;
@@ -113,16 +116,28 @@ export const deleteUsagePrice = (value: UsagePrice) =>
       data: { id: value.id, version: value.version }
     })
   );
-export const listSubscriptions = (input: { tenantID: string; status: string; page: number; pageSize: number }) =>
+export const listSubscriptions = (input: {
+  tenantID: string;
+  applicationID: string;
+  status: string;
+  page: number;
+  pageSize: number;
+}) =>
   unwrap<Page<Subscription>>(
     request({
       url: '/api/v1/subscriptions/list',
       method: 'post',
-      data: { tenant_id: input.tenantID, status: input.status, page: input.page, page_size: input.pageSize }
+      data: {
+        ...applicationScope(input.tenantID, input.applicationID),
+        status: input.status,
+        page: input.page,
+        page_size: input.pageSize
+      }
     })
   );
 export const createSubscription = (input: {
   tenantID: string;
+  applicationID: string;
   planID: string;
   startsAt: string;
   externalReference: string;
@@ -132,7 +147,7 @@ export const createSubscription = (input: {
       url: '/api/v1/subscriptions/create',
       method: 'post',
       data: {
-        tenant_id: input.tenantID,
+        ...applicationScope(input.tenantID, input.applicationID),
         plan_id: input.planID,
         starts_at: input.startsAt,
         external_reference: input.externalReference
@@ -145,19 +160,30 @@ export const cancelSubscription = (value: Subscription, atPeriodEnd: boolean) =>
       url: '/api/v1/subscriptions/cancel',
       method: 'post',
       data: {
-        tenant_id: value.tenant_id,
+        ...applicationScope(value.tenant_id, value.application_id),
         id: value.id,
         at_period_end: atPeriodEnd,
         version: value.version
       }
     })
   );
-export const listInvoices = (input: { tenantID: string; status: string; page: number; pageSize: number }) =>
+export const listInvoices = (input: {
+  tenantID: string;
+  applicationID: string;
+  status: string;
+  page: number;
+  pageSize: number;
+}) =>
   unwrap<Page<Invoice>>(
     request({
       url: '/api/v1/invoices/list',
       method: 'post',
-      data: { tenant_id: input.tenantID, status: input.status, page: input.page, page_size: input.pageSize }
+      data: {
+        ...applicationScope(input.tenantID, input.applicationID),
+        status: input.status,
+        page: input.page,
+        page_size: input.pageSize
+      }
     })
   );
 export const finalizeInvoice = (value: Invoice, dueAt: string) =>
@@ -166,7 +192,7 @@ export const finalizeInvoice = (value: Invoice, dueAt: string) =>
       url: '/api/v1/invoices/finalize',
       method: 'post',
       data: {
-        tenant_id: value.tenant_id,
+        ...applicationScope(value.tenant_id, value.application_id),
         id: value.id,
         due_at: dueAt,
         version: value.version
@@ -179,7 +205,7 @@ export const voidInvoice = (value: Invoice, reason: string) =>
       url: '/api/v1/invoices/void',
       method: 'post',
       data: {
-        tenant_id: value.tenant_id,
+        ...applicationScope(value.tenant_id, value.application_id),
         id: value.id,
         reason,
         version: value.version

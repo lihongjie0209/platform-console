@@ -1,16 +1,29 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { hasApplicationScope } from '@/platform/application-context';
 import type { Invoice } from '../../api';
 import { finalizeInvoice, listInvoices, voidInvoice } from '../../api';
 defineOptions({ name: 'BillingCenterInvoices' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
+const applicationID = computed(() => store.selectedApplicationId);
+const applicationName = computed(() => store.selectedApplication?.name || '当前应用');
+const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const rows = ref<Invoice[]>([]);
 const status = ref('');
 async function load() {
-  if (!tenantID.value) return;
-  const v = await listInvoices({ tenantID: tenantID.value, status: status.value, page: 1, pageSize: 100 });
+  if (!scopeReady.value) {
+    rows.value = [];
+    return;
+  }
+  const v = await listInvoices({
+    tenantID: tenantID.value,
+    applicationID: applicationID.value,
+    status: status.value,
+    page: 1,
+    pageSize: 100
+  });
   rows.value = v.items || [];
 }
 async function finalize(v: Invoice) {
@@ -21,7 +34,7 @@ async function voidOne(v: Invoice) {
   await voidInvoice(v, 'operator void');
   await load();
 }
-watch(tenantID, load);
+watch([tenantID, applicationID], load);
 onMounted(load);
 </script>
 
@@ -30,10 +43,10 @@ onMounted(load);
     <template #header>
       <div>
         <h2 class="m-0">账单</h2>
-        <p class="mb-0 text-#999">查看账单金额和收款状态，并执行带乐观锁的确认与作废。</p>
+        <p class="mb-0 text-#999">{{ applicationName }} · 查看账单金额和收款状态，并执行带乐观锁的确认与作废。</p>
       </div>
     </template>
-    <ElAlert v-if="!tenantID" title="请先选择租户" type="warning" :closable="false" />
+    <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" show-icon :closable="false" />
     <template v-else>
       <ElForm inline>
         <ElFormItem label="状态"><ElInput v-model="status" /></ElFormItem>

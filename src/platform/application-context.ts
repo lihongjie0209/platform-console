@@ -24,3 +24,10 @@ export function filterApplications(applications: PlatformApplication[], keyword:
 export function hasApplicationScope(tenantId: string, applicationId: string) {
   return Boolean(tenantId.trim() && applicationId.trim());
 }
+
+export function applicationScope(tenantId: string, applicationId: string) {
+  if (!hasApplicationScope(tenantId, applicationId)) {
+    throw new Error('tenant and application scope are required');
+  }
+  return { tenant_id: tenantId, application_id: applicationId };
+}

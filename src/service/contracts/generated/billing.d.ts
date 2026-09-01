@@ -1036,12 +1036,14 @@ export interface components {
             status?: string;
         };
         "httptransport.cancelSubscriptionRequest": {
+            application_id: string;
             at_period_end?: boolean;
             id?: string;
             tenant_id?: string;
             version?: number;
         };
         "httptransport.changeSubscriptionRequest": {
+            application_id: string;
             effective_mode?: string;
             id?: string;
             plan_id?: string;
@@ -1049,6 +1051,7 @@ export interface components {
             version?: number;
         };
         "httptransport.createPaymentRequest": {
+            application_id: string;
             idempotency_key?: string;
             invoice_id?: string;
             payment_method_reference?: string;
@@ -1066,12 +1069,14 @@ export interface components {
             trial_days?: number;
         };
         "httptransport.createSubscriptionRequest": {
+            application_id: string;
             external_reference?: string;
             plan_id?: string;
             starts_at?: string;
             tenant_id?: string;
         };
         "httptransport.finalizeInvoiceRequest": {
+            application_id: string;
             due_at?: string;
             id?: string;
             tenant_id?: string;
@@ -1082,6 +1087,7 @@ export interface components {
             id?: string;
         };
         "httptransport.getSubscriptionRequest": {
+            application_id: string;
             id?: string;
             tenant_id?: string;
         };
@@ -1091,6 +1097,7 @@ export interface components {
             version?: number;
         };
         "httptransport.invoicePeriodRequest": {
+            application_id: string;
             idempotency_key?: string;
             period_end?: string;
             period_start?: string;
@@ -1098,6 +1105,7 @@ export interface components {
             tenant_id?: string;
         };
         "httptransport.listInvoicesRequest": {
+            application_id: string;
             created_from?: string;
             created_to?: string;
             page?: number;
@@ -1112,6 +1120,7 @@ export interface components {
             status?: string;
         };
         "httptransport.listSubscriptionsRequest": {
+            application_id: string;
             page?: number;
             page_size?: number;
             status?: string;
@@ -1119,6 +1128,7 @@ export interface components {
         };
         "httptransport.recordRefundRequest": {
             amount_minor?: number;
+            application_id: string;
             idempotency_key?: string;
             payment_attempt_id?: string;
             provider_refund_id?: string;
@@ -1148,6 +1158,7 @@ export interface components {
             unit_quantity?: number;
         };
         "httptransport.voidInvoiceRequest": {
+            application_id: string;
             id?: string;
             reason?: string;
             tenant_id?: string;

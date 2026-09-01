@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { PlatformApplication, PublishedNavigation, TenantSummary } from '@/service/api/platform-navigation';
 import {
+  applicationScope,
   filterApplications,
   hasApplicationScope,
   retainActiveNavigations,
@@ -57,4 +58,6 @@ test('application-scoped pages require both tenant and selected application', ()
   assert.equal(hasApplicationScope('tenant-a', 'app-a'), true);
   assert.equal(hasApplicationScope('tenant-a', ''), false);
   assert.equal(hasApplicationScope('', 'app-a'), false);
+  assert.deepEqual(applicationScope('tenant-a', 'app-a'), { tenant_id: 'tenant-a', application_id: 'app-a' });
+  assert.throws(() => applicationScope('tenant-a', ' '), /tenant and application scope are required/);
 });

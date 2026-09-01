@@ -1,6 +1,6 @@
 import type { components as RuleContract } from '@/service/contracts/generated/rule';
 import { platformRequest } from '@/service/request';
-import { ruleApplicationScope } from './scope';
+import { applicationScope } from '@/platform/application-context';
 type RuleSetSchema = RuleContract['schemas']['httptransport.RuleSetView'];
 type RuleVersionSchema = RuleContract['schemas']['httptransport.RuleVersionView'];
 export interface RuleSet extends RuleSetSchema, Record<string, unknown> {
@@ -51,7 +51,7 @@ export const listRuleSets = (input: {
       url: '/api/v1/rule-sets/list',
       method: 'post',
       data: {
-        ...ruleApplicationScope(input.tenantID, input.applicationID),
+        ...applicationScope(input.tenantID, input.applicationID),
         status: input.status,
         keyword: input.keyword,
         page: input.page,
@@ -70,7 +70,7 @@ export function saveRuleSet(
       method: 'post',
       data: current
         ? {
-            ...ruleApplicationScope(scope.tenantID, scope.applicationID),
+            ...applicationScope(scope.tenantID, scope.applicationID),
             id: current.id,
             name: input.name,
             description: input.description,
@@ -78,7 +78,7 @@ export function saveRuleSet(
             version: current.version
           }
         : {
-            ...ruleApplicationScope(scope.tenantID, scope.applicationID),
+            ...applicationScope(scope.tenantID, scope.applicationID),
             code: input.code,
             name: input.name,
             description: input.description
@@ -92,7 +92,7 @@ export const listRuleVersions = (value: RuleSet) =>
       url: '/api/v1/rule-versions/list',
       method: 'post',
       data: {
-        ...ruleApplicationScope(value.tenant_id, value.application_id),
+        ...applicationScope(value.tenant_id, value.application_id),
         rule_set_id: value.id,
         page: 1,
         page_size: 100
@@ -104,7 +104,7 @@ export const validateRule = (tenantID: string, applicationID: string, definition
     request({
       url: '/api/v1/rule-versions/validate',
       method: 'post',
-      data: { ...ruleApplicationScope(tenantID, applicationID), definition }
+      data: { ...applicationScope(tenantID, applicationID), definition }
     })
   );
 export const createRuleVersion = (value: RuleSet, definition: Record<string, unknown>) =>
@@ -113,7 +113,7 @@ export const createRuleVersion = (value: RuleSet, definition: Record<string, unk
       url: '/api/v1/rule-versions/create',
       method: 'post',
       data: {
-        ...ruleApplicationScope(value.tenant_id, value.application_id),
+        ...applicationScope(value.tenant_id, value.application_id),
         rule_set_id: value.id,
         definition,
         idempotency_key: crypto.randomUUID()
@@ -126,7 +126,7 @@ export const publishRuleVersion = (set: RuleSet, version: RuleVersion) =>
       url: '/api/v1/rule-versions/publish',
       method: 'post',
       data: {
-        ...ruleApplicationScope(set.tenant_id, set.application_id),
+        ...applicationScope(set.tenant_id, set.application_id),
         rule_set_id: set.id,
         rule_version_id: version.id,
         rule_set_version: set.version,
@@ -146,7 +146,7 @@ export const evaluateRule = (value: RuleSet, facts: Record<string, unknown>) =>
       url: '/api/v1/rules/evaluate',
       method: 'post',
       data: {
-        ...ruleApplicationScope(value.tenant_id, value.application_id),
+        ...applicationScope(value.tenant_id, value.application_id),
         rule_set_code: value.code,
         facts
       }

@@ -120,8 +120,8 @@ onMounted(load);
     <template #header>
       <div class="flex-y-center justify-between">
         <div>
-          <h2 class="m-0">套餐与价格</h2>
-          <p class="mb-0 text-#999">金额统一使用最小货币单位，避免浮点误差。</p>
+          <h2 class="m-0">平台套餐与价格目录</h2>
+          <p class="mb-0 text-#999">平台统一定义可供各应用订阅的套餐；金额使用最小货币单位，避免浮点误差。</p>
         </div>
         <ElButton type="primary" @click="open()">新建套餐</ElButton>
       </div>
