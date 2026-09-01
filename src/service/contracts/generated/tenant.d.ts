@@ -858,6 +858,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tenants/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a tenant owned by the authenticated user */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Tenant */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.CreateTenantRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tenants/list": {
         parameters: {
             query?: never;
@@ -879,6 +920,47 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["httptransport.ListTenantsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/manage/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a tenant for a target owner as a platform administrator */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Tenant and target owner */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.CreateTenantRequest"];
                 };
             };
             responses: {
@@ -1133,6 +1215,11 @@ export interface components {
             name: string;
             parent_id?: string;
             tenant_id: string;
+        };
+        "httptransport.CreateTenantRequest": {
+            code: string;
+            name: string;
+            owner_user_id: string;
         };
         "httptransport.GetOrganizationUnitRequest": {
             organization_unit_id: string;

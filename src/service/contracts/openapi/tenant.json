@@ -909,6 +909,42 @@
                 }
             }
         },
+        "/api/v1/tenants/create": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "tenants"
+                ],
+                "summary": "Create a tenant owned by the authenticated user",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.CreateTenantRequest"
+                            }
+                        }
+                    },
+                    "description": "Tenant",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/tenants/list": {
             "post": {
                 "security": [
@@ -929,6 +965,42 @@
                         }
                     },
                     "description": "Filters and pagination",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/tenants/manage/create": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "tenants"
+                ],
+                "summary": "Create a tenant for a target owner as a platform administrator",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.CreateTenantRequest"
+                            }
+                        }
+                    },
+                    "description": "Tenant and target owner",
                     "required": true
                 },
                 "responses": {
@@ -1295,6 +1367,25 @@
                         "type": "string"
                     },
                     "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.CreateTenantRequest": {
+                "type": "object",
+                "required": [
+                    "code",
+                    "name",
+                    "owner_user_id"
+                ],
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "owner_user_id": {
                         "type": "string"
                     }
                 }

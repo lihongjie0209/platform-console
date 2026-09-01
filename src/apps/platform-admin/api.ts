@@ -512,7 +512,7 @@ export function getTenant(tenantID: string) {
 export async function createTenant(form: TenantForm) {
   await unwrap<{ tenant: TenantDirectoryItem }>(
     tenantRequest({
-      url: '/api/v1/tenants/create',
+      url: '/api/v1/tenants/manage/create',
       method: 'post',
       data: { code: form.code, name: form.name, owner_user_id: form.owner_user_id }
     })
