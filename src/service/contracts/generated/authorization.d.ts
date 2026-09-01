@@ -215,6 +215,129 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/authorization/my-bindings/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bind a role in the current tenant or platform scope */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Scoped binding */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.CreateMyBindingRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/authorization/my-bindings/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List bindings in the current tenant or platform scope */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Scoped binding pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListMyBindingsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/authorization/my-bindings/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke a binding in the current tenant or platform scope */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Scoped binding revoke */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.RevokeMyBindingRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/authorization/my-permission-catalog/list": {
         parameters: {
             query?: never;
@@ -411,6 +534,129 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["httptransport.UpdateMyPermissionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/authorization/my-role-permissions/grant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Grant a permission to a role in the current tenant or platform scope */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Scoped role permission */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GrantMyRolePermissionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/authorization/my-role-permissions/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List role permissions in the current tenant or platform scope */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Scoped role */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListMyRolePermissionsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/authorization/my-role-permissions/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke a role permission in the current tenant or platform scope */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Scoped role permission revoke */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.RevokeMyRolePermissionRequest"];
                 };
             };
             responses: {
@@ -1167,6 +1413,15 @@ export interface components {
             subject_type: string;
             tenant_id: string;
         };
+        "httptransport.CreateMyBindingRequest": {
+            organization_unit_id?: string;
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
+            role_id: string;
+            subject_id: string;
+            subject_type: string;
+            tenant_id: string;
+        };
         "httptransport.CreateMyPermissionRequest": {
             action: string;
             code: string;
@@ -1201,6 +1456,13 @@ export interface components {
             name: string;
             tenant_id: string;
         };
+        "httptransport.GrantMyRolePermissionRequest": {
+            permission_id: string;
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
+            role_id: string;
+            tenant_id: string;
+        };
         "httptransport.GrantRolePermissionRequest": {
             permission_id: string;
             role_id: string;
@@ -1209,6 +1471,15 @@ export interface components {
         "httptransport.ListBindingsRequest": {
             page?: number;
             page_size?: number;
+            subject_id?: string;
+            subject_type?: string;
+            tenant_id: string;
+        };
+        "httptransport.ListMyBindingsRequest": {
+            page?: number;
+            page_size?: number;
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
             subject_id?: string;
             subject_type?: string;
             tenant_id: string;
@@ -1226,6 +1497,12 @@ export interface components {
             page_size?: number;
             /** @enum {string} */
             permission_scope: "tenant" | "platform";
+            tenant_id: string;
+        };
+        "httptransport.ListMyRolePermissionsRequest": {
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
+            role_id: string;
             tenant_id: string;
         };
         "httptransport.ListMyRolesRequest": {
@@ -1259,6 +1536,20 @@ export interface components {
         };
         "httptransport.RevokeBindingRequest": {
             binding_id: string;
+            version: number;
+        };
+        "httptransport.RevokeMyBindingRequest": {
+            binding_id: string;
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
+            tenant_id: string;
+            version: number;
+        };
+        "httptransport.RevokeMyRolePermissionRequest": {
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
+            role_permission_id: string;
+            tenant_id: string;
             version: number;
         };
         "httptransport.RevokeRolePermissionRequest": {

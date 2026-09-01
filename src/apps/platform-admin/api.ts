@@ -213,6 +213,23 @@ export interface BindingQuery {
   pageSize: number;
 }
 
+export interface ScopedBindingQuery extends BindingQuery {
+  permissionScope: 'tenant' | 'platform';
+}
+
+export interface ScopedBindingRequest {
+  tenantID: string;
+  permissionScope: 'tenant' | 'platform';
+  form: BindingForm;
+}
+
+export interface ScopedRolePermissionRequest {
+  tenantID: string;
+  permissionScope: 'tenant' | 'platform';
+  roleID: string;
+  permissionID: string;
+}
+
 export interface ApplicationGrantForm {
   source: string;
   valid_from: string;
@@ -825,6 +842,55 @@ export function revokeRolePermission(rolePermissionID: string, version: number) 
   );
 }
 
+export function listMyRolePermissions(request: Omit<ScopedRolePermissionRequest, 'permissionID'>) {
+  return unwrap<{ role_permissions: RolePermission[] }>(
+    authorizationRequest({
+      url: '/api/v1/authorization/my-role-permissions/list',
+      method: 'post',
+      data: {
+        tenant_id: request.tenantID,
+        permission_scope: request.permissionScope,
+        role_id: request.roleID
+      }
+    })
+  );
+}
+
+export function grantMyRolePermission(request: ScopedRolePermissionRequest) {
+  return unwrap<RolePermission>(
+    authorizationRequest({
+      url: '/api/v1/authorization/my-role-permissions/grant',
+      method: 'post',
+      data: {
+        tenant_id: request.tenantID,
+        permission_scope: request.permissionScope,
+        role_id: request.roleID,
+        permission_id: request.permissionID
+      }
+    })
+  );
+}
+
+export function revokeMyRolePermission(request: {
+  tenantID: string;
+  permissionScope: 'tenant' | 'platform';
+  rolePermissionID: string;
+  version: number;
+}) {
+  return unwrap<RolePermission>(
+    authorizationRequest({
+      url: '/api/v1/authorization/my-role-permissions/revoke',
+      method: 'post',
+      data: {
+        tenant_id: request.tenantID,
+        permission_scope: request.permissionScope,
+        role_permission_id: request.rolePermissionID,
+        version: request.version
+      }
+    })
+  );
+}
+
 export function listBindings(query: BindingQuery) {
   return unwrap<{ items: Binding[]; total: number; page: number; page_size: number }>(
     authorizationRequest({
@@ -863,6 +929,60 @@ export function revokeBinding(id: string, version: number) {
       url: '/api/v1/authorization/bindings/revoke',
       method: 'post',
       data: { binding_id: id, version }
+    })
+  );
+}
+
+export function listMyBindings(query: ScopedBindingQuery) {
+  return unwrap<{ items: Binding[]; total: number; page: number; page_size: number }>(
+    authorizationRequest({
+      url: '/api/v1/authorization/my-bindings/list',
+      method: 'post',
+      data: {
+        tenant_id: query.tenantID,
+        permission_scope: query.permissionScope,
+        subject_id: query.subjectID || '',
+        subject_type: query.subjectType || '',
+        page: query.page,
+        page_size: query.pageSize
+      }
+    })
+  );
+}
+
+export function createMyBinding(request: ScopedBindingRequest) {
+  return unwrap<Binding>(
+    authorizationRequest({
+      url: '/api/v1/authorization/my-bindings/create',
+      method: 'post',
+      data: {
+        tenant_id: request.tenantID,
+        permission_scope: request.permissionScope,
+        subject_id: request.form.subject_id,
+        subject_type: request.form.subject_type,
+        role_id: request.form.role_id,
+        organization_unit_id: request.form.organization_unit_id
+      }
+    })
+  );
+}
+
+export function revokeMyBinding(request: {
+  tenantID: string;
+  permissionScope: 'tenant' | 'platform';
+  bindingID: string;
+  version: number;
+}) {
+  return unwrap<Binding>(
+    authorizationRequest({
+      url: '/api/v1/authorization/my-bindings/revoke',
+      method: 'post',
+      data: {
+        tenant_id: request.tenantID,
+        permission_scope: request.permissionScope,
+        binding_id: request.bindingID,
+        version: request.version
+      }
     })
   );
 }

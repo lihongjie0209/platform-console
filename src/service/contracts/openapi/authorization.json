@@ -223,6 +223,114 @@
                 }
             }
         },
+        "/api/v1/authorization/my-bindings/create": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "authorization-bindings"
+                ],
+                "summary": "Bind a role in the current tenant or platform scope",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.CreateMyBindingRequest"
+                            }
+                        }
+                    },
+                    "description": "Scoped binding",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/authorization/my-bindings/list": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "authorization-bindings"
+                ],
+                "summary": "List bindings in the current tenant or platform scope",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.ListMyBindingsRequest"
+                            }
+                        }
+                    },
+                    "description": "Scoped binding pagination",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/authorization/my-bindings/revoke": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "authorization-bindings"
+                ],
+                "summary": "Revoke a binding in the current tenant or platform scope",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.RevokeMyBindingRequest"
+                            }
+                        }
+                    },
+                    "description": "Scoped binding revoke",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/authorization/my-permission-catalog/list": {
             "post": {
                 "security": [
@@ -409,6 +517,114 @@
                         }
                     },
                     "description": "Scoped permission update",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/authorization/my-role-permissions/grant": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "authorization-role-permissions"
+                ],
+                "summary": "Grant a permission to a role in the current tenant or platform scope",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GrantMyRolePermissionRequest"
+                            }
+                        }
+                    },
+                    "description": "Scoped role permission",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/authorization/my-role-permissions/list": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "authorization-role-permissions"
+                ],
+                "summary": "List role permissions in the current tenant or platform scope",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.ListMyRolePermissionsRequest"
+                            }
+                        }
+                    },
+                    "description": "Scoped role",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/authorization/my-role-permissions/revoke": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "authorization-role-permissions"
+                ],
+                "summary": "Revoke a role permission in the current tenant or platform scope",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.RevokeMyRolePermissionRequest"
+                            }
+                        }
+                    },
+                    "description": "Scoped role permission revoke",
                     "required": true
                 },
                 "responses": {
@@ -1269,6 +1485,40 @@
                     }
                 }
             },
+            "httptransport.CreateMyBindingRequest": {
+                "type": "object",
+                "required": [
+                    "permission_scope",
+                    "role_id",
+                    "subject_id",
+                    "subject_type",
+                    "tenant_id"
+                ],
+                "properties": {
+                    "organization_unit_id": {
+                        "type": "string"
+                    },
+                    "permission_scope": {
+                        "type": "string",
+                        "enum": [
+                            "tenant",
+                            "platform"
+                        ]
+                    },
+                    "role_id": {
+                        "type": "string"
+                    },
+                    "subject_id": {
+                        "type": "string"
+                    },
+                    "subject_type": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
             "httptransport.CreateMyPermissionRequest": {
                 "type": "object",
                 "required": [
@@ -1397,6 +1647,33 @@
                     }
                 }
             },
+            "httptransport.GrantMyRolePermissionRequest": {
+                "type": "object",
+                "required": [
+                    "permission_id",
+                    "permission_scope",
+                    "role_id",
+                    "tenant_id"
+                ],
+                "properties": {
+                    "permission_id": {
+                        "type": "string"
+                    },
+                    "permission_scope": {
+                        "type": "string",
+                        "enum": [
+                            "tenant",
+                            "platform"
+                        ]
+                    },
+                    "role_id": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
             "httptransport.GrantRolePermissionRequest": {
                 "type": "object",
                 "required": [
@@ -1427,6 +1704,37 @@
                     },
                     "page_size": {
                         "type": "integer"
+                    },
+                    "subject_id": {
+                        "type": "string"
+                    },
+                    "subject_type": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.ListMyBindingsRequest": {
+                "type": "object",
+                "required": [
+                    "permission_scope",
+                    "tenant_id"
+                ],
+                "properties": {
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "permission_scope": {
+                        "type": "string",
+                        "enum": [
+                            "tenant",
+                            "platform"
+                        ]
                     },
                     "subject_id": {
                         "type": "string"
@@ -1487,6 +1795,29 @@
                             "tenant",
                             "platform"
                         ]
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.ListMyRolePermissionsRequest": {
+                "type": "object",
+                "required": [
+                    "permission_scope",
+                    "role_id",
+                    "tenant_id"
+                ],
+                "properties": {
+                    "permission_scope": {
+                        "type": "string",
+                        "enum": [
+                            "tenant",
+                            "platform"
+                        ]
+                    },
+                    "role_id": {
+                        "type": "string"
                     },
                     "tenant_id": {
                         "type": "string"
@@ -1594,6 +1925,60 @@
                 ],
                 "properties": {
                     "binding_id": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.RevokeMyBindingRequest": {
+                "type": "object",
+                "required": [
+                    "binding_id",
+                    "permission_scope",
+                    "tenant_id",
+                    "version"
+                ],
+                "properties": {
+                    "binding_id": {
+                        "type": "string"
+                    },
+                    "permission_scope": {
+                        "type": "string",
+                        "enum": [
+                            "tenant",
+                            "platform"
+                        ]
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.RevokeMyRolePermissionRequest": {
+                "type": "object",
+                "required": [
+                    "permission_scope",
+                    "role_permission_id",
+                    "tenant_id",
+                    "version"
+                ],
+                "properties": {
+                    "permission_scope": {
+                        "type": "string",
+                        "enum": [
+                            "tenant",
+                            "platform"
+                        ]
+                    },
+                    "role_permission_id": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
                         "type": "string"
                     },
                     "version": {

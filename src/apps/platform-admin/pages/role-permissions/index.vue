@@ -1,8 +1,18 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import {
+  type AuthorizationManagementScope,
+  authorizationManagementScopeOptions
+} from '@/platform/authorization-management';
 import type { Permission, Role, RolePermission } from '../../api';
-import { grantRolePermission, listPermissions, listRolePermissions, listRoles, revokeRolePermission } from '../../api';
+import {
+  grantMyRolePermission,
+  listMyPermissions,
+  listMyRolePermissions,
+  listMyRoles,
+  revokeMyRolePermission
+} from '../../api';
 
 defineOptions({ name: 'PlatformAdminRolePermissions' });
 const platformStore = usePlatformStore();
@@ -13,6 +23,7 @@ const permissions = ref<Permission[]>([]);
 const assignments = ref<RolePermission[]>([]);
 const roleID = ref('');
 const keyword = ref('');
+const assignmentScope = ref<AuthorizationManagementScope>('tenant');
 const tenantID = computed(() => platformStore.selectedTenantId);
 const assignmentByPermission = computed(() => new Map(assignments.value.map(item => [item.permission_id, item])));
 const rows = computed(() => {
@@ -31,8 +42,8 @@ async function loadCatalogs() {
   loading.value = true;
   try {
     const [rolePage, permissionPage] = await Promise.all([
-      listRoles(tenantID.value, 1, 100),
-      listPermissions(tenantID.value, 1, 100)
+      listMyRoles({ tenantID: tenantID.value, permissionScope: assignmentScope.value, page: 1, pageSize: 100 }),
+      listMyPermissions({ tenantID: tenantID.value, permissionScope: assignmentScope.value, page: 1, pageSize: 100 })
     ]);
     roles.value = rolePage.items;
     permissions.value = permissionPage.items;
@@ -49,7 +60,13 @@ async function loadAssignments() {
   }
   loading.value = true;
   try {
-    assignments.value = (await listRolePermissions(roleID.value)).role_permissions || [];
+    assignments.value = (
+      await listMyRolePermissions({
+        tenantID: tenantID.value,
+        permissionScope: assignmentScope.value,
+        roleID: roleID.value
+      })
+    ).role_permissions;
   } finally {
     loading.value = false;
   }
@@ -59,8 +76,21 @@ async function toggle(permission: Permission, enabled: boolean) {
   const assignment = assignmentByPermission.value.get(permission.id);
   changing.value = permission.id;
   try {
-    if (enabled) await grantRolePermission(tenantID.value, roleID.value, permission.id);
-    else if (assignment) await revokeRolePermission(assignment.id, assignment.version);
+    if (enabled) {
+      await grantMyRolePermission({
+        tenantID: tenantID.value,
+        permissionScope: assignmentScope.value,
+        roleID: roleID.value,
+        permissionID: permission.id
+      });
+    } else if (assignment) {
+      await revokeMyRolePermission({
+        tenantID: tenantID.value,
+        permissionScope: assignmentScope.value,
+        rolePermissionID: assignment.id,
+        version: assignment.version
+      });
+    }
     window.$message?.success(enabled ? '权限已授予' : '权限已撤销');
     await loadAssignments();
   } finally {
@@ -68,8 +98,9 @@ async function toggle(permission: Permission, enabled: boolean) {
   }
 }
 
-watch(tenantID, async () => {
+watch([tenantID, assignmentScope], async () => {
   roleID.value = '';
+  assignments.value = [];
   await loadCatalogs();
   await loadAssignments();
 });
@@ -83,9 +114,10 @@ onMounted(loadCatalogs);
       <div class="flex-y-center justify-between gap-12px">
         <div>
           <h2 class="m-0 text-18px font-semibold">角色权限</h2>
-          <p class="mb-0 mt-6px text-13px text-#999">按当前租户和角色维护权限，授予与撤销均可重复操作。</p>
+          <p class="mb-0 mt-6px text-13px text-#999">按租户或平台作用域维护角色权限，授予与撤销均可重复操作。</p>
         </div>
         <div class="flex-y-center gap-8px">
+          <ElSegmented v-model="assignmentScope" :options="authorizationManagementScopeOptions" />
           <ElSelect v-model="roleID" class="w-260px" filterable placeholder="选择角色">
             <ElOption v-for="role in roles" :key="role.id" :label="`${role.name} (${role.code})`" :value="role.id" />
           </ElSelect>
@@ -95,7 +127,10 @@ onMounted(loadCatalogs);
       </div>
     </template>
     <ElAlert v-if="!tenantID" title="请先在应用选择页选择租户" type="warning" show-icon :closable="false" />
-    <ElEmpty v-else-if="!roles.length" description="当前租户暂无角色，请先创建角色" />
+    <ElEmpty
+      v-else-if="!roles.length"
+      :description="`${assignmentScope === 'platform' ? '平台' : '当前租户'}暂无角色，请先创建角色`"
+    />
     <ElTable v-else v-loading="loading" :data="rows" border stripe>
       <ElTableColumn prop="code" label="权限编码" min-width="190" />
       <ElTableColumn prop="name" label="权限名称" min-width="160" />

@@ -2,16 +2,30 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
-import type { Binding, BindingForm, Group, Membership, OrganizationUnit, Role, UserIdentity } from '../../api';
 import {
-  createBinding,
-  listBindings,
+  type AuthorizationManagementScope,
+  authorizationManagementScopeOptions
+} from '@/platform/authorization-management';
+import type {
+  Binding,
+  BindingForm,
+  Group,
+  Membership,
+  OrganizationUnit,
+  Role,
+  ServiceAccount,
+  UserIdentity
+} from '../../api';
+import {
+  createMyBinding,
   listGroups,
   listMemberships,
+  listMyBindings,
+  listMyRoles,
   listOrganizationUnits,
-  listRoles,
+  listServiceAccounts,
   listUsers,
-  revokeBinding
+  revokeMyBinding
 } from '../../api';
 
 defineOptions({ name: 'PlatformAdminRoleBindings' });
@@ -27,6 +41,8 @@ const memberships = ref<Membership[]>([]);
 const groups = ref<Group[]>([]);
 const organizations = ref<OrganizationUnit[]>([]);
 const users = ref<UserIdentity[]>([]);
+const serviceAccounts = ref<ServiceAccount[]>([]);
+const bindingScope = ref<AuthorizationManagementScope>('tenant');
 const dialogVisible = ref(false);
 const formRef = ref<FormInstance>();
 const form = reactive<BindingForm>({
@@ -41,7 +57,28 @@ const groupByID = computed(() => new Map(groups.value.map(item => [String(item.i
 const membershipByID = computed(() => new Map(memberships.value.map(item => [String(item.id), item])));
 const organizationByID = computed(() => new Map(organizations.value.map(item => [String(item.id), item])));
 const userByID = computed(() => new Map(users.value.map(item => [String(item.id), item])));
+const serviceAccountByID = computed(() => new Map(serviceAccounts.value.map(item => [String(item.id), item])));
+const subjectTypeOptions = computed(() =>
+  bindingScope.value === 'platform'
+    ? [
+        { label: '全局用户', value: 'user' },
+        { label: '服务账号', value: 'service_account' }
+      ]
+    : [
+        { label: '租户成员', value: 'membership' },
+        { label: '成员组', value: 'group' },
+        { label: '服务账号', value: 'service_account' }
+      ]
+);
 const subjectOptions = computed(() => {
+  if (form.subject_type === 'user')
+    return users.value
+      .filter(item => item.status === 'active')
+      .map(item => ({ value: String(item.id), label: `${item.display_name || item.username} (${item.username})` }));
+  if (form.subject_type === 'service_account')
+    return serviceAccounts.value
+      .filter(item => item.status === 'active')
+      .map(item => ({ value: String(item.id), label: `${item.name} (${item.client_id})` }));
   if (form.subject_type === 'group')
     return groups.value
       .filter(item => item.status === 'active')
@@ -68,6 +105,14 @@ function subjectLabel(row: Binding) {
     return group ? `${group.name} (${group.code})` : id;
   }
   if (row.subject_type === 'membership') return membershipLabel(id);
+  if (row.subject_type === 'user') {
+    const user = userByID.value.get(id);
+    return user ? `${user.display_name || user.username} (${user.username})` : id;
+  }
+  if (row.subject_type === 'service_account') {
+    const account = serviceAccountByID.value.get(id);
+    return account ? `${account.name} (${account.client_id})` : id;
+  }
   return id;
 }
 function roleLabel(id: unknown) {
@@ -87,7 +132,12 @@ async function loadRows() {
   }
   loading.value = true;
   try {
-    const result = await listBindings({ tenantID: tenantID.value, page: page.value, pageSize: pageSize.value });
+    const result = await listMyBindings({
+      tenantID: tenantID.value,
+      permissionScope: bindingScope.value,
+      page: page.value,
+      pageSize: pageSize.value
+    });
     rows.value = result.items;
     total.value = result.total;
   } finally {
@@ -96,21 +146,36 @@ async function loadRows() {
 }
 async function loadCatalogs() {
   if (!tenantID.value) return;
-  const [rolePage, membershipPage, groupPage, organizationItems, userPage] = await Promise.all([
-    listRoles(tenantID.value, 1, 100),
-    listMemberships({ tenantID: tenantID.value, page: 1, pageSize: 100 }),
-    listGroups(tenantID.value, 1, 100),
-    listOrganizationUnits(tenantID.value),
-    listUsers({ page: 1, pageSize: 100 })
+  const [rolePage, userPage, serviceAccountPage] = await Promise.all([
+    listMyRoles({ tenantID: tenantID.value, permissionScope: bindingScope.value, page: 1, pageSize: 100 }),
+    listUsers({ page: 1, pageSize: 100 }),
+    listServiceAccounts({ page: 1, pageSize: 100 })
   ]);
   roles.value = rolePage.items;
+  users.value = userPage.items;
+  serviceAccounts.value = serviceAccountPage.items;
+  if (bindingScope.value === 'platform') {
+    memberships.value = [];
+    groups.value = [];
+    organizations.value = [];
+    return;
+  }
+  const [membershipPage, groupPage, organizationItems] = await Promise.all([
+    listMemberships({ tenantID: tenantID.value, page: 1, pageSize: 100 }),
+    listGroups(tenantID.value, 1, 100),
+    listOrganizationUnits(tenantID.value)
+  ]);
   memberships.value = membershipPage.memberships;
   groups.value = groupPage.items;
   organizations.value = organizationItems;
-  users.value = userPage.items;
 }
 function openCreate() {
-  Object.assign(form, { subject_type: 'membership', subject_id: '', role_id: '', organization_unit_id: '' });
+  Object.assign(form, {
+    subject_type: bindingScope.value === 'platform' ? 'user' : 'membership',
+    subject_id: '',
+    role_id: '',
+    organization_unit_id: ''
+  });
   formRef.value?.clearValidate();
   dialogVisible.value = true;
 }
@@ -118,7 +183,7 @@ async function submit() {
   if (!(await formRef.value?.validate())) return;
   submitting.value = true;
   try {
-    await createBinding(tenantID.value, form);
+    await createMyBinding({ tenantID: tenantID.value, permissionScope: bindingScope.value, form });
     dialogVisible.value = false;
     window.$message?.success('角色已绑定');
     await loadRows();
@@ -127,7 +192,12 @@ async function submit() {
   }
 }
 async function revoke(row: Binding) {
-  await revokeBinding(String(row.id), Number(row.version));
+  await revokeMyBinding({
+    tenantID: tenantID.value,
+    permissionScope: bindingScope.value,
+    bindingID: String(row.id),
+    version: Number(row.version)
+  });
   window.$message?.success('角色绑定已撤销');
   await loadRows();
 }
@@ -146,8 +216,10 @@ watch(
     form.subject_id = '';
   }
 );
-watch(tenantID, async () => {
+watch([tenantID, bindingScope], async () => {
   page.value = 1;
+  rows.value = [];
+  form.subject_type = bindingScope.value === 'platform' ? 'user' : 'membership';
   await Promise.all([loadCatalogs(), loadRows()]);
 });
 onMounted(() => Promise.all([loadCatalogs(), loadRows()]));
@@ -159,9 +231,10 @@ onMounted(() => Promise.all([loadCatalogs(), loadRows()]));
       <div class="flex-y-center justify-between gap-12px">
         <div>
           <h2 class="m-0 text-18px font-semibold">角色绑定</h2>
-          <p class="mb-0 mt-6px text-13px text-#999">向租户成员、成员组或服务账号授予角色，可选组织范围。</p>
+          <p class="mb-0 mt-6px text-13px text-#999">租户角色绑定成员或成员组；平台角色绑定全局用户。</p>
         </div>
         <div class="flex-y-center gap-8px">
+          <ElSegmented v-model="bindingScope" :options="authorizationManagementScopeOptions" />
           <ElButton :loading="loading" @click="loadRows">刷新</ElButton>
           <ElButton type="primary" :disabled="!tenantID" @click="openCreate">新增绑定</ElButton>
         </div>
@@ -210,18 +283,16 @@ onMounted(() => Promise.all([loadCatalogs(), loadRows()]));
     <ElForm ref="formRef" :model="form" :rules="rules" label-position="top">
       <ElFormItem label="主体类型" prop="subject_type">
         <ElSelect v-model="form.subject_type">
-          <ElOption label="租户成员" value="membership" />
-          <ElOption label="成员组" value="group" />
-          <ElOption label="服务账号" value="service_account" />
+          <ElOption
+            v-for="option in subjectTypeOptions"
+            :key="option.value"
+            :label="option.label"
+            :value="option.value"
+          />
         </ElSelect>
       </ElFormItem>
       <ElFormItem label="主体" prop="subject_id">
-        <ElInput
-          v-if="form.subject_type === 'service_account'"
-          v-model="form.subject_id"
-          placeholder="输入服务账号 ID"
-        />
-        <ElSelect v-else v-model="form.subject_id" filterable>
+        <ElSelect v-model="form.subject_id" filterable>
           <ElOption v-for="option in subjectOptions" :key="option.value" :label="option.label" :value="option.value" />
         </ElSelect>
       </ElFormItem>
@@ -235,7 +306,7 @@ onMounted(() => Promise.all([loadCatalogs(), loadRows()]));
           />
         </ElSelect>
       </ElFormItem>
-      <ElFormItem label="组织范围（可选）">
+      <ElFormItem v-if="bindingScope === 'tenant'" label="组织范围（可选）">
         <ElSelect v-model="form.organization_unit_id" filterable clearable>
           <ElOption
             v-for="organization in organizations.filter(item => item.status === 'active')"
