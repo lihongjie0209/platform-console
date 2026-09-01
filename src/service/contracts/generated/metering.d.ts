@@ -491,6 +491,7 @@ export interface components {
             status?: string;
         };
         "httptransport.AdjustUsageRequest": {
+            application_id: string;
             dimensions?: {
                 [key: string]: string;
             };
@@ -539,6 +540,7 @@ export interface components {
             version?: number;
         };
         "httptransport.QueryUsageRequest": {
+            application_id: string;
             dimensions?: {
                 [key: string]: string;
             };
@@ -567,6 +569,7 @@ export interface components {
             version: number;
         };
         "httptransport.UsageInputRequest": {
+            application_id: string;
             dimensions?: {
                 [key: string]: string;
             };

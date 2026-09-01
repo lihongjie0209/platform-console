@@ -1,4 +1,5 @@
 import { platformRequest } from '@/service/request';
+import { usageApplicationScope } from './scope';
 
 export interface Meter extends Record<string, unknown> {
   id: string;
@@ -75,6 +76,7 @@ export function saveMeter(
 }
 export function queryUsage(input: {
   tenantID: string;
+  applicationID: string;
   meterCode: string;
   startAt: string;
   endAt: string;
@@ -88,7 +90,7 @@ export function queryUsage(input: {
       url: '/api/v1/usage/query',
       method: 'post',
       data: {
-        tenant_id: input.tenantID,
+        ...usageApplicationScope(input.tenantID, input.applicationID),
         meter_code: input.meterCode,
         start_at: input.startAt,
         end_at: input.endAt,

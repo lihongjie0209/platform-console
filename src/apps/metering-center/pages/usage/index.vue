@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { hasApplicationScope } from '@/platform/application-context';
 import type { UsagePoint } from '../../api';
 import { queryUsage } from '../../api';
 import { parseJSONObject } from '../../../commerce/json';
 defineOptions({ name: 'MeteringCenterUsage' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
+const applicationID = computed(() => store.selectedApplicationId);
+const applicationName = computed(() => store.selectedApplication?.name || '当前应用');
+const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const meterCode = ref('');
 const range = ref<[string, string]>();
 const granularity = ref('day');
@@ -15,11 +19,12 @@ const rows = ref<UsagePoint[]>([]);
 const totalQuantity = ref(0);
 const loading = ref(false);
 async function search() {
-  if (!tenantID.value || !range.value) return;
+  if (!scopeReady.value || !range.value || !meterCode.value.trim()) return;
   loading.value = true;
   try {
     const v = await queryUsage({
       tenantID: tenantID.value,
+      applicationID: applicationID.value,
       meterCode: meterCode.value,
       startAt: range.value[0],
       endAt: range.value[1],
@@ -36,6 +41,10 @@ async function search() {
     loading.value = false;
   }
 }
+watch([tenantID, applicationID], () => {
+  rows.value = [];
+  totalQuantity.value = 0;
+});
 </script>
 
 <template>
@@ -43,10 +52,10 @@ async function search() {
     <template #header>
       <div>
         <h2 class="m-0">用量查询</h2>
-        <p class="mb-0 text-#999">按租户、计量项、时间粒度和维度聚合查询。</p>
+        <p class="mb-0 text-#999">{{ applicationName }} · 按计量项、时间粒度和维度聚合查询。</p>
       </div>
     </template>
-    <ElAlert v-if="!tenantID" title="请先选择租户" type="warning" :closable="false" />
+    <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" show-icon :closable="false" />
     <ElForm v-else inline>
       <ElFormItem label="计量编码"><ElInput v-model="meterCode" /></ElFormItem>
       <ElFormItem label="时间">
@@ -58,7 +67,7 @@ async function search() {
         </ElSelect>
       </ElFormItem>
       <ElFormItem label="维度 JSON"><ElInput v-model="dimensions" /></ElFormItem>
-      <ElButton type="primary" @click="search">查询</ElButton>
+      <ElButton type="primary" :disabled="!range || !meterCode.trim()" @click="search">查询</ElButton>
     </ElForm>
     <ElStatistic title="总用量" :value="totalQuantity" class="mb-16px" />
     <ElTable v-loading="loading" :data="rows" border>

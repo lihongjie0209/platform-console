@@ -72,7 +72,7 @@ onMounted(loadData);
     <template #header>
       <div class="flex-y-center justify-between">
         <div>
-          <h2 class="m-0">计量项</h2>
+          <h2 class="m-0">平台计量器目录</h2>
           <p class="mb-0 text-#999">定义用量单位、聚合方式与可用维度。</p>
         </div>
         <ElButton type="primary" @click="open()">新建计量项</ElButton>
