@@ -1,5 +1,6 @@
 import type { components as FileContract } from '@/service/contracts/generated/file';
 import { platformRequest } from '@/service/request';
+import { applicationScope } from '@/platform/application-context';
 
 type FileContractMetadata = FileContract['schemas']['file.Metadata'];
 type FileContractAuthorization = FileContract['schemas']['file.Authorization'];
@@ -7,6 +8,7 @@ type FileContractAuthorization = FileContract['schemas']['file.Authorization'];
 export interface FileMetadata extends FileContractMetadata, Record<string, unknown> {
   id: string;
   tenant_id: string;
+  application_id: string;
   filename: string;
   content_type: string;
   size: number;
@@ -30,6 +32,7 @@ export interface FilePage {
 
 export interface FileQuery {
   tenantID: string;
+  applicationID: string;
   keyword: string;
   status: string;
   scanStatus: string;
@@ -54,7 +57,7 @@ export function listFiles(query: FileQuery) {
       url: '/api/v1/files/metadata/list',
       method: 'post',
       data: {
-        tenant_id: query.tenantID,
+        ...applicationScope(query.tenantID, query.applicationID),
         keyword: query.keyword,
         status: query.status,
         scan_status: query.scanStatus,
@@ -69,6 +72,7 @@ export function listFiles(query: FileQuery) {
 
 export function initiateUpload(input: {
   tenantID: string;
+  applicationID: string;
   filename: string;
   contentType: string;
   size: number;
@@ -80,7 +84,7 @@ export function initiateUpload(input: {
       url: '/api/v1/files/uploads/initiate',
       method: 'post',
       data: {
-        tenant_id: input.tenantID,
+        ...applicationScope(input.tenantID, input.applicationID),
         filename: input.filename,
         content_type: input.contentType,
         size: input.size,
@@ -100,28 +104,41 @@ export async function putAuthorizedFile(authorization: UploadAuthorization, sour
   if (!response.ok) throw new Error(`对象存储上传失败（HTTP ${response.status}）`);
 }
 
-export function completeUpload(tenantID: string, file: FileMetadata, checksumSHA256: string) {
+export function completeUpload(file: FileMetadata, checksumSHA256: string) {
   return unwrap<FileMetadata>(
     fileRequest({
       url: '/api/v1/files/uploads/complete',
       method: 'post',
-      data: { id: file.id, tenant_id: tenantID, checksum_sha256: checksumSHA256, expected_version: file.version }
+      data: {
+        id: file.id,
+        ...applicationScope(file.tenant_id, file.application_id),
+        checksum_sha256: checksumSHA256,
+        expected_version: file.version
+      }
     })
   );
 }
 
-export function authorizeDownload(tenantID: string, id: string) {
+export function authorizeDownload(file: FileMetadata) {
   return unwrap<UploadAuthorization>(
-    fileRequest({ url: '/api/v1/files/downloads/authorize', method: 'post', data: { id, tenant_id: tenantID } })
+    fileRequest({
+      url: '/api/v1/files/downloads/authorize',
+      method: 'post',
+      data: { id: file.id, ...applicationScope(file.tenant_id, file.application_id) }
+    })
   );
 }
 
-export function deleteFile(tenantID: string, file: FileMetadata) {
+export function deleteFile(file: FileMetadata) {
   return unwrap<FileMetadata>(
     fileRequest({
       url: '/api/v1/files/delete',
       method: 'post',
-      data: { id: file.id, tenant_id: tenantID, expected_version: file.version }
+      data: {
+        id: file.id,
+        ...applicationScope(file.tenant_id, file.application_id),
+        expected_version: file.version
+      }
     })
   );
 }

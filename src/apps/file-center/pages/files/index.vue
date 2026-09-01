@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { UploadFile, UploadUserFile } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
+import { hasApplicationScope } from '@/platform/application-context';
 import { BizCopyText } from '@/components/business';
 import type { FileMetadata } from '../../api';
 import { authorizeDownload, completeUpload, deleteFile, initiateUpload, listFiles, putAuthorizedFile } from '../../api';
@@ -12,6 +13,9 @@ defineOptions({ name: 'FileCenterFiles' });
 const maxDirectUploadBytes = 100 * 1024 * 1024;
 const platformStore = usePlatformStore();
 const tenantID = computed(() => platformStore.selectedTenantId);
+const applicationID = computed(() => platformStore.selectedApplicationId);
+const applicationName = computed(() => platformStore.selectedApplication?.name || '当前应用');
+const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const loading = ref(false);
 const uploading = ref(false);
 const rows = ref<FileMetadata[]>([]);
@@ -26,7 +30,7 @@ const selectedFile = ref<File>();
 const filter = reactive({ keyword: '', status: '', scanStatus: '', contentType: '', ownerID: '' });
 
 async function loadData() {
-  if (!tenantID.value) {
+  if (!scopeReady.value) {
     rows.value = [];
     total.value = 0;
     return;
@@ -35,6 +39,7 @@ async function loadData() {
   try {
     const result = await listFiles({
       tenantID: tenantID.value,
+      applicationID: applicationID.value,
       keyword: filter.keyword,
       status: filter.status,
       scanStatus: filter.scanStatus,
@@ -80,12 +85,13 @@ function selectUploadFile(file: UploadFile) {
 
 async function upload() {
   const source = selectedFile.value;
-  if (!tenantID.value || !source) return;
+  if (!scopeReady.value || !source) return;
   uploading.value = true;
   try {
     const checksum = await sha256Hex(source);
     const authorization = await initiateUpload({
       tenantID: tenantID.value,
+      applicationID: applicationID.value,
       filename: source.name,
       contentType: source.type || 'application/octet-stream',
       size: source.size,
@@ -93,7 +99,7 @@ async function upload() {
       idempotencyKey: crypto.randomUUID()
     });
     await putAuthorizedFile(authorization, source);
-    await completeUpload(tenantID.value, authorization.file, checksum);
+    await completeUpload(authorization.file, checksum);
     uploadVisible.value = false;
     window.$message?.success('文件上传完成');
     await loadData();
@@ -103,8 +109,8 @@ async function upload() {
 }
 
 async function download(row: FileMetadata) {
-  if (!tenantID.value) return;
-  const authorization = await authorizeDownload(tenantID.value, row.id);
+  if (!scopeReady.value) return;
+  const authorization = await authorizeDownload(row);
   const anchor = document.createElement('a');
   anchor.href = authorization.url;
   anchor.rel = 'noopener';
@@ -113,13 +119,13 @@ async function download(row: FileMetadata) {
 }
 
 async function remove(row: FileMetadata) {
-  if (!tenantID.value) return;
+  if (!scopeReady.value) return;
   await ElMessageBox.confirm(`确认删除文件“${row.filename}”吗？对象存储中的内容也会被删除。`, '删除文件', {
     type: 'warning',
     confirmButtonText: '删除',
     cancelButtonText: '取消'
   });
-  await deleteFile(tenantID.value, row);
+  await deleteFile(row);
   window.$message?.success('文件已删除');
   await loadData();
 }
@@ -129,7 +135,16 @@ function showDetail(row: FileMetadata) {
   detailVisible.value = true;
 }
 
-watch(tenantID, search);
+watch([tenantID, applicationID], () => {
+  rows.value = [];
+  total.value = 0;
+  detail.value = undefined;
+  detailVisible.value = false;
+  uploadVisible.value = false;
+  uploadFiles.value = [];
+  selectedFile.value = undefined;
+  search();
+});
 onMounted(loadData);
 </script>
 
@@ -139,16 +154,18 @@ onMounted(loadData);
       <div class="flex-y-center justify-between gap-12px">
         <div>
           <h2 class="m-0 text-18px font-semibold">文件管理</h2>
-          <p class="mb-0 mt-6px text-13px text-#999">管理当前租户的文件元数据、上传、下载授权和生命周期。</p>
+          <p class="mb-0 mt-6px text-13px text-#999">
+            管理 {{ applicationName }} 的文件元数据、上传、下载授权和生命周期。
+          </p>
         </div>
         <div class="flex-y-center gap-8px">
           <ElButton :loading="loading" @click="loadData">刷新</ElButton>
-          <ElButton type="primary" :disabled="!tenantID" @click="openUpload">上传文件</ElButton>
+          <ElButton type="primary" :disabled="!scopeReady" @click="openUpload">上传文件</ElButton>
         </div>
       </div>
     </template>
 
-    <ElAlert v-if="!tenantID" title="请先在应用选择页选择租户" type="warning" show-icon :closable="false" />
+    <ElAlert v-if="!scopeReady" title="请先在应用选择页选择租户和应用" type="warning" show-icon :closable="false" />
     <template v-else>
       <ElForm inline class="mb-16px" @submit.prevent="search">
         <ElFormItem label="关键词">

@@ -668,6 +668,7 @@ export interface components {
             url?: string;
         };
         "file.Metadata": {
+            application_id?: string;
             bucket?: string;
             checksum_sha256?: string;
             content_type?: string;
@@ -714,11 +715,13 @@ export interface components {
             status?: string;
         };
         "httptransport.AuthorizeUploadPartRequest": {
+            application_id: string;
             id: string;
             part_number: number;
             tenant_id: string;
         };
         "httptransport.CompleteMultipartUploadRequest": {
+            application_id: string;
             checksum_sha256: string;
             expected_version: number;
             id: string;
@@ -726,6 +729,7 @@ export interface components {
             tenant_id: string;
         };
         "httptransport.CompleteUploadRequest": {
+            application_id: string;
             checksum_sha256: string;
             expected_version: number;
             id: string;
@@ -736,15 +740,18 @@ export interface components {
             part_number: number;
         };
         "httptransport.DeleteFileRequest": {
+            application_id: string;
             expected_version: number;
             id: string;
             tenant_id: string;
         };
         "httptransport.FileIDRequest": {
+            application_id: string;
             id: string;
             tenant_id: string;
         };
         "httptransport.InitiateMultipartUploadRequest": {
+            application_id: string;
             checksum_sha256: string;
             content_type: string;
             filename: string;
@@ -754,6 +761,7 @@ export interface components {
             tenant_id: string;
         };
         "httptransport.InitiateUploadRequest": {
+            application_id: string;
             checksum_sha256: string;
             content_type: string;
             filename: string;
@@ -762,6 +770,7 @@ export interface components {
             tenant_id: string;
         };
         "httptransport.ListFilesRequest": {
+            application_id: string;
             content_type?: string;
             keyword?: string;
             owner_id?: string;
@@ -775,6 +784,7 @@ export interface components {
             subject?: string;
         };
         "httptransport.ReportScanResultRequest": {
+            application_id: string;
             expected_version: number;
             id: string;
             scan_status: string;
