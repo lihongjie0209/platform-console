@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { hasApplicationScope } from '@/platform/application-context';
 import type { DictionaryDefinition, DictionaryItem } from '../../api';
 import {
   createDefinition,
@@ -17,6 +18,9 @@ import { parseJSONObject } from '../../json';
 defineOptions({ name: 'DictionaryCenterDefinitions' });
 const platformStore = usePlatformStore();
 const tenantID = computed(() => platformStore.selectedTenantId);
+const applicationID = computed(() => platformStore.selectedApplicationId);
+const applicationName = computed(() => platformStore.selectedApplication?.name || '当前应用');
+const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const rows = ref<DictionaryDefinition[]>([]);
 const total = ref(0);
 const page = ref(1);
@@ -49,11 +53,16 @@ const previewKeyword = ref('');
 const previewItems = ref<DictionaryItem[]>([]);
 
 async function loadData() {
-  if (!tenantID.value) return;
+  if (!scopeReady.value) {
+    rows.value = [];
+    total.value = 0;
+    return;
+  }
   loading.value = true;
   try {
     const result = await listDefinitions({
       tenantID: tenantID.value,
+      applicationID: applicationID.value,
       status: status.value,
       keyword: keyword.value,
       page: page.value,
@@ -70,6 +79,7 @@ function search() {
   loadData();
 }
 function openCreate() {
+  if (!scopeReady.value) return;
   editing.value = undefined;
   Object.assign(form, { code: '', name: '', description: '', status: 'draft', metadata: '{}' });
   formVisible.value = true;
@@ -86,7 +96,7 @@ function openEdit(row: DictionaryDefinition) {
   formVisible.value = true;
 }
 async function save() {
-  if (!tenantID.value) return;
+  if (!scopeReady.value) return;
   let metadata: Record<string, unknown>;
   try {
     metadata = parseJSONObject(form.metadata);
@@ -106,6 +116,7 @@ async function save() {
     else
       await createDefinition({
         tenantID: tenantID.value,
+        applicationID: applicationID.value,
         code: form.code,
         name: form.name,
         description: form.description,
@@ -189,12 +200,26 @@ async function publish(row: DictionaryDefinition) {
   await loadData();
 }
 async function preview(row: DictionaryDefinition) {
+  if (!scopeReady.value) return;
   selected.value = row;
   previewVisible.value = true;
-  const result = await queryDictionary(tenantID.value, row.code, previewKeyword.value);
+  const result = await queryDictionary(
+    { tenantID: tenantID.value, applicationID: applicationID.value },
+    row.code,
+    previewKeyword.value
+  );
   previewItems.value = result.items || [];
 }
-watch(tenantID, search);
+watch([tenantID, applicationID], () => {
+  formVisible.value = false;
+  itemsVisible.value = false;
+  itemVisible.value = false;
+  previewVisible.value = false;
+  selected.value = undefined;
+  items.value = [];
+  previewItems.value = [];
+  search();
+});
 onMounted(loadData);
 </script>
 
@@ -204,12 +229,14 @@ onMounted(loadData);
       <div class="flex-y-center justify-between">
         <div>
           <h2 class="m-0 text-18px font-semibold">字典定义</h2>
-          <p class="mb-0 mt-6px text-13px text-#999">维护静态字典草稿、不可变发布版本，并验证统一查询入口。</p>
+          <p class="mb-0 mt-6px text-13px text-#999">
+            维护 {{ applicationName }} 的静态字典覆盖、不可变发布版本，并验证统一查询入口。
+          </p>
         </div>
-        <ElButton type="primary" :disabled="!tenantID" @click="openCreate">新建字典</ElButton>
+        <ElButton type="primary" :disabled="!scopeReady" @click="openCreate">新建字典</ElButton>
       </div>
     </template>
-    <ElAlert v-if="!tenantID" title="请先选择租户" type="warning" show-icon :closable="false" />
+    <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" show-icon :closable="false" />
     <template v-else>
       <ElForm inline class="mb-16px">
         <ElFormItem label="关键词"><ElInput v-model="keyword" clearable /></ElFormItem>

@@ -1,5 +1,6 @@
 import type { components as DictionaryContract } from '@/service/contracts/generated/dictionary';
 import { platformRequest } from '@/service/request';
+import { applicationScope } from '@/platform/application-context';
 
 type DictionarySchema = DictionaryContract['schemas']['httptransport.DictionaryView'];
 type ItemSchema = DictionaryContract['schemas']['httptransport.ItemView'];
@@ -8,6 +9,7 @@ type ProviderSchema = DictionaryContract['schemas']['httptransport.ProviderView'
 export interface DictionaryDefinition extends Omit<DictionarySchema, 'metadata_json'>, Record<string, unknown> {
   id: string;
   tenant_id: string;
+  application_id: string;
   code: string;
   name: string;
   description: string;
@@ -56,6 +58,7 @@ async function unwrap<T>(value: PromiseLike<{ data: T | null; error: unknown }>)
 }
 export function listDefinitions(input: {
   tenantID: string;
+  applicationID: string;
   status: string;
   keyword: string;
   page: number;
@@ -66,7 +69,7 @@ export function listDefinitions(input: {
       url: '/api/v1/dictionaries/list',
       method: 'post',
       data: {
-        tenant_id: input.tenantID,
+        ...applicationScope(input.tenantID, input.applicationID),
         status: input.status,
         keyword: input.keyword,
         page: input.page,
@@ -77,6 +80,7 @@ export function listDefinitions(input: {
 }
 export function createDefinition(input: {
   tenantID: string;
+  applicationID: string;
   code: string;
   name: string;
   description: string;
@@ -87,7 +91,7 @@ export function createDefinition(input: {
       url: '/api/v1/dictionaries/create',
       method: 'post',
       data: {
-        tenant_id: input.tenantID,
+        ...applicationScope(input.tenantID, input.applicationID),
         code: input.code,
         name: input.name,
         description: input.description,
@@ -160,12 +164,23 @@ export function publishDefinition(value: DictionaryDefinition, comment: string) 
     })
   );
 }
-export function queryDictionary(tenantID: string, dictionaryCode: string, keyword: string) {
+export function queryDictionary(
+  scope: { tenantID: string; applicationID: string },
+  dictionaryCode: string,
+  keyword: string
+) {
   return unwrap<Page<DictionaryItem> & { has_more: boolean }>(
     request({
       url: '/api/v1/dictionaries/query',
       method: 'post',
-      data: { tenant_id: tenantID, dictionary_code: dictionaryCode, keyword, page: 1, page_size: 100, filters: {} }
+      data: {
+        ...applicationScope(scope.tenantID, scope.applicationID),
+        dictionary_code: dictionaryCode,
+        keyword,
+        page: 1,
+        page_size: 100,
+        filters: {}
+      }
     })
   );
 }

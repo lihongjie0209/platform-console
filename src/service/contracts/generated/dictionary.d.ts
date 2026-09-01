@@ -912,6 +912,7 @@ export interface components {
             supports_tree?: boolean;
         };
         "httptransport.CreateDictionaryRequest": {
+            application_id?: string;
             code: string;
             description?: string;
             metadata_json?: Record<string, never>;
@@ -929,6 +930,7 @@ export interface components {
             total?: number;
         };
         "httptransport.DictionaryView": {
+            application_id?: string;
             code?: string;
             created_at?: string;
             created_by?: string;
@@ -946,6 +948,7 @@ export interface components {
             version?: number;
         };
         "httptransport.GetDictionaryRequest": {
+            application_id?: string;
             code: string;
             tenant_id?: string;
         };
@@ -971,6 +974,7 @@ export interface components {
             version?: number;
         };
         "httptransport.ListDictionariesRequest": {
+            application_id?: string;
             keyword?: string;
             page?: number;
             page_size?: number;
@@ -1031,6 +1035,7 @@ export interface components {
             release_version?: number;
         };
         "httptransport.QueryDictionaryRequest": {
+            application_id?: string;
             cursor?: string;
             descending?: boolean;
             dictionary_code: string;
@@ -1061,6 +1066,7 @@ export interface components {
             timeout_milliseconds?: number;
         };
         "httptransport.ResolveCodesRequest": {
+            application_id?: string;
             codes: string[];
             dictionary_code: string;
             tenant_id?: string;
@@ -1077,6 +1083,7 @@ export interface components {
             request_id?: string;
         };
         "httptransport.TreeDictionaryRequest": {
+            application_id?: string;
             dictionary_code: string;
             keyword?: string;
             max_depth?: number;
