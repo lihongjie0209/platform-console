@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applicationModules, isApplicationPageKey, resolveApplicationPage } from '../apps/registry';
+import {
+  applicationModules,
+  isApplicationPageKey,
+  pageBelongsToApplication,
+  resolveApplicationPage
+} from '../apps/registry';
 
 test('application pages are registered under an application namespace', () => {
   assert.deepEqual(
@@ -63,7 +68,14 @@ test('application pages are registered under an application namespace', () => {
 });
 
 test('page registry rejects untrusted component strings', () => {
-  assert.ok(resolveApplicationPage('platform-admin.roles'));
-  assert.equal(resolveApplicationPage('../../views/manage/user'), undefined);
-  assert.equal(resolveApplicationPage('https://example.com/page.js'), undefined);
+  assert.ok(resolveApplicationPage('platform-admin.roles', 'platform-admin'));
+  assert.equal(resolveApplicationPage('../../views/manage/user', 'platform-admin'), undefined);
+  assert.equal(resolveApplicationPage('https://example.com/page.js', 'platform-admin'), undefined);
+});
+
+test('an application cannot mount a page owned by another application', () => {
+  assert.equal(pageBelongsToApplication('billing-center.invoices', 'billing-center'), true);
+  assert.equal(pageBelongsToApplication('billing-center.invoices', 'platform-admin'), false);
+  assert.equal(resolveApplicationPage('billing-center.invoices', 'platform-admin'), undefined);
+  assert.equal(resolveApplicationPage('billing-center.invoices'), undefined);
 });

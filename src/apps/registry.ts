@@ -102,7 +102,7 @@ export const applicationModules: readonly ApplicationModule[] = [
   },
   {
     code: 'search-center',
-    name: '全局搜索',
+    name: '应用搜索',
     pages: Object.freeze(Object.keys(pageLoaders).filter(key => key.startsWith('search-center.')))
   },
   {
@@ -139,8 +139,12 @@ export const applicationModules: readonly ApplicationModule[] = [
 
 const pageComponents = new Map<string, Component>();
 
-export function resolveApplicationPage(pageKey?: string): Component | undefined {
-  if (!pageKey || !(pageKey in pageLoaders)) return undefined;
+export function pageBelongsToApplication(pageKey: string, applicationCode: string) {
+  return isApplicationPageKey(pageKey) && pageKey.startsWith(`${applicationCode}.`);
+}
+
+export function resolveApplicationPage(pageKey?: string, applicationCode?: string): Component | undefined {
+  if (!pageKey || !applicationCode || !pageBelongsToApplication(pageKey, applicationCode)) return undefined;
 
   let component = pageComponents.get(pageKey);
   if (!component) {

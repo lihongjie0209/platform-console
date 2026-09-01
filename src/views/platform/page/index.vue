@@ -13,7 +13,7 @@ const props = defineProps<{
   externalURL?: string;
 }>();
 
-const pageComponent = computed(() => resolveApplicationPage(props.componentKey));
+const pageComponent = computed(() => resolveApplicationPage(props.componentKey, props.applicationCode));
 
 function openExternalURL() {
   if (props.externalURL) window.open(props.externalURL, '_blank', 'noopener,noreferrer');
@@ -35,7 +35,7 @@ function openExternalURL() {
     <ElEmpty description="该业务模块正在接入统一控制台" :image-size="96">
       <template #description>
         <p class="mb-0 text-#666">
-          模块由应用服务已发布的菜单驱动；页面实现会在此注册，不会执行菜单中的组件字符串（{{
+          模块由应用服务已发布的菜单驱动；仅加载当前应用命名空间内已注册的页面，不会执行菜单中的组件字符串（{{
             componentKey || '未配置'
           }}）。
         </p>
