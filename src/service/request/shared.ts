@@ -1,9 +1,8 @@
 import { useAuthStore } from '@/store/modules/auth';
 import { sessionStg } from '@/utils/storage';
+import { createTokenRefreshCoordinator } from '@/platform/token-refresh';
 import { fetchRefreshToken } from '../api';
 import type { RequestInstanceState } from './type';
-
-let refreshTokenPromise: Promise<boolean> | null = null;
 
 export function getAuthorization() {
   const token = sessionStg.get('token');
@@ -14,33 +13,30 @@ export function getAuthorization() {
 
 /** refresh token */
 async function handleRefreshToken() {
-  const { resetStore } = useAuthStore();
+  const authStore = useAuthStore();
 
   const rToken = sessionStg.get('refreshToken') || '';
+  if (!rToken) {
+    await authStore.resetStore();
+    return false;
+  }
   const { error, data } = await fetchRefreshToken(rToken);
   if (!error) {
     sessionStg.set('token', data.access_token);
     sessionStg.set('refreshToken', data.refresh_token);
+    authStore.token = data.access_token;
     return true;
   }
 
-  resetStore();
+  await authStore.resetStore();
 
   return false;
 }
 
-export async function handleExpiredRequest() {
-  if (!refreshTokenPromise) {
-    refreshTokenPromise = handleRefreshToken();
-  }
+export const handleExpiredRequest = createTokenRefreshCoordinator(handleRefreshToken);
 
-  const success = await refreshTokenPromise;
-
-  setTimeout(() => {
-    refreshTokenPromise = null;
-  }, 1000);
-
-  return success;
+export async function resetAuthentication() {
+  await useAuthStore().resetStore();
 }
 
 export function showErrorMsg(state: RequestInstanceState, message: string) {

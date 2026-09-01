@@ -2,7 +2,9 @@ import type { AxiosResponse } from 'axios';
 import { BACKEND_ERROR_CODE, createFlatRequest } from '@sa/axios';
 import { PlatformErrorCode, isAuthenticationFailure } from '@/platform/error-code';
 import { serviceBaseURL } from '@/platform/runtime-config';
-import { getAuthorization, handleExpiredRequest, showErrorMsg } from './shared';
+import { authenticationFailureAction } from '@/platform/token-refresh';
+import type { AuthenticationRetryState } from '@/platform/token-refresh';
+import { getAuthorization, handleExpiredRequest, resetAuthentication, showErrorMsg } from './shared';
 import type { RequestInstanceState } from './type';
 
 export interface PlatformResponse<T> {
@@ -18,7 +20,7 @@ function createPlatformClient(service: PlatformService) {
   return createFlatRequest<PlatformResponse<unknown>, unknown, RequestInstanceState>(
     { baseURL: serviceBaseURL(service) },
     {
-      defaultState: { errMsgStack: [], refreshTokenPromise: null },
+      defaultState: { errMsgStack: [] },
       transform(response: AxiosResponse<PlatformResponse<unknown>>) {
         return response.data.body;
       },
@@ -40,10 +42,17 @@ function createPlatformClient(service: PlatformService) {
         return response.data.code === PlatformErrorCode.ok;
       },
       async onBackendFail(response, instance) {
-        if (
-          isAuthenticationFailure(response.data.code) &&
-          !(service === 'identity' && response.config.url?.endsWith('/auth/refresh'))
-        ) {
+        const retryState = response.config as typeof response.config & AuthenticationRetryState;
+        if (isAuthenticationFailure(response.data.code)) {
+          const action = authenticationFailureAction(
+            retryState,
+            service === 'identity' && Boolean(response.config.url?.endsWith('/auth/refresh'))
+          );
+          if (action === 'reset') {
+            await resetAuthentication();
+            return null;
+          }
+          if (action === 'ignore') return null;
           const refreshed = await handleExpiredRequest();
           if (refreshed) {
             const authorization = getAuthorization();
@@ -60,8 +69,7 @@ function createPlatformClient(service: PlatformService) {
           error.code === BACKEND_ERROR_CODE ? error.response?.data?.message || error.message : error.message;
         showErrorMsg(
           clients.get(service)?.state || {
-            errMsgStack: [],
-            refreshTokenPromise: null
+            errMsgStack: []
           },
           message
         );
