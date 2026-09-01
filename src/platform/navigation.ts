@@ -210,19 +210,37 @@ export function activeApplicationRoutes(navigations: PublishedNavigation[], appl
   return routes;
 }
 
+export type MenuPermissionScope = 'tenant' | 'platform';
+
+function menuPermissionScope(menu: ApplicationMenu): MenuPermissionScope {
+  return menu.permission_scope === 'platform' ? 'platform' : 'tenant';
+}
+
 export function navigationPermissionCodes(navigations: PublishedNavigation[]) {
-  return Array.from(
-    new Set(
-      navigations.flatMap(navigation =>
-        navigation.menus.map(menu => menu.permission_code.trim().toLowerCase()).filter(Boolean)
-      )
-    )
-  );
+  const result: Record<MenuPermissionScope, string[]> = { tenant: [], platform: [] };
+  const seen: Record<MenuPermissionScope, Set<string>> = { tenant: new Set(), platform: new Set() };
+  for (const navigation of navigations) {
+    for (const menu of navigation.menus) {
+      const code = menu.permission_code.trim().toLowerCase();
+      const scope = menuPermissionScope(menu);
+      if (code && !seen[scope].has(code)) {
+        seen[scope].add(code);
+        result[scope].push(code);
+      }
+    }
+  }
+  return result;
 }
 
 /** Removes protected menus unless the current tenant membership has every protected ancestor grant. */
-export function filterNavigationsByPermissions(navigations: PublishedNavigation[], allowedCodes: string[]) {
-  const allowed = new Set(allowedCodes.map(code => code.trim().toLowerCase()).filter(Boolean));
+export function filterNavigationsByPermissions(
+  navigations: PublishedNavigation[],
+  allowedCodes: Record<MenuPermissionScope, string[]>
+) {
+  const allowed: Record<MenuPermissionScope, Set<string>> = {
+    tenant: new Set(allowedCodes.tenant.map(code => code.trim().toLowerCase()).filter(Boolean)),
+    platform: new Set(allowedCodes.platform.map(code => code.trim().toLowerCase()).filter(Boolean))
+  };
   return navigations.map(navigation => {
     const byID = new Map(navigation.menus.map(menu => [menu.id, menu]));
     const visibility = new Map<string, boolean>();
@@ -233,8 +251,10 @@ export function filterNavigationsByPermissions(navigations: PublishedNavigation[
       if (visiting.has(menu.id)) return false;
       visiting.add(menu.id);
       const permissionCode = menu.permission_code.trim().toLowerCase();
+      const permissionScope = menuPermissionScope(menu);
       const parent = menu.parent_id ? byID.get(menu.parent_id) : undefined;
-      const result = (!permissionCode || allowed.has(permissionCode)) && (!parent || isAllowed(parent));
+      const result =
+        (!permissionCode || allowed[permissionScope].has(permissionCode)) && (!parent || isAllowed(parent));
       visiting.delete(menu.id);
       visibility.set(menu.id, result);
       return result;

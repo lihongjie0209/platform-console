@@ -18,6 +18,28 @@ import {
 } from '@/platform/application-context';
 import { filterNavigationsByPermissions, navigationPermissionCodes } from '@/platform/navigation';
 
+async function fetchAllowedNavigationPermissionCodes(tenantId: string, navigations: PublishedNavigation[]) {
+  const permissionCodes = navigationPermissionCodes(navigations);
+  const batches = (['tenant', 'platform'] as const).flatMap(permissionScope =>
+    Array.from({ length: Math.ceil(permissionCodes[permissionScope].length / 100) }, (_, index) => ({
+      permissionScope,
+      codes: permissionCodes[permissionScope].slice(index * 100, (index + 1) * 100)
+    }))
+  );
+  const results = await Promise.all(
+    batches.map(async batch => ({
+      permissionScope: batch.permissionScope,
+      result: await fetchMyPermissionCodes(tenantId, batch.permissionScope, batch.codes)
+    }))
+  );
+  const requestError = results.find(item => item.result.error)?.result.error;
+  if (requestError) throw requestError;
+
+  const allowed = { tenant: [] as string[], platform: [] as string[] };
+  for (const item of results) allowed[item.permissionScope].push(...(item.result.data?.allowed_codes ?? []));
+  return allowed;
+}
+
 export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
   const loading = ref(false);
   const errorMessage = ref('');
@@ -94,20 +116,9 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
       applications.value = data.applications.filter(item => item.status === 'active');
       const successfulNavigations = results.flatMap(result => (result.error ? [] : [result.data]));
       const activeNavigations = retainActiveNavigations(applications.value, successfulNavigations);
-      const permissionCodes = navigationPermissionCodes(activeNavigations);
-      if (permissionCodes.length) {
-        const batches = Array.from({ length: Math.ceil(permissionCodes.length / 100) }, (_, index) =>
-          permissionCodes.slice(index * 100, (index + 1) * 100)
-        );
-        const permissionResults = await Promise.all(batches.map(batch => fetchMyPermissionCodes(tenantId, batch)));
-        const permissionError = permissionResults.find(result => result.error)?.error;
-        if (permissionError) throw permissionError;
-        if (revision !== requestRevision) return;
-        const allowedCodes = permissionResults.flatMap(result => result.data?.allowed_codes ?? []);
-        navigations.value = filterNavigationsByPermissions(activeNavigations, allowedCodes);
-      } else {
-        navigations.value = activeNavigations;
-      }
+      const allowedCodes = await fetchAllowedNavigationPermissionCodes(tenantId, activeNavigations);
+      if (revision !== requestRevision) return;
+      navigations.value = filterNavigationsByPermissions(activeNavigations, allowedCodes);
 
       if (!applications.value.some(item => item.id === selectedApplicationId.value)) {
         selectedApplicationId.value = '';

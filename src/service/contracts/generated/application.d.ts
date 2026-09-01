@@ -784,6 +784,7 @@ export interface components {
             name?: string;
             parent_id?: string;
             permission_code?: string;
+            permission_scope?: string;
             release_number?: number;
             route?: string;
             sort_order?: number;

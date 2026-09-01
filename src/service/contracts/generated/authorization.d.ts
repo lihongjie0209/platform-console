@@ -224,7 +224,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Check up to 100 permission codes for the authenticated tenant membership */
+        /** Check up to 100 scoped permission codes for the authenticated user */
         post: {
             parameters: {
                 query?: never;
@@ -860,6 +860,8 @@ export interface components {
         };
         "httptransport.CheckMyPermissionCodesRequest": {
             permission_codes: string[];
+            /** @enum {string} */
+            permission_scope?: "tenant" | "platform";
             tenant_id: string;
         };
         "httptransport.CreateBindingRequest": {

@@ -37,6 +37,7 @@ export interface ApplicationMenu {
   icon: string;
   external_url: string;
   permission_code: string;
+  permission_scope?: 'tenant' | 'platform' | '';
   sort_order: number;
   visible: boolean;
   status: string;
@@ -100,10 +101,14 @@ export function fetchPublishedNavigation(applicationID: string) {
   });
 }
 
-export function fetchMyPermissionCodes(tenantID: string, permissionCodes: string[]) {
+export function fetchMyPermissionCodes(
+  tenantID: string,
+  permissionScope: 'tenant' | 'platform',
+  permissionCodes: string[]
+) {
   return authorizationRequest<PermissionCodeDecision>({
     url: '/api/v1/authorization/my-permissions/check',
     method: 'post',
-    data: { tenant_id: tenantID, permission_codes: permissionCodes }
+    data: { tenant_id: tenantID, permission_scope: permissionScope, permission_codes: permissionCodes }
   });
 }

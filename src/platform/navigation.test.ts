@@ -50,8 +50,18 @@ test('navigationToRoutes scopes routes and never evaluates backend component nam
   assert.equal(route.meta?.applicationId, 'app-1');
 });
 
-test('permission filtering removes denied descendants and preserves unprotected menus', () => {
-  const menu = (id: string, parentID: string, permissionCode: string) => ({
+test('permission filtering separates scopes, removes denied descendants and preserves unprotected menus', () => {
+  const menu = ({
+    id,
+    parentID = '',
+    permissionCode = '',
+    permissionScope = 'tenant'
+  }: {
+    id: string;
+    parentID?: string;
+    permissionCode?: string;
+    permissionScope?: 'tenant' | 'platform';
+  }) => ({
     id,
     application_id: 'app-1',
     parent_id: parentID,
@@ -64,6 +74,7 @@ test('permission filtering removes denied descendants and preserves unprotected 
     icon: '',
     external_url: '',
     permission_code: permissionCode,
+    permission_scope: permissionScope,
     sort_order: 1,
     visible: true,
     status: 'active'
@@ -79,16 +90,22 @@ test('permission filtering removes denied descendants and preserves unprotected 
       status: 'active'
     },
     menus: [
-      menu('public', '', ''),
-      menu('denied-parent', '', 'orders.admin'),
-      menu('hidden-child', 'denied-parent', ''),
-      menu('allowed', '', ' Orders.Read ')
+      menu({ id: 'public' }),
+      menu({ id: 'denied-parent', permissionCode: 'orders.admin' }),
+      menu({ id: 'hidden-child', parentID: 'denied-parent' }),
+      menu({ id: 'allowed', permissionCode: ' Orders.Read ' }),
+      menu({ id: 'same-code-platform', permissionCode: 'orders.read', permissionScope: 'platform' })
     ]
   };
 
-  assert.deepEqual(navigationPermissionCodes([navigation]), ['orders.admin', 'orders.read']);
+  assert.deepEqual(navigationPermissionCodes([navigation]), {
+    tenant: ['orders.admin', 'orders.read'],
+    platform: ['orders.read']
+  });
   assert.deepEqual(
-    filterNavigationsByPermissions([navigation], ['orders.read'])[0].menus.map(item => item.id),
+    filterNavigationsByPermissions([navigation], { tenant: ['orders.read'], platform: [] })[0].menus.map(
+      item => item.id
+    ),
     ['public', 'allowed']
   );
 });
