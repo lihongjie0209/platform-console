@@ -456,6 +456,7 @@ export interface components {
             status?: string;
         };
         "httptransport.CreateExportRequest": {
+            application_id?: string;
             dataset_code?: string;
             filename?: string;
             format?: string;
@@ -466,6 +467,7 @@ export interface components {
             tenant_id?: string;
         };
         "httptransport.DownloadExportRequest": {
+            application_id?: string;
             id?: string;
             tenant_id?: string;
             ttl_seconds?: number;
@@ -478,6 +480,7 @@ export interface components {
             url?: string;
         };
         "httptransport.ExportJobBody": {
+            application_id?: string;
             bytes_written?: number;
             checksum?: string;
             completed_at?: string;
@@ -515,10 +518,12 @@ export interface components {
             total?: number;
         };
         "httptransport.GetExportRequest": {
+            application_id?: string;
             id?: string;
             tenant_id?: string;
         };
         "httptransport.ListExportsRequest": {
+            application_id?: string;
             created_from?: string;
             created_to?: string;
             dataset_code?: string;
@@ -537,12 +542,14 @@ export interface components {
             request_id?: string;
         };
         "httptransport.RetryExportRequest": {
+            application_id?: string;
             id?: string;
             idempotency_key?: string;
             tenant_id?: string;
             version?: number;
         };
         "httptransport.VersionedExportRequest": {
+            application_id?: string;
             id?: string;
             tenant_id?: string;
             version?: number;

@@ -1,8 +1,10 @@
 import type { components as ExportContract } from '@/service/contracts/generated/data-export';
 import { platformRequest } from '@/service/request';
+import { applicationScope } from '@/platform/application-context';
 export type ExportJob = ExportContract['schemas']['httptransport.ExportJobBody'] & {
   id: string;
   tenant_id: string;
+  application_id: string;
   dataset_code: string;
   provider_service: string;
   format: string;
@@ -26,13 +28,13 @@ async function unwrap<T>(value: PromiseLike<{ data: T | null; error: unknown }>)
   if (data === null) throw new Error('export service returned an empty response');
   return data;
 }
-export const listExports = (input: { tenantID: string; status: string; datasetCode: string }) =>
+export const listExports = (input: { tenantID: string; applicationID: string; status: string; datasetCode: string }) =>
   unwrap<Page<ExportJob>>(
     request({
       url: '/api/v1/exports/list',
       method: 'post',
       data: {
-        tenant_id: input.tenantID,
+        ...applicationScope(input.tenantID, input.applicationID),
         status: input.status,
         dataset_code: input.datasetCode,
         page: 1,
@@ -42,6 +44,7 @@ export const listExports = (input: { tenantID: string; status: string; datasetCo
   );
 export const createExport = (input: {
   tenantID: string;
+  applicationID: string;
   datasetCode: string;
   providerService: string;
   format: string;
@@ -54,7 +57,7 @@ export const createExport = (input: {
       url: '/api/v1/exports/create',
       method: 'post',
       data: {
-        tenant_id: input.tenantID,
+        ...applicationScope(input.tenantID, input.applicationID),
         dataset_code: input.datasetCode,
         provider_service: input.providerService,
         format: input.format,
@@ -70,7 +73,7 @@ export const cancelExport = (job: ExportJob) =>
     request({
       url: '/api/v1/exports/cancel',
       method: 'post',
-      data: { tenant_id: job.tenant_id, id: job.id, version: job.version }
+      data: { ...applicationScope(job.tenant_id, job.application_id), id: job.id, version: job.version }
     })
   );
 export const retryExport = (job: ExportJob) =>
@@ -78,7 +81,12 @@ export const retryExport = (job: ExportJob) =>
     request({
       url: '/api/v1/exports/retry',
       method: 'post',
-      data: { tenant_id: job.tenant_id, id: job.id, version: job.version, idempotency_key: crypto.randomUUID() }
+      data: {
+        ...applicationScope(job.tenant_id, job.application_id),
+        id: job.id,
+        version: job.version,
+        idempotency_key: crypto.randomUUID()
+      }
     })
   );
 export const downloadExport = (job: ExportJob) =>
@@ -86,6 +94,6 @@ export const downloadExport = (job: ExportJob) =>
     request({
       url: '/api/v1/exports/download',
       method: 'post',
-      data: { tenant_id: job.tenant_id, id: job.id, ttl_seconds: 300 }
+      data: { ...applicationScope(job.tenant_id, job.application_id), id: job.id, ttl_seconds: 300 }
     })
   );

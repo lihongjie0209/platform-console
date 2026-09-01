@@ -1,27 +1,40 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { hasApplicationScope } from '@/platform/application-context';
 import { parseJSONObject } from '@/apps/commerce/json';
 import type { ExportJob } from '../../api';
 import { cancelExport, createExport, downloadExport, listExports, retryExport } from '../../api';
 defineOptions({ name: 'ExportCenterJobs' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
+const applicationID = computed(() => store.selectedApplicationId);
+const applicationName = computed(() => store.selectedApplication?.name || '当前应用');
+const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const rows = ref<ExportJob[]>([]);
 const status = ref('');
 const datasetCode = ref('');
 const visible = ref(false);
 const form = reactive({ datasetCode: '', providerService: '', format: 'csv', filename: '', query: '{}', columns: '' });
 async function load() {
-  if (!tenantID.value) return;
-  const v = await listExports({ tenantID: tenantID.value, status: status.value, datasetCode: datasetCode.value });
+  if (!scopeReady.value) {
+    rows.value = [];
+    return;
+  }
+  const v = await listExports({
+    tenantID: tenantID.value,
+    applicationID: applicationID.value,
+    status: status.value,
+    datasetCode: datasetCode.value
+  });
   rows.value = v.items || [];
 }
 async function create() {
-  if (!tenantID.value) return;
+  if (!scopeReady.value) return;
   try {
     await createExport({
       tenantID: tenantID.value,
+      applicationID: applicationID.value,
       datasetCode: form.datasetCode,
       providerService: form.providerService,
       format: form.format,
@@ -48,7 +61,11 @@ async function action(job: ExportJob, type: 'cancel' | 'retry' | 'download') {
   }
   await load();
 }
-watch(tenantID, load);
+watch([tenantID, applicationID], () => {
+  visible.value = false;
+  rows.value = [];
+  load();
+});
 onMounted(load);
 </script>
 
@@ -58,12 +75,12 @@ onMounted(load);
       <div class="flex-y-center justify-between">
         <div>
           <h2 class="m-0">数据导出</h2>
-          <p class="mb-0 text-#999">异步生成导出文件，成功后签发短时下载地址。</p>
+          <p class="mb-0 text-#999">为 {{ applicationName }} 异步生成导出文件，成功后签发短时下载地址。</p>
         </div>
-        <ElButton type="primary" :disabled="!tenantID" @click="visible = true">创建导出</ElButton>
+        <ElButton type="primary" :disabled="!scopeReady" @click="visible = true">创建导出</ElButton>
       </div>
     </template>
-    <ElAlert v-if="!tenantID" title="请先选择租户" type="warning" :closable="false" />
+    <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" :closable="false" />
     <template v-else>
       <ElForm inline>
         <ElFormItem label="状态"><ElInput v-model="status" /></ElFormItem>
