@@ -46,6 +46,8 @@ declare module 'vue-router' {
     iconFontSize?: number;
     /** Router order */
     order?: number | undefined;
+    /** Application context selected before entering an application-owned route */
+    applicationId?: string | undefined;
     /** The outer link of the route */
     href?: string | null;
     /** Whether to hide the route in the menu */

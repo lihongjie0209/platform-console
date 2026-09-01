@@ -38,6 +38,8 @@ test('navigationToRoutes scopes routes and never evaluates backend component nam
   assert.equal(route.path, '/apps/identity-service/accounts');
   assert.equal(route.component, 'view.platform_page');
   assert.equal(route.name, 'platform_identity-service_accounts');
+  assert.equal(applicationRoute.meta?.applicationId, 'app-1');
+  assert.equal(route.meta?.applicationId, 'app-1');
 });
 
 test('navigationToRoutes excludes action permission nodes', () => {

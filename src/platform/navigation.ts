@@ -41,7 +41,8 @@ function menuRoute(
     icon: menu.icon || FALLBACK_ICON,
     order: menu.sort_order,
     hideInMenu: !menu.visible,
-    permissionCode: menu.permission_code || undefined
+    permissionCode: menu.permission_code || undefined,
+    applicationId: application.id
   };
   const props = {
     applicationCode: application.code,
@@ -99,7 +100,8 @@ export function navigationToRoutes(navigation: PublishedNavigation): ElegantCons
       meta: {
         title: application.name,
         icon: application.icon || FALLBACK_ICON,
-        order: 100
+        order: 100,
+        applicationId: application.id
       },
       children
     } as ElegantConstRoute

@@ -1,6 +1,7 @@
 import type { LocationQueryRaw, RouteLocationNormalized, RouteLocationRaw, Router } from 'vue-router';
 import type { RouteKey, RoutePath } from '@elegant-router/types';
 import { useAuthStore } from '@/store/modules/auth';
+import { usePlatformStore } from '@/store/modules/platform';
 import { useRouteStore } from '@/store/modules/route';
 import { localStg } from '@/utils/storage';
 import { getRouteName } from '@/router/elegant/transform';
@@ -51,9 +52,29 @@ export function createRouteGuard(router: Router) {
       return { name: noAuthorizationRoute };
     }
 
+    const applicationLocation = synchronizeApplicationContext(to);
+    if (applicationLocation) {
+      return applicationLocation;
+    }
+
     // switch route normally
     return handleRouteSwitch(to, from);
   });
+}
+
+function synchronizeApplicationContext(to: RouteLocationNormalized): RouteLocationRaw | undefined {
+  const applicationId = to.meta.applicationId;
+  if (!applicationId) return undefined;
+
+  const platformStore = usePlatformStore();
+  if (platformStore.selectedApplicationId === applicationId) return undefined;
+
+  try {
+    platformStore.selectApplication(applicationId);
+    return undefined;
+  } catch {
+    return { name: 'applications' };
+  }
 }
 
 /**
