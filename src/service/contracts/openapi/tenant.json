@@ -945,6 +945,74 @@
                 }
             }
         },
+        "/api/v1/tenants/select": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "tenants"
+                ],
+                "summary": "Validate the current user's membership and exchange a tenant-scoped access token",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.SelectTenantRequest"
+                            }
+                        }
+                    },
+                    "description": "Tenant selection",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.SelectTenantResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Code 20003: inactive or missing membership",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Code 50003: identity service unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/version": {
             "post": {
                 "tags": [
@@ -1447,6 +1515,37 @@
                     },
                     "version": {
                         "type": "integer"
+                    }
+                }
+            },
+            "httptransport.SelectTenantRequest": {
+                "type": "object",
+                "required": [
+                    "tenant_id"
+                ],
+                "properties": {
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.SelectTenantResponseBody": {
+                "type": "object",
+                "properties": {
+                    "access_token": {
+                        "type": "string"
+                    },
+                    "expires_at": {
+                        "type": "string"
+                    },
+                    "membership_id": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    },
+                    "token_type": {
+                        "type": "string"
                     }
                 }
             },

@@ -899,6 +899,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tenants/select": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate the current user's membership and exchange a tenant-scoped access token */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Tenant selection */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.SelectTenantRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.SelectTenantResponseBody"];
+                        };
+                    };
+                };
+                /** @description Code 20003: inactive or missing membership */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+                /** @description Code 50003: identity service unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/version": {
         parameters: {
             query?: never;
@@ -1137,6 +1198,16 @@ export interface components {
         "httptransport.RevokeInvitationRequest": {
             invitation_id: string;
             version: number;
+        };
+        "httptransport.SelectTenantRequest": {
+            tenant_id: string;
+        };
+        "httptransport.SelectTenantResponseBody": {
+            access_token?: string;
+            expires_at?: string;
+            membership_id?: string;
+            tenant_id?: string;
+            token_type?: string;
         };
         "httptransport.SetQuotaRequest": {
             key: string;

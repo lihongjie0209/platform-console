@@ -1,10 +1,10 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import type { PlatformApplication, PublishedNavigation, TenantSummary } from '@/service/api';
-import { fetchPublishedNavigation, fetchTenantApplications, fetchUserTenants } from '@/service/api';
+import { fetchPublishedNavigation, fetchSelectTenant, fetchTenantApplications, fetchUserTenants } from '@/service/api';
 import { sessionStg } from '@/utils/storage';
 import { SetupStoreId } from '@/enum';
-import { retainActiveNavigations, selectActiveTenant } from '@/platform/application-context';
+import { createSerialTaskQueue, retainActiveNavigations, selectActiveTenant } from '@/platform/application-context';
 
 export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
   const loading = ref(false);
@@ -16,6 +16,7 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
   const applications = ref<PlatformApplication[]>([]);
   const navigations = ref<PublishedNavigation[]>([]);
   let requestRevision = 0;
+  const enqueueTenantSelection = createSerialTaskQueue();
 
   const selectedTenant = computed(() => tenants.value.find(item => item.id === selectedTenantId.value));
   const selectedApplication = computed(() => applications.value.find(item => item.id === selectedApplicationId.value));
@@ -46,7 +47,11 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
     }
   }
 
-  async function selectTenant(tenantId: string) {
+  function selectTenant(tenantId: string) {
+    return enqueueTenantSelection(() => selectTenantOnce(tenantId));
+  }
+
+  async function selectTenantOnce(tenantId: string) {
     if (!tenants.value.some(item => item.id === tenantId)) {
       throw new Error('selected tenant is not available to the current user');
     }
@@ -56,14 +61,20 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
     loading.value = true;
     errorMessage.value = '';
     try {
+      const { data: selection, error: selectionError } = await fetchSelectTenant(tenantId);
+      if (selectionError) throw selectionError;
+      if (revision !== requestRevision) return;
+
+      sessionStg.set('token', selection.access_token);
+      selectedTenantId.value = tenantId;
+      sessionStg.set('selectedTenantId', tenantId);
+
       const { data, error } = await fetchTenantApplications(tenantId);
       if (error) throw error;
 
       const results = await Promise.all(data.applications.map(item => fetchPublishedNavigation(item.id)));
       if (revision !== requestRevision) return;
 
-      selectedTenantId.value = tenantId;
-      sessionStg.set('selectedTenantId', tenantId);
       applications.value = data.applications.filter(item => item.status === 'active');
       const successfulNavigations = results.flatMap(result => (result.error ? [] : [result.data]));
       navigations.value = retainActiveNavigations(applications.value, successfulNavigations);

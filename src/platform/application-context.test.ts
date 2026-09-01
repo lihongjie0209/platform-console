@@ -4,6 +4,7 @@ import type { PlatformApplication, PublishedNavigation, TenantSummary } from '@/
 import {
   applicationFilterScope,
   applicationScope,
+  createSerialTaskQueue,
   filterApplications,
   hasApplicationScope,
   retainActiveNavigations,
@@ -66,4 +67,36 @@ test('application-scoped pages require both tenant and selected application', ()
   });
   assert.throws(() => applicationScope('tenant-a', ' '), /tenant and application scope are required/);
   assert.throws(() => applicationFilterScope('', 'app-a'), /tenant and application scope are required/);
+});
+
+test('tenant scope changes are serialized even when the first operation fails', async () => {
+  const enqueue = createSerialTaskQueue();
+  const events: string[] = [];
+  let releaseFirst!: () => void;
+  let markFirstStarted!: () => void;
+  const firstGate = new Promise<void>(resolve => {
+    releaseFirst = resolve;
+  });
+  const firstStarted = new Promise<void>(resolve => {
+    markFirstStarted = resolve;
+  });
+
+  const first = enqueue(async () => {
+    events.push('first:start');
+    markFirstStarted();
+    await firstGate;
+    events.push('first:end');
+    throw new Error('selection failed');
+  });
+  const second = enqueue(async () => {
+    events.push('second:start');
+    events.push('second:end');
+  });
+
+  await firstStarted;
+  assert.deepEqual(events, ['first:start']);
+  releaseFirst();
+  await assert.rejects(first, /selection failed/);
+  await second;
+  assert.deepEqual(events, ['first:start', 'first:end', 'second:start', 'second:end']);
 });

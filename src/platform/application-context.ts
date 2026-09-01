@@ -36,3 +36,14 @@ export function applicationFilterScope(tenantId: string, applicationId: string) 
   const scope = applicationScope(tenantId, applicationId);
   return { tenant_id: scope.tenant_id, application_ids: [scope.application_id] };
 }
+
+/** Serializes scope-changing operations so the access token and server-side session end in the same tenant. */
+export function createSerialTaskQueue() {
+  let tail: Promise<unknown> = Promise.resolve();
+
+  return function enqueue<T>(task: () => Promise<T>): Promise<T> {
+    const operation = tail.catch(() => undefined).then(task);
+    tail = operation.catch(() => undefined);
+    return operation;
+  };
+}

@@ -51,6 +51,14 @@ interface TenantApplications {
   applications: PlatformApplication[];
 }
 
+export interface TenantSelectionToken {
+  access_token: string;
+  token_type: string;
+  expires_at: string;
+  tenant_id: string;
+  membership_id: string;
+}
+
 const tenantRequest = platformRequest('tenant');
 const applicationRequest = platformRequest('application');
 
@@ -67,6 +75,14 @@ export function fetchTenantApplications(tenantID: string) {
     url: '/api/v1/applications/tenant-grants/list',
     method: 'post',
     data: { tenant_id: tenantID, active_only: true, page: 1, page_size: 100 }
+  });
+}
+
+export function fetchSelectTenant(tenantID: string) {
+  return tenantRequest<TenantSelectionToken>({
+    url: '/api/v1/tenants/select',
+    method: 'post',
+    data: { tenant_id: tenantID }
   });
 }
 
