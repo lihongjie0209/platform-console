@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
@@ -8,7 +9,9 @@ const run = promisify(execFile);
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '..');
 const manifest = JSON.parse(await readFile(path.join(rootDir, 'contracts/services.json'), 'utf8'));
-const outputDir = path.join(rootDir, 'src/service/contracts');
+const outputDir = process.env.CONTRACT_OUTPUT_DIR
+  ? path.resolve(process.env.CONTRACT_OUTPUT_DIR)
+  : path.join(rootDir, 'src/service/contracts');
 const openAPIDir = path.join(outputDir, 'openapi');
 const typesDir = path.join(outputDir, 'generated');
 const binDir = path.join(rootDir, 'node_modules/.bin');
