@@ -3,6 +3,7 @@ import { platformRequest } from '@/service/request';
 export type WebhookSubscription = Contract['schemas']['httptransport.SubscriptionBody'] & {
   id: string;
   tenant_id: string;
+  application_id: string;
   name: string;
   endpoint_url: string;
   subject_filter: string;
@@ -12,6 +13,7 @@ export type WebhookSubscription = Contract['schemas']['httptransport.Subscriptio
 export type WebhookDelivery = Contract['schemas']['httptransport.DeliveryBody'] & {
   id: string;
   tenant_id: string;
+  application_id: string;
   subscription_id: string;
   event_subject: string;
   status: string;
@@ -65,6 +67,7 @@ export function saveSubscription(
         ? {
             id: current.id,
             tenant_id: tenantID,
+            application_id: input.applicationID,
             name: input.name,
             endpoint_url: input.endpointURL,
             subject_filter: input.subjectFilter,
@@ -92,7 +95,12 @@ export const rotateSecret = (value: WebhookSubscription) =>
     request({
       url: '/api/v1/webhooks/subscriptions/rotate-secret',
       method: 'post',
-      data: { id: value.id, tenant_id: value.tenant_id, expected_version: value.version }
+      data: {
+        id: value.id,
+        tenant_id: value.tenant_id,
+        application_id: value.application_id,
+        expected_version: value.version
+      }
     })
   );
 export const deleteSubscription = (value: WebhookSubscription) =>
@@ -100,7 +108,12 @@ export const deleteSubscription = (value: WebhookSubscription) =>
     request({
       url: '/api/v1/webhooks/subscriptions/delete',
       method: 'post',
-      data: { id: value.id, tenant_id: value.tenant_id, expected_version: value.version }
+      data: {
+        id: value.id,
+        tenant_id: value.tenant_id,
+        application_id: value.application_id,
+        expected_version: value.version
+      }
     })
   );
 export const testSubscription = (value: WebhookSubscription, payload: Record<string, unknown>) =>
@@ -108,16 +121,22 @@ export const testSubscription = (value: WebhookSubscription, payload: Record<str
     request({
       url: '/api/v1/webhooks/subscriptions/test',
       method: 'post',
-      data: { id: value.id, tenant_id: value.tenant_id, payload_json: payload }
+      data: { id: value.id, tenant_id: value.tenant_id, application_id: value.application_id, payload_json: payload }
     })
   );
-export const listDeliveries = (input: { tenantID: string; subscriptionID: string; status: string }) =>
+export const listDeliveries = (input: {
+  tenantID: string;
+  applicationID: string;
+  subscriptionID: string;
+  status: string;
+}) =>
   unwrap<PageBody<WebhookDelivery>>(
     request({
       url: '/api/v1/webhooks/deliveries/list',
       method: 'post',
       data: {
         tenant_id: input.tenantID,
+        application_id: input.applicationID,
         subscription_id: input.subscriptionID,
         status: input.status,
         page: { page: 1, page_size: 100 }
@@ -129,6 +148,11 @@ export const replayDelivery = (value: WebhookDelivery) =>
     request({
       url: '/api/v1/webhooks/deliveries/replay',
       method: 'post',
-      data: { id: value.id, tenant_id: value.tenant_id, expected_version: value.version }
+      data: {
+        id: value.id,
+        tenant_id: value.tenant_id,
+        application_id: value.application_id,
+        expected_version: value.version
+      }
     })
   );

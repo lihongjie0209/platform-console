@@ -623,7 +623,7 @@ export interface components {
             subscription?: components["schemas"]["httptransport.SubscriptionBody"];
         };
         "httptransport.CreateSubscriptionRequest": {
-            application_id?: string;
+            application_id: string;
             /** @example https://hooks.example.com/events */
             endpoint_url: string;
             /** @example 5 */
@@ -638,6 +638,7 @@ export interface components {
             timeout_ms?: number;
         };
         "httptransport.DeliveryBody": {
+            application_id?: string;
             attempt_count?: number;
             created_at?: string;
             created_by?: string;
@@ -662,6 +663,7 @@ export interface components {
             page?: components["schemas"]["httptransport.PageResult"];
         };
         "httptransport.ListDeliveriesRequest": {
+            application_id: string;
             /** @example 2026-08-01T00:00:00+08:00 */
             created_from?: string;
             /** @example 2026-09-01T00:00:00+08:00 */
@@ -673,7 +675,7 @@ export interface components {
             tenant_id: string;
         };
         "httptransport.ListSubscriptionsRequest": {
-            application_id?: string;
+            application_id: string;
             page?: components["schemas"]["httptransport.PageRequest"];
             search?: string;
             /** @enum {string} */
@@ -695,6 +697,7 @@ export interface components {
             total?: number;
         };
         "httptransport.ResourceRequest": {
+            application_id: string;
             id: string;
             tenant_id: string;
         };
@@ -731,11 +734,13 @@ export interface components {
             page?: components["schemas"]["httptransport.PageResult"];
         };
         "httptransport.TestSubscriptionRequest": {
+            application_id: string;
             id: string;
             payload_json: Record<string, never>;
             tenant_id: string;
         };
         "httptransport.UpdateSubscriptionRequest": {
+            application_id: string;
             endpoint_url: string;
             expected_version: number;
             id: string;
@@ -749,6 +754,7 @@ export interface components {
             timeout_ms: number;
         };
         "httptransport.VersionedResourceRequest": {
+            application_id: string;
             expected_version: number;
             id: string;
             tenant_id: string;

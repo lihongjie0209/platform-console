@@ -1,19 +1,24 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { hasApplicationScope } from '@/platform/application-context';
 import type { WebhookDelivery } from '../../api';
 import { listDeliveries, replayDelivery } from '../../api';
 defineOptions({ name: 'WebhookCenterDeliveries' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
+const applicationID = computed(() => store.selectedApplicationId);
+const applicationName = computed(() => store.selectedApplication?.name || '当前应用');
+const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const rows = ref<WebhookDelivery[]>([]);
 const status = ref('');
 const subscriptionID = ref('');
 const detail = ref<WebhookDelivery>();
 async function load() {
-  if (!tenantID.value) return;
+  if (!scopeReady.value) return;
   const v = await listDeliveries({
     tenantID: tenantID.value,
+    applicationID: applicationID.value,
     subscriptionID: subscriptionID.value,
     status: status.value
   });
@@ -23,7 +28,7 @@ async function replay(v: WebhookDelivery) {
   await replayDelivery(v);
   await load();
 }
-watch(tenantID, load);
+watch([tenantID, applicationID], load);
 onMounted(load);
 </script>
 
@@ -32,10 +37,10 @@ onMounted(load);
     <template #header>
       <div>
         <h2 class="m-0">Webhook 投递</h2>
-        <p class="mb-0 text-#999">查看每次尝试、响应与错误；终态投递可按版本号安全重放。</p>
+        <p class="mb-0 text-#999">{{ applicationName }} · 查看每次尝试、响应与错误；终态投递可按版本号安全重放。</p>
       </div>
     </template>
-    <ElAlert v-if="!tenantID" title="请先选择租户" type="warning" :closable="false" />
+    <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" :closable="false" />
     <template v-else>
       <ElForm inline>
         <ElFormItem label="订阅 ID"><ElInput v-model="subscriptionID" /></ElFormItem>
