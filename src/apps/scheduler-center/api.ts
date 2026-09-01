@@ -1,11 +1,14 @@
 import type { components as SchedulerContract } from '@/service/contracts/generated/scheduler';
 import { platformRequest } from '@/service/request';
+import { applicationScope } from '@/platform/application-context';
 
 type JobContract = SchedulerContract['schemas']['job.Job'];
 type ExecutionContract = SchedulerContract['schemas']['job.Execution'];
 
 export interface ScheduledJob extends JobContract, Record<string, unknown> {
   id: string;
+  tenant_id: string;
+  application_id: string;
   name: string;
   cron_expression: string;
   timezone: string;
@@ -20,6 +23,8 @@ export interface ScheduledJob extends JobContract, Record<string, unknown> {
 export interface JobExecution extends ExecutionContract, Record<string, unknown> {
   id: string;
   job_id: string;
+  tenant_id: string;
+  application_id: string;
   trigger_type: string;
   status: string;
   response_json: string;
@@ -37,6 +42,17 @@ export interface JobInput {
   requestJSON: string;
   timeoutMilliseconds: number;
   enabled: boolean;
+}
+
+export interface SchedulerScope {
+  tenantID: string;
+  applicationID: string;
+}
+
+export interface SchedulerJobQuery extends SchedulerScope {
+  status: string;
+  page: number;
+  pageSize: number;
 }
 
 interface Page<T> {
@@ -68,19 +84,28 @@ function jobPayload(input: JobInput) {
   };
 }
 
-export function listJobs(status: string, page: number, pageSize: number) {
+export function listJobs(query: SchedulerJobQuery) {
   return unwrap<Page<ScheduledJob>>(
     schedulerRequest({
       url: '/api/v1/scheduler/jobs/list',
       method: 'post',
-      data: { status, page, page_size: pageSize }
+      data: {
+        ...applicationScope(query.tenantID, query.applicationID),
+        status: query.status,
+        page: query.page,
+        page_size: query.pageSize
+      }
     })
   );
 }
 
-export function createJob(input: JobInput) {
+export function createJob(scope: SchedulerScope, input: JobInput) {
   return unwrap<ScheduledJob>(
-    schedulerRequest({ url: '/api/v1/scheduler/jobs/create', method: 'post', data: jobPayload(input) })
+    schedulerRequest({
+      url: '/api/v1/scheduler/jobs/create',
+      method: 'post',
+      data: { ...applicationScope(scope.tenantID, scope.applicationID), ...jobPayload(input) }
+    })
   );
 }
 

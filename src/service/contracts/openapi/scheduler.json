@@ -618,6 +618,9 @@
                     "upstream"
                 ],
                 "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
                     "cron_expression": {
                         "type": "string"
                     },
@@ -631,6 +634,9 @@
                         "type": "string"
                     },
                     "request_json": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
                         "type": "string"
                     },
                     "timeout_milliseconds": {
@@ -729,7 +735,14 @@
             },
             "httptransport.ListJobsRequest": {
                 "type": "object",
+                "required": [
+                    "application_id",
+                    "tenant_id"
+                ],
                 "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
                     "page": {
                         "type": "integer"
                     },
@@ -737,6 +750,9 @@
                         "type": "integer"
                     },
                     "status": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
                         "type": "string"
                     }
                 }
@@ -776,6 +792,9 @@
                     "version"
                 ],
                 "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
                     "cron_expression": {
                         "type": "string"
                     },
@@ -792,6 +811,9 @@
                         "type": "string"
                     },
                     "request_json": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
                         "type": "string"
                     },
                     "timeout_milliseconds": {
@@ -811,6 +833,9 @@
             "job.Execution": {
                 "type": "object",
                 "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
                     "created_at": {
                         "type": "string"
                     },
@@ -844,6 +869,9 @@
                     "status": {
                         "type": "string"
                     },
+                    "tenant_id": {
+                        "type": "string"
+                    },
                     "trigger_type": {
                         "type": "string"
                     },
@@ -861,6 +889,9 @@
             "job.Job": {
                 "type": "object",
                 "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
                     "created_at": {
                         "type": "string"
                     },
@@ -883,6 +914,9 @@
                         "type": "string"
                     },
                     "status": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
                         "type": "string"
                     },
                     "timeout_milliseconds": {

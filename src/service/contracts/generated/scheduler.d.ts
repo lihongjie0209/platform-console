@@ -530,11 +530,13 @@ export interface components {
             status?: string;
         };
         "httptransport.CreateJobRequest": {
+            application_id?: string;
             cron_expression: string;
             enabled?: boolean;
             full_method: string;
             name: string;
             request_json?: string;
+            tenant_id?: string;
             timeout_milliseconds: number;
             timezone?: string;
             upstream: string;
@@ -564,9 +566,11 @@ export interface components {
             page_size?: number;
         };
         "httptransport.ListJobsRequest": {
+            application_id: string;
             page?: number;
             page_size?: number;
             status?: string;
+            tenant_id: string;
         };
         "httptransport.MeResponseBody": {
             subject?: string;
@@ -578,18 +582,21 @@ export interface components {
             request_id?: string;
         };
         "httptransport.UpdateJobRequest": {
+            application_id?: string;
             cron_expression: string;
             enabled?: boolean;
             full_method: string;
             id: string;
             name: string;
             request_json?: string;
+            tenant_id?: string;
             timeout_milliseconds: number;
             timezone?: string;
             upstream: string;
             version: number;
         };
         "job.Execution": {
+            application_id?: string;
             created_at?: string;
             created_by?: string;
             duration_milliseconds?: number;
@@ -601,12 +608,14 @@ export interface components {
             response_json?: string;
             started_at?: string;
             status?: string;
+            tenant_id?: string;
             trigger_type?: string;
             updated_at?: string;
             updated_by?: string;
             version?: number;
         };
         "job.Job": {
+            application_id?: string;
             created_at?: string;
             created_by?: string;
             cron_expression?: string;
@@ -615,6 +624,7 @@ export interface components {
             name?: string;
             request_json?: string;
             status?: string;
+            tenant_id?: string;
             timeout_milliseconds?: number;
             timezone?: string;
             updated_at?: string;

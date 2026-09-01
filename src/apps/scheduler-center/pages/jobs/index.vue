@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { usePlatformStore } from '@/store/modules/platform';
 import type { JobExecution, JobInput, ScheduledJob } from '../../api';
 import { createJob, deleteJob, listExecutions, listJobs, triggerJob, updateJob } from '../../api';
 import { normalizeRequestJSON } from '../../request-json';
 
 defineOptions({ name: 'SchedulerCenterJobs' });
 
+const platformStore = usePlatformStore();
+const tenantID = computed(() => platformStore.selectedTenantId);
+const applicationID = computed(() => platformStore.selectedApplicationId);
 const loading = ref(false);
 const saving = ref(false);
 const rows = ref<ScheduledJob[]>([]);
@@ -35,9 +39,20 @@ const form = reactive<JobInput>({
 });
 
 async function loadData() {
+  if (!tenantID.value || !applicationID.value) {
+    rows.value = [];
+    total.value = 0;
+    return;
+  }
   loading.value = true;
   try {
-    const result = await listJobs(status.value, page.value, pageSize.value);
+    const result = await listJobs({
+      tenantID: tenantID.value,
+      applicationID: applicationID.value,
+      status: status.value,
+      page: page.value,
+      pageSize: pageSize.value
+    });
     rows.value = result.items || [];
     total.value = result.total || 0;
   } finally {
@@ -50,6 +65,7 @@ function search() {
   loadData();
 }
 function openCreate() {
+  if (!tenantID.value || !applicationID.value) return;
   editing.value = undefined;
   Object.assign(form, {
     name: '',
@@ -89,7 +105,7 @@ async function save() {
   try {
     const input = { ...form, requestJSON };
     if (editing.value) await updateJob(editing.value, input);
-    else await createJob(input);
+    else await createJob({ tenantID: tenantID.value, applicationID: applicationID.value }, input);
     formVisible.value = false;
     window.$message?.success(editing.value ? '任务已更新' : '任务已创建');
     await loadData();
@@ -133,6 +149,15 @@ function showExecution(row: JobExecution) {
   executionDetail.value = row;
   executionDetailVisible.value = true;
 }
+watch([tenantID, applicationID], () => {
+  page.value = 1;
+  rows.value = [];
+  total.value = 0;
+  formVisible.value = false;
+  executionsVisible.value = false;
+  selectedJob.value = undefined;
+  loadData();
+});
 onMounted(loadData);
 </script>
 
@@ -144,9 +169,17 @@ onMounted(loadData);
           <h2 class="m-0 text-18px font-semibold">调度任务</h2>
           <p class="mb-0 mt-6px text-13px text-#999">通过动态 gRPC 调用管理跨服务定时任务，无需生成下游 Client。</p>
         </div>
-        <ElButton type="primary" @click="openCreate">新建任务</ElButton>
+        <ElButton type="primary" :disabled="!tenantID || !applicationID" @click="openCreate">新建任务</ElButton>
       </div>
     </template>
+    <ElAlert
+      v-if="!tenantID || !applicationID"
+      class="mb-16px"
+      title="请先在应用选择页选择租户和应用"
+      type="warning"
+      show-icon
+      :closable="false"
+    />
     <ElForm inline class="mb-16px">
       <ElFormItem label="状态">
         <ElSelect v-model="status" clearable class="w-150px">
