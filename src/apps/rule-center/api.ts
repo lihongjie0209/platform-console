@@ -1,7 +1,12 @@
+import type { components as RuleContract } from '@/service/contracts/generated/rule';
 import { platformRequest } from '@/service/request';
-export interface RuleSet extends Record<string, unknown> {
+import { ruleApplicationScope } from './scope';
+type RuleSetSchema = RuleContract['schemas']['httptransport.RuleSetView'];
+type RuleVersionSchema = RuleContract['schemas']['httptransport.RuleVersionView'];
+export interface RuleSet extends RuleSetSchema, Record<string, unknown> {
   id: string;
   tenant_id: string;
+  application_id: string;
   code: string;
   name: string;
   description: string;
@@ -9,9 +14,10 @@ export interface RuleSet extends Record<string, unknown> {
   published_version_number: number;
   version: number;
 }
-export interface RuleVersion extends Record<string, unknown> {
+export interface RuleVersion extends Omit<RuleVersionSchema, 'definition'>, Record<string, unknown> {
   id: string;
   tenant_id: string;
+  application_id: string;
   rule_set_id: string;
   version_number: number;
   status: string;
@@ -34,6 +40,7 @@ async function unwrap<T>(value: PromiseLike<{ data: T | null; error: unknown }>)
 }
 export const listRuleSets = (input: {
   tenantID: string;
+  applicationID: string;
   status: string;
   keyword: string;
   page: number;
@@ -44,7 +51,7 @@ export const listRuleSets = (input: {
       url: '/api/v1/rule-sets/list',
       method: 'post',
       data: {
-        tenant_id: input.tenantID,
+        ...ruleApplicationScope(input.tenantID, input.applicationID),
         status: input.status,
         keyword: input.keyword,
         page: input.page,
@@ -54,7 +61,7 @@ export const listRuleSets = (input: {
   );
 export function saveRuleSet(
   current: RuleSet | undefined,
-  tenantID: string,
+  scope: { tenantID: string; applicationID: string },
   input: { code: string; name: string; description: string; status: string }
 ) {
   return unwrap<RuleSet>(
@@ -63,7 +70,7 @@ export function saveRuleSet(
       method: 'post',
       data: current
         ? {
-            tenant_id: tenantID,
+            ...ruleApplicationScope(scope.tenantID, scope.applicationID),
             id: current.id,
             name: input.name,
             description: input.description,
@@ -71,7 +78,7 @@ export function saveRuleSet(
             version: current.version
           }
         : {
-            tenant_id: tenantID,
+            ...ruleApplicationScope(scope.tenantID, scope.applicationID),
             code: input.code,
             name: input.name,
             description: input.description
@@ -85,19 +92,19 @@ export const listRuleVersions = (value: RuleSet) =>
       url: '/api/v1/rule-versions/list',
       method: 'post',
       data: {
-        tenant_id: value.tenant_id,
+        ...ruleApplicationScope(value.tenant_id, value.application_id),
         rule_set_id: value.id,
         page: 1,
         page_size: 100
       }
     })
   );
-export const validateRule = (tenantID: string, definition: Record<string, unknown>) =>
+export const validateRule = (tenantID: string, applicationID: string, definition: Record<string, unknown>) =>
   unwrap<{ valid: boolean; issues: string[]; checksum: string }>(
     request({
       url: '/api/v1/rule-versions/validate',
       method: 'post',
-      data: { tenant_id: tenantID, definition }
+      data: { ...ruleApplicationScope(tenantID, applicationID), definition }
     })
   );
 export const createRuleVersion = (value: RuleSet, definition: Record<string, unknown>) =>
@@ -106,7 +113,7 @@ export const createRuleVersion = (value: RuleSet, definition: Record<string, unk
       url: '/api/v1/rule-versions/create',
       method: 'post',
       data: {
-        tenant_id: value.tenant_id,
+        ...ruleApplicationScope(value.tenant_id, value.application_id),
         rule_set_id: value.id,
         definition,
         idempotency_key: crypto.randomUUID()
@@ -119,7 +126,7 @@ export const publishRuleVersion = (set: RuleSet, version: RuleVersion) =>
       url: '/api/v1/rule-versions/publish',
       method: 'post',
       data: {
-        tenant_id: set.tenant_id,
+        ...ruleApplicationScope(set.tenant_id, set.application_id),
         rule_set_id: set.id,
         rule_version_id: version.id,
         rule_set_version: set.version,
@@ -127,7 +134,7 @@ export const publishRuleVersion = (set: RuleSet, version: RuleVersion) =>
       }
     })
   );
-export const evaluateRule = (tenantID: string, code: string, facts: Record<string, unknown>) =>
+export const evaluateRule = (value: RuleSet, facts: Record<string, unknown>) =>
   unwrap<{
     matched: boolean;
     matched_rule: string;
@@ -138,6 +145,10 @@ export const evaluateRule = (tenantID: string, code: string, facts: Record<strin
     request({
       url: '/api/v1/rules/evaluate',
       method: 'post',
-      data: { tenant_id: tenantID, rule_set_code: code, facts }
+      data: {
+        ...ruleApplicationScope(value.tenant_id, value.application_id),
+        rule_set_code: value.code,
+        facts
+      }
     })
   );

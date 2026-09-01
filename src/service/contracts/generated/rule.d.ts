@@ -637,18 +637,21 @@ export interface components {
             response?: components["schemas"]["httptransport.EvaluateResponse"];
         };
         "httptransport.CreateRuleSetRequest": {
+            application_id?: string;
             code?: string;
             description?: string;
             name?: string;
             tenant_id?: string;
         };
         "httptransport.CreateRuleVersionRequest": {
+            application_id?: string;
             definition?: Record<string, never>;
             idempotency_key?: string;
             rule_set_id?: string;
             tenant_id?: string;
         };
         "httptransport.EvaluateRequest": {
+            application_id?: string;
             facts?: Record<string, never>;
             rule_set_code?: string;
             rule_set_id?: string;
@@ -663,11 +666,13 @@ export interface components {
             result?: Record<string, never>;
         };
         "httptransport.GetRuleSetRequest": {
+            application_id?: string;
             code?: string;
             id?: string;
             tenant_id?: string;
         };
         "httptransport.ListRuleVersionsRequest": {
+            application_id?: string;
             page?: number;
             page_size?: number;
             rule_set_id?: string;
@@ -678,6 +683,7 @@ export interface components {
             subject?: string;
         };
         "httptransport.PageRequest": {
+            application_id?: string;
             keyword?: string;
             page?: number;
             page_size?: number;
@@ -685,6 +691,7 @@ export interface components {
             tenant_id?: string;
         };
         "httptransport.PublishRuleVersionRequest": {
+            application_id?: string;
             rule_set_id?: string;
             rule_set_version?: number;
             rule_version_id?: string;
@@ -698,6 +705,7 @@ export interface components {
             request_id?: string;
         };
         "httptransport.RuleSetView": {
+            application_id?: string;
             code?: string;
             created_at?: string;
             created_by?: string;
@@ -712,6 +720,7 @@ export interface components {
             version?: number;
         };
         "httptransport.RuleVersionView": {
+            application_id?: string;
             checksum?: string;
             created_at?: string;
             created_by?: string;
@@ -727,6 +736,7 @@ export interface components {
             version_number?: number;
         };
         "httptransport.UpdateRuleSetRequest": {
+            application_id?: string;
             description?: string;
             id?: string;
             name?: string;
@@ -735,6 +745,7 @@ export interface components {
             version?: number;
         };
         "httptransport.ValidateRuleVersionRequest": {
+            application_id?: string;
             definition?: Record<string, never>;
             tenant_id?: string;
         };

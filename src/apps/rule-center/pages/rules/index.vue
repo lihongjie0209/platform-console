@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { hasApplicationScope } from '@/platform/application-context';
 import type { RuleSet, RuleVersion } from '../../api';
 import {
   createRuleVersion,
@@ -15,6 +16,9 @@ import { parseJSONObject } from '../../../commerce/json';
 defineOptions({ name: 'RuleCenterRules' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
+const applicationID = computed(() => store.selectedApplicationId);
+const applicationName = computed(() => store.selectedApplication?.name || '当前应用');
+const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const rows = ref<RuleSet[]>([]);
 const status = ref('');
 const keyword = ref('');
@@ -28,9 +32,10 @@ const facts = ref('{}');
 const evaluation = ref('');
 const form = reactive({ code: '', name: '', description: '', status: 'draft' });
 async function load() {
-  if (!tenantID.value) return;
+  if (!scopeReady.value) return;
   const v = await listRuleSets({
     tenantID: tenantID.value,
+    applicationID: applicationID.value,
     status: status.value,
     keyword: keyword.value,
     page: 1,
@@ -44,8 +49,8 @@ function open(v?: RuleSet) {
   visible.value = true;
 }
 async function save() {
-  if (!tenantID.value) return;
-  await saveRuleSet(editing.value, tenantID.value, form);
+  if (!scopeReady.value) return;
+  await saveRuleSet(editing.value, { tenantID: tenantID.value, applicationID: applicationID.value }, form);
   visible.value = false;
   await load();
 }
@@ -57,7 +62,7 @@ async function versionsFor(v: RuleSet) {
 async function createVersion() {
   if (!selected.value) return;
   const value = parseJSONObject(definition.value, '规则定义');
-  const check = await validateRule(selected.value.tenant_id, value);
+  const check = await validateRule(selected.value.tenant_id, selected.value.application_id, value);
   if (!check.valid) {
     window.$message?.error(check.issues.join('; ') || '规则无效');
     return;
@@ -73,10 +78,10 @@ async function publish(v: RuleVersion) {
   await versionsFor(result.rule_set);
 }
 async function evaluate(v: RuleSet) {
-  const r = await evaluateRule(v.tenant_id, v.code, parseJSONObject(facts.value, '事实'));
+  const r = await evaluateRule(v, parseJSONObject(facts.value, '事实'));
   evaluation.value = JSON.stringify(r, null, 2);
 }
-watch(tenantID, load);
+watch([tenantID, applicationID], load);
 onMounted(load);
 </script>
 
@@ -88,11 +93,19 @@ onMounted(load);
           <h2 class="m-0">规则集</h2>
           <p class="mb-0 text-#999">规则版本不可变，校验后发布；执行事实和结果使用结构化 JSON。</p>
         </div>
-        <ElButton type="primary" :disabled="!tenantID" @click="open()">新建规则集</ElButton>
+        <ElButton type="primary" :disabled="!scopeReady" @click="open()">新建规则集</ElButton>
       </div>
     </template>
     <ElAlert v-if="!tenantID" title="请先选择租户" type="warning" :closable="false" />
+    <ElAlert
+      v-else-if="!applicationID"
+      title="请先从应用选择页进入一个应用"
+      type="warning"
+      show-icon
+      :closable="false"
+    />
     <template v-else>
+      <ElAlert :title="`当前应用：${applicationName}`" type="info" show-icon :closable="false" class="mb-16px" />
       <ElForm inline>
         <ElFormItem label="搜索"><ElInput v-model="keyword" /></ElFormItem>
         <ElFormItem label="状态"><ElInput v-model="status" /></ElFormItem>
