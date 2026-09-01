@@ -10,7 +10,12 @@ import {
 } from '@/service/api';
 import { sessionStg } from '@/utils/storage';
 import { SetupStoreId } from '@/enum';
-import { createSerialTaskQueue, retainActiveNavigations, selectActiveTenant } from '@/platform/application-context';
+import {
+  createSerialTaskQueue,
+  failedTenantSelectionContext,
+  retainActiveNavigations,
+  selectActiveTenant
+} from '@/platform/application-context';
 import { filterNavigationsByPermissions, navigationPermissionCodes } from '@/platform/navigation';
 
 export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
@@ -65,6 +70,9 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
 
     requestRevision += 1;
     const revision = requestRevision;
+    const previousTenantId = selectedTenantId.value;
+    const previousApplicationId = selectedApplicationId.value;
+    let scopeExchanged = false;
     loading.value = true;
     errorMessage.value = '';
     try {
@@ -73,6 +81,7 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
       if (revision !== requestRevision) return;
 
       sessionStg.set('token', selection.access_token);
+      scopeExchanged = true;
       selectedTenantId.value = tenantId;
       sessionStg.set('selectedTenantId', tenantId);
 
@@ -104,6 +113,27 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
         selectedApplicationId.value = '';
         sessionStg.remove('selectedApplicationId');
       }
+    } catch (error) {
+      if (revision === requestRevision) {
+        const failure = failedTenantSelectionContext({
+          scopeExchanged,
+          previousTenantId,
+          previousApplicationId,
+          requestedTenantId: tenantId
+        });
+        selectedTenantId.value = failure.tenantId;
+        selectedApplicationId.value = failure.applicationId;
+        if (failure.tenantId) sessionStg.set('selectedTenantId', failure.tenantId);
+        else sessionStg.remove('selectedTenantId');
+        if (failure.applicationId) sessionStg.set('selectedApplicationId', failure.applicationId);
+        else sessionStg.remove('selectedApplicationId');
+        if (failure.clearResources) {
+          applications.value = [];
+          navigations.value = [];
+        }
+        errorMessage.value = error instanceof Error ? error.message : '切换租户失败';
+      }
+      throw error;
     } finally {
       if (revision === requestRevision) loading.value = false;
     }

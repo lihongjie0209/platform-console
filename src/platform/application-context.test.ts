@@ -5,6 +5,7 @@ import {
   applicationFilterScope,
   applicationScope,
   createSerialTaskQueue,
+  failedTenantSelectionContext,
   filterApplications,
   hasApplicationScope,
   retainActiveNavigations,
@@ -99,4 +100,25 @@ test('tenant scope changes are serialized even when the first operation fails', 
   await assert.rejects(first, /selection failed/);
   await second;
   assert.deepEqual(events, ['first:start', 'first:end', 'second:start', 'second:end']);
+});
+
+test('failed tenant selection clears stale resources only after server scope exchange', () => {
+  assert.deepEqual(
+    failedTenantSelectionContext({
+      scopeExchanged: false,
+      previousTenantId: 'tenant-a',
+      previousApplicationId: 'app-a',
+      requestedTenantId: 'tenant-b'
+    }),
+    { tenantId: 'tenant-a', applicationId: 'app-a', clearResources: false }
+  );
+  assert.deepEqual(
+    failedTenantSelectionContext({
+      scopeExchanged: true,
+      previousTenantId: 'tenant-a',
+      previousApplicationId: 'app-a',
+      requestedTenantId: 'tenant-b'
+    }),
+    { tenantId: 'tenant-b', applicationId: '', clearResources: true }
+  );
 });

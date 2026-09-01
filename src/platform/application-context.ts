@@ -47,3 +47,32 @@ export function createSerialTaskQueue() {
     return operation;
   };
 }
+
+export interface FailedTenantSelectionContext {
+  tenantId: string;
+  applicationId: string;
+  clearResources: boolean;
+}
+
+interface FailedTenantSelectionInput {
+  scopeExchanged: boolean;
+  previousTenantId: string;
+  previousApplicationId: string;
+  requestedTenantId: string;
+}
+
+/**
+ * Once the server session has exchanged tenant scope, retaining the previous
+ * tenant's applications would mix trusted token scope with stale UI resources.
+ */
+export function failedTenantSelectionContext({
+  scopeExchanged,
+  previousTenantId,
+  previousApplicationId,
+  requestedTenantId
+}: FailedTenantSelectionInput): FailedTenantSelectionContext {
+  if (!scopeExchanged) {
+    return { tenantId: previousTenantId, applicationId: previousApplicationId, clearResources: false };
+  }
+  return { tenantId: requestedTenantId, applicationId: '', clearResources: true };
+}
