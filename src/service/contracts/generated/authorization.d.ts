@@ -215,6 +215,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/authorization/my-permissions/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check up to 100 permission codes for the authenticated tenant membership */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Tenant and permission codes */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.CheckMyPermissionCodesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["authorization.PermissionCodeDecision"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/authorization/permissions/create": {
         parameters: {
             query?: never;
@@ -774,6 +817,10 @@ export interface components {
             updated_by?: string;
             version?: number;
         };
+        "authorization.PermissionCodeDecision": {
+            allowed_codes?: string[];
+            policy_version?: number;
+        };
         "buildinfo.Info": {
             build_time?: string;
             commit?: string;
@@ -809,6 +856,10 @@ export interface components {
             resource_type: string;
             subject_id: string;
             subject_type: string;
+            tenant_id: string;
+        };
+        "httptransport.CheckMyPermissionCodesRequest": {
+            permission_codes: string[];
             tenant_id: string;
         };
         "httptransport.CreateBindingRequest": {

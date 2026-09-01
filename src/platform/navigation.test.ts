@@ -4,6 +4,8 @@ import {
   activeApplicationRoutes,
   applicationEntryPath,
   applicationMenuEntries,
+  filterNavigationsByPermissions,
+  navigationPermissionCodes,
   navigationToRoutes,
   safeExternalURL
 } from './navigation';
@@ -46,6 +48,49 @@ test('navigationToRoutes scopes routes and never evaluates backend component nam
   assert.equal(route.name, 'platform_identity-service_accounts');
   assert.equal(applicationRoute.meta?.applicationId, 'app-1');
   assert.equal(route.meta?.applicationId, 'app-1');
+});
+
+test('permission filtering removes denied descendants and preserves unprotected menus', () => {
+  const menu = (id: string, parentID: string, permissionCode: string) => ({
+    id,
+    application_id: 'app-1',
+    parent_id: parentID,
+    code: id,
+    type: 'page',
+    name: id,
+    i18n_key: '',
+    route: id,
+    component: '',
+    icon: '',
+    external_url: '',
+    permission_code: permissionCode,
+    sort_order: 1,
+    visible: true,
+    status: 'active'
+  });
+  const navigation = {
+    application: {
+      id: 'app-1',
+      code: 'orders',
+      name: 'Orders',
+      description: '',
+      icon: '',
+      default_route: '',
+      status: 'active'
+    },
+    menus: [
+      menu('public', '', ''),
+      menu('denied-parent', '', 'orders.admin'),
+      menu('hidden-child', 'denied-parent', ''),
+      menu('allowed', '', ' Orders.Read ')
+    ]
+  };
+
+  assert.deepEqual(navigationPermissionCodes([navigation]), ['orders.admin', 'orders.read']);
+  assert.deepEqual(
+    filterNavigationsByPermissions([navigation], ['orders.read'])[0].menus.map(item => item.id),
+    ['public', 'allowed']
+  );
 });
 
 test('external application links allow only absolute HTTP(S) URLs without credentials', () => {

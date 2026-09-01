@@ -59,8 +59,14 @@ export interface TenantSelectionToken {
   membership_id: string;
 }
 
+export interface PermissionCodeDecision {
+  allowed_codes: string[];
+  policy_version: number;
+}
+
 const tenantRequest = platformRequest('tenant');
 const applicationRequest = platformRequest('application');
+const authorizationRequest = platformRequest('authorization');
 
 export function fetchUserTenants(userID: string) {
   return tenantRequest<Page<TenantSummary>>({
@@ -91,5 +97,13 @@ export function fetchPublishedNavigation(applicationID: string) {
     url: '/api/v1/applications/navigation/get',
     method: 'post',
     data: { application_id: applicationID }
+  });
+}
+
+export function fetchMyPermissionCodes(tenantID: string, permissionCodes: string[]) {
+  return authorizationRequest<PermissionCodeDecision>({
+    url: '/api/v1/authorization/my-permissions/check',
+    method: 'post',
+    data: { tenant_id: tenantID, permission_codes: permissionCodes }
   });
 }

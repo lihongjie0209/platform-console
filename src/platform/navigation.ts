@@ -209,3 +209,36 @@ export function activeApplicationRoutes(navigations: PublishedNavigation[], appl
 
   return routes;
 }
+
+export function navigationPermissionCodes(navigations: PublishedNavigation[]) {
+  return Array.from(
+    new Set(
+      navigations.flatMap(navigation =>
+        navigation.menus.map(menu => menu.permission_code.trim().toLowerCase()).filter(Boolean)
+      )
+    )
+  );
+}
+
+/** Removes protected menus unless the current tenant membership has every protected ancestor grant. */
+export function filterNavigationsByPermissions(navigations: PublishedNavigation[], allowedCodes: string[]) {
+  const allowed = new Set(allowedCodes.map(code => code.trim().toLowerCase()).filter(Boolean));
+  return navigations.map(navigation => {
+    const byID = new Map(navigation.menus.map(menu => [menu.id, menu]));
+    const visibility = new Map<string, boolean>();
+    const visiting = new Set<string>();
+    const isAllowed = (menu: ApplicationMenu): boolean => {
+      const cached = visibility.get(menu.id);
+      if (cached !== undefined) return cached;
+      if (visiting.has(menu.id)) return false;
+      visiting.add(menu.id);
+      const permissionCode = menu.permission_code.trim().toLowerCase();
+      const parent = menu.parent_id ? byID.get(menu.parent_id) : undefined;
+      const result = (!permissionCode || allowed.has(permissionCode)) && (!parent || isAllowed(parent));
+      visiting.delete(menu.id);
+      visibility.set(menu.id, result);
+      return result;
+    };
+    return { ...navigation, menus: navigation.menus.filter(isAllowed) };
+  });
+}

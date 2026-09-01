@@ -1,10 +1,17 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import type { PlatformApplication, PublishedNavigation, TenantSummary } from '@/service/api';
-import { fetchPublishedNavigation, fetchSelectTenant, fetchTenantApplications, fetchUserTenants } from '@/service/api';
+import {
+  fetchMyPermissionCodes,
+  fetchPublishedNavigation,
+  fetchSelectTenant,
+  fetchTenantApplications,
+  fetchUserTenants
+} from '@/service/api';
 import { sessionStg } from '@/utils/storage';
 import { SetupStoreId } from '@/enum';
 import { createSerialTaskQueue, retainActiveNavigations, selectActiveTenant } from '@/platform/application-context';
+import { filterNavigationsByPermissions, navigationPermissionCodes } from '@/platform/navigation';
 
 export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
   const loading = ref(false);
@@ -77,7 +84,21 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
 
       applications.value = data.applications.filter(item => item.status === 'active');
       const successfulNavigations = results.flatMap(result => (result.error ? [] : [result.data]));
-      navigations.value = retainActiveNavigations(applications.value, successfulNavigations);
+      const activeNavigations = retainActiveNavigations(applications.value, successfulNavigations);
+      const permissionCodes = navigationPermissionCodes(activeNavigations);
+      if (permissionCodes.length) {
+        const batches = Array.from({ length: Math.ceil(permissionCodes.length / 100) }, (_, index) =>
+          permissionCodes.slice(index * 100, (index + 1) * 100)
+        );
+        const permissionResults = await Promise.all(batches.map(batch => fetchMyPermissionCodes(tenantId, batch)));
+        const permissionError = permissionResults.find(result => result.error)?.error;
+        if (permissionError) throw permissionError;
+        if (revision !== requestRevision) return;
+        const allowedCodes = permissionResults.flatMap(result => result.data?.allowed_codes ?? []);
+        navigations.value = filterNavigationsByPermissions(activeNavigations, allowedCodes);
+      } else {
+        navigations.value = activeNavigations;
+      }
 
       if (!applications.value.some(item => item.id === selectedApplicationId.value)) {
         selectedApplicationId.value = '';
