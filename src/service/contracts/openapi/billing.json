@@ -342,6 +342,62 @@
                 }
             }
         },
+        "/api/v1/payments/list": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "summary": "List application payment attempts",
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/httptransport.listPaymentsRequest"
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/payments/refunds/list": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "summary": "List application refunds",
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/httptransport.listPaymentsRequest"
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/payments/refunds/record": {
             "post": {
                 "security": [
@@ -899,6 +955,19 @@
         }
     ],
     "components": {
+        "requestBodies": {
+            "httptransport.listPaymentsRequest": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/httptransport.listPaymentsRequest"
+                        }
+                    }
+                },
+                "description": "Filters and pagination",
+                "required": true
+            }
+        },
         "securitySchemes": {
             "Bearer": {
                 "description": "Enter \"Bearer {JWT}\".",
@@ -1239,6 +1308,29 @@
                         "type": "string"
                     },
                     "created_to": {
+                        "type": "string"
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.listPaymentsRequest": {
+                "type": "object",
+                "required": [
+                    "application_id"
+                ],
+                "properties": {
+                    "application_id": {
                         "type": "string"
                     },
                     "page": {

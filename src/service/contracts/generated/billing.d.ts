@@ -379,6 +379,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List application payment attempts */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["httptransport.listPaymentsRequest"];
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/refunds/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List application refunds */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["httptransport.listPaymentsRequest"];
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments/refunds/record": {
         parameters: {
             query?: never;
@@ -1113,6 +1185,13 @@ export interface components {
             status?: string;
             tenant_id?: string;
         };
+        "httptransport.listPaymentsRequest": {
+            application_id: string;
+            page?: number;
+            page_size?: number;
+            status?: string;
+            tenant_id?: string;
+        };
         "httptransport.listPlansRequest": {
             keyword?: string;
             page?: number;
@@ -1167,7 +1246,14 @@ export interface components {
     };
     responses: never;
     parameters: never;
-    requestBodies: never;
+    requestBodies: {
+        /** @description Filters and pagination */
+        "httptransport.listPaymentsRequest": {
+            content: {
+                "application/json": components["schemas"]["httptransport.listPaymentsRequest"];
+            };
+        };
+    };
     headers: never;
     pathItems: never;
 }

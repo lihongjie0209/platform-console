@@ -44,6 +44,7 @@ const pageLoaders = {
   'billing-center.plans': () => import('./billing-center/pages/plans/index.vue'),
   'billing-center.subscriptions': () => import('./billing-center/pages/subscriptions/index.vue'),
   'billing-center.invoices': () => import('./billing-center/pages/invoices/index.vue'),
+  'billing-center.payments': () => import('./billing-center/pages/payments/index.vue'),
   'rule-center.rules': () => import('./rule-center/pages/rules/index.vue'),
   'import-center.jobs': () => import('./import-center/pages/jobs/index.vue'),
   'export-center.jobs': () => import('./export-center/pages/jobs/index.vue'),

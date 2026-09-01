@@ -50,6 +50,35 @@ export interface Invoice extends Record<string, unknown> {
   period_end: string;
   version: number;
 }
+export interface PaymentAttempt extends Record<string, unknown> {
+  id: string;
+  invoice_id: string;
+  tenant_id: string;
+  application_id: string;
+  provider: string;
+  provider_payment_id: string;
+  currency: string;
+  amount_minor: number;
+  status: string;
+  failure_code: string;
+  failure_message: string;
+  processed_at?: string;
+  version: number;
+  created_at: string;
+}
+export interface Refund extends Record<string, unknown> {
+  id: string;
+  payment_attempt_id: string;
+  invoice_id: string;
+  tenant_id: string;
+  application_id: string;
+  provider_refund_id: string;
+  amount_minor: number;
+  reason: string;
+  status: string;
+  version: number;
+  created_at: string;
+}
 interface Page<T> {
   items: T[];
   total: number;
@@ -209,6 +238,88 @@ export const voidInvoice = (value: Invoice, reason: string) =>
         id: value.id,
         reason,
         version: value.version
+      }
+    })
+  );
+
+interface PaymentListInput {
+  tenantID: string;
+  applicationID: string;
+  status: string;
+  page: number;
+  pageSize: number;
+}
+
+export const listPayments = (input: PaymentListInput) =>
+  unwrap<Page<PaymentAttempt>>(
+    request({
+      url: '/api/v1/payments/list',
+      method: 'post',
+      data: {
+        ...applicationScope(input.tenantID, input.applicationID),
+        status: input.status,
+        page: input.page,
+        page_size: input.pageSize
+      }
+    })
+  );
+
+export const listRefunds = (input: PaymentListInput) =>
+  unwrap<Page<Refund>>(
+    request({
+      url: '/api/v1/payments/refunds/list',
+      method: 'post',
+      data: {
+        ...applicationScope(input.tenantID, input.applicationID),
+        status: input.status,
+        page: input.page,
+        page_size: input.pageSize
+      }
+    })
+  );
+
+export const createPaymentAttempt = (input: {
+  tenantID: string;
+  applicationID: string;
+  invoiceID: string;
+  provider: string;
+  paymentMethodReference: string;
+  idempotencyKey: string;
+}) =>
+  unwrap<{ payment_attempt: PaymentAttempt; duplicate: boolean }>(
+    request({
+      url: '/api/v1/payments/create-attempt',
+      method: 'post',
+      data: {
+        ...applicationScope(input.tenantID, input.applicationID),
+        invoice_id: input.invoiceID,
+        provider: input.provider,
+        payment_method_reference: input.paymentMethodReference,
+        idempotency_key: input.idempotencyKey
+      }
+    })
+  );
+
+export const recordRefund = (input: {
+  payment: PaymentAttempt;
+  providerRefundID: string;
+  amountMinor: number;
+  reason: string;
+  status: string;
+  idempotencyKey: string;
+}) =>
+  unwrap<{ refund: Refund; invoice: Invoice; duplicate: boolean }>(
+    request({
+      url: '/api/v1/payments/refunds/record',
+      method: 'post',
+      data: {
+        ...applicationScope(input.payment.tenant_id, input.payment.application_id),
+        payment_attempt_id: input.payment.id,
+        provider_refund_id: input.providerRefundID,
+        amount_minor: input.amountMinor,
+        reason: input.reason,
+        status: input.status,
+        idempotency_key: input.idempotencyKey
       }
     })
   );
