@@ -432,7 +432,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Return the authenticated subject */
+        /** Return the authenticated subject and current user profile */
         post: {
             parameters: {
                 query?: never;
@@ -891,7 +891,18 @@ export interface components {
             session_id: string;
         };
         "httptransport.MeResponseBody": {
+            buttons?: string[];
+            display_name?: string;
+            email?: string;
+            membership_id?: string;
+            phone?: string;
+            roles?: string[];
+            session_id?: string;
+            status?: string;
             subject?: string;
+            subject_type?: string;
+            tenant_id?: string;
+            username?: string;
         };
         "httptransport.RefreshRequest": {
             refresh_token: string;

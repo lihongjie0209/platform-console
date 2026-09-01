@@ -7,6 +7,7 @@ import { useRouterPush } from '@/hooks/common/router';
 import { localStg, sessionStg } from '@/utils/storage';
 import { SetupStoreId } from '@/enum';
 import { $t } from '@/locales';
+import { emptyUserInfo, normalizeUserInfo } from '@/platform/user-profile';
 import { useRouteStore } from '../route';
 import { useTabStore } from '../tab';
 import { clearAuthStorage, getToken } from './shared';
@@ -21,11 +22,7 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
 
   const token = ref(getToken());
 
-  const userInfo: Api.Auth.UserInfo = reactive({
-    subject: '',
-    roles: [],
-    buttons: []
-  });
+  const userInfo: Api.Auth.UserInfo = reactive(emptyUserInfo());
 
   /** is super role in static route */
   const isStaticSuper = computed(() => {
@@ -147,7 +144,7 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
 
     if (!error) {
       // update store
-      Object.assign(userInfo, info);
+      Object.assign(userInfo, normalizeUserInfo(info));
 
       return true;
     }

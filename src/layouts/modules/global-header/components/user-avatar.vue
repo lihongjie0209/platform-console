@@ -84,7 +84,9 @@ function handleDropdown(key: DropdownKey) {
     </template>
     <div class="flex items-center">
       <SvgIcon icon="ph:user-circle" class="mr-5px text-icon-large" />
-      <span class="text-16px font-medium">{{ authStore.userInfo.subject }}</span>
+      <span class="text-16px font-medium">
+        {{ authStore.userInfo.display_name || authStore.userInfo.username || authStore.userInfo.subject }}
+      </span>
     </div>
   </ElDropdown>
 </template>

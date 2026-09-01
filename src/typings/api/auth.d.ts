@@ -14,6 +14,15 @@ declare namespace Api {
 
     interface UserInfo {
       subject: string;
+      subject_type: string;
+      session_id: string;
+      tenant_id: string;
+      membership_id: string;
+      username: string;
+      display_name: string;
+      email: string;
+      phone: string;
+      status: string;
       roles: string[];
       buttons: string[];
     }

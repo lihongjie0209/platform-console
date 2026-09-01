@@ -4,6 +4,7 @@ import type { FormInstance, FormRules } from 'element-plus';
 import { fetchChangePassword } from '@/service/api';
 import { useAuthStore } from '@/store/modules/auth';
 import { validatePasswordChange } from '@/platform/password-policy';
+import { BizCopyText } from '@/components/business';
 
 defineOptions({ name: 'UserCenter' });
 
@@ -66,8 +67,25 @@ async function changePassword() {
   <ElSpace direction="vertical" fill :size="16" class="w-full">
     <ElCard shadow="never">
       <template #header><span class="font-600">账号信息</span></template>
-      <ElDescriptions :column="1" border>
-        <ElDescriptionsItem label="用户 ID">{{ authStore.userInfo.subject }}</ElDescriptionsItem>
+      <ElDescriptions :column="2" border>
+        <ElDescriptionsItem label="用户名">{{ authStore.userInfo.username || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="显示名称">{{ authStore.userInfo.display_name || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="邮箱">{{ authStore.userInfo.email || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="手机">{{ authStore.userInfo.phone || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="账号状态">
+          <ElTag :type="authStore.userInfo.status === 'active' ? 'success' : 'warning'">
+            {{ authStore.userInfo.status || '-' }}
+          </ElTag>
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="用户 ID"><BizCopyText :value="authStore.userInfo.subject" /></ElDescriptionsItem>
+        <ElDescriptionsItem label="当前租户">
+          <BizCopyText v-if="authStore.userInfo.tenant_id" :value="authStore.userInfo.tenant_id" />
+          <span v-else>-</span>
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="成员 ID">
+          <BizCopyText v-if="authStore.userInfo.membership_id" :value="authStore.userInfo.membership_id" />
+          <span v-else>-</span>
+        </ElDescriptionsItem>
       </ElDescriptions>
     </ElCard>
 
