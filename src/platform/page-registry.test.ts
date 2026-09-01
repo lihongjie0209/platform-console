@@ -19,6 +19,7 @@ test('application pages are registered under an application namespace', () => {
       'scheduler-center',
       'dictionary-center',
       'registry-center',
+      'swagger-center',
       'workflow-center',
       'search-center',
       'metering-center',
@@ -50,6 +51,7 @@ test('application pages are registered under an application namespace', () => {
   assert.equal(isApplicationPageKey('dictionary-center.definitions'), true);
   assert.equal(isApplicationPageKey('dictionary-center.providers'), true);
   assert.equal(isApplicationPageKey('registry-center.services'), true);
+  assert.equal(isApplicationPageKey('swagger-center.documents'), true);
   assert.equal(isApplicationPageKey('workflow-center.definitions'), true);
   assert.equal(isApplicationPageKey('workflow-center.instances'), true);
   assert.equal(isApplicationPageKey('workflow-center.tasks'), true);

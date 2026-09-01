@@ -1,0 +1,91 @@
+<script setup lang="ts">
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import type { SwaggerService } from '../../api';
+import { getSwaggerSpec, listSwaggerServices } from '../../api';
+import { renderSwaggerUI } from '../../swagger-ui';
+
+defineOptions({ name: 'SwaggerCenterDocuments' });
+
+const loading = ref(false);
+const rendering = ref(false);
+const services = ref<SwaggerService[]>([]);
+const selectedName = ref('');
+const swaggerRoot = ref<HTMLElement>();
+let renderRevision = 0;
+let swaggerUI: { destroy?: () => void } | undefined;
+
+async function loadServices() {
+  loading.value = true;
+  try {
+    const response = await listSwaggerServices();
+    services.value = response.items || [];
+    if (!services.value.some(item => item.name === selectedName.value)) {
+      selectedName.value = services.value[0]?.name || '';
+    }
+    if (selectedName.value) await loadSpec();
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function loadSpec() {
+  renderRevision += 1;
+  const revision = renderRevision;
+  if (!selectedName.value) return;
+  rendering.value = true;
+  try {
+    const response = await getSwaggerSpec(selectedName.value);
+    await nextTick();
+    if (revision !== renderRevision || !swaggerRoot.value) return;
+    swaggerUI?.destroy?.();
+    swaggerRoot.value.replaceChildren();
+    swaggerUI = await renderSwaggerUI(swaggerRoot.value, response.document);
+  } finally {
+    if (revision === renderRevision) rendering.value = false;
+  }
+}
+
+onMounted(loadServices);
+onBeforeUnmount(() => {
+  renderRevision += 1;
+  swaggerUI?.destroy?.();
+});
+</script>
+
+<template>
+  <ElCard class="card-wrapper" shadow="never">
+    <template #header>
+      <div class="flex-y-center justify-between gap-12px">
+        <div>
+          <h2 class="m-0 text-18px font-semibold">API 文档中心</h2>
+          <p class="mb-0 mt-6px text-13px text-#999">自动发现平台服务，在统一登录态下查看 OpenAPI 文档并调试接口。</p>
+        </div>
+        <div class="flex-y-center gap-8px">
+          <ElSelect v-model="selectedName" filterable class="w-280px" placeholder="选择服务" @change="loadSpec">
+            <ElOption v-for="service in services" :key="service.name" :label="service.title" :value="service.name">
+              <div class="flex-y-center justify-between gap-12px">
+                <span>{{ service.title }}</span>
+                <ElTag size="small" :type="service.available ? 'success' : 'info'">{{ service.origin }}</ElTag>
+              </div>
+            </ElOption>
+          </ElSelect>
+          <ElButton :loading="loading" @click="loadServices">刷新目录</ElButton>
+        </div>
+      </div>
+    </template>
+    <ElEmpty v-if="!loading && !services.length" description="尚未发现 OpenAPI 服务" />
+    <div v-else v-loading="loading || rendering" class="min-h-600px">
+      <div ref="swaggerRoot" class="swagger-ui-host" />
+    </div>
+  </ElCard>
+</template>
+
+<style scoped>
+.swagger-ui-host {
+  min-height: 600px;
+}
+
+.swagger-ui-host :deep(.swagger-ui .topbar) {
+  display: none;
+}
+</style>
