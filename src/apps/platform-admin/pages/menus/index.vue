@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { applicationPageOptions } from '@/apps/registry';
+import { type MenuPermissionScope, normalizeMenuPermissionScope } from '@/platform/navigation';
 import type { Application, ApplicationMenu } from '../../api';
 import { deleteMenu, getApplication, listApplications, listMenuDraft, publishMenus, upsertMenu } from '../../api';
 import { buildMenuTree, descendantMenuIDs } from '../../menu-tree';
@@ -20,6 +21,7 @@ interface MenuForm {
   icon: string;
   external_url: string;
   permission_code: string;
+  permission_scope: MenuPermissionScope;
   sort_order: number;
   visible: boolean;
   version: number;
@@ -59,6 +61,7 @@ function emptyMenu(parentID = ''): MenuForm {
     icon: '',
     external_url: '',
     permission_code: '',
+    permission_scope: 'tenant',
     sort_order: 0,
     visible: true,
     version: 0
@@ -110,6 +113,7 @@ function openEdit(menu: ApplicationMenu) {
     icon: String(menu.icon || ''),
     external_url: String(menu.external_url || ''),
     permission_code: String(menu.permission_code || ''),
+    permission_scope: normalizeMenuPermissionScope(menu.permission_scope),
     sort_order: Number(menu.sort_order || 0),
     visible: menu.visible !== false,
     version: Number(menu.version || 0)
@@ -143,6 +147,7 @@ async function saveMenu() {
         icon: form.icon,
         external_url: form.external_url,
         permission_code: form.permission_code,
+        permission_scope: form.permission_scope,
         sort_order: form.sort_order,
         visible: form.visible,
         status: 'active'
@@ -233,6 +238,7 @@ onMounted(async () => {
             <span class="truncate text-12px text-#999">{{ data.code }}</span>
             <span v-if="data.component" class="truncate text-12px text-#999">{{ data.component }}</span>
             <ElTag v-if="data.permission_code" size="small" type="warning" effect="plain">
+              {{ normalizeMenuPermissionScope(data.permission_scope) === 'platform' ? '平台' : '租户' }} ·
               {{ data.permission_code }}
             </ElTag>
           </div>
@@ -289,6 +295,12 @@ onMounted(async () => {
           <ElInput v-model="form.external_url" />
         </ElFormItem>
         <ElFormItem label="权限码"><ElInput v-model="form.permission_code" /></ElFormItem>
+        <ElFormItem label="权限作用域">
+          <ElSelect v-model="form.permission_scope" class="w-full">
+            <ElOption label="租户权限" value="tenant" />
+            <ElOption label="平台权限" value="platform" />
+          </ElSelect>
+        </ElFormItem>
         <ElFormItem label="Iconify 图标"><ElInput v-model="form.icon" /></ElFormItem>
         <ElFormItem label="i18n Key"><ElInput v-model="form.i18n_key" /></ElFormItem>
         <ElFormItem label="菜单可见"><ElSwitch v-model="form.visible" /></ElFormItem>

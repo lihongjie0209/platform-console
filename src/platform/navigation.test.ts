@@ -7,8 +7,16 @@ import {
   filterNavigationsByPermissions,
   navigationPermissionCodes,
   navigationToRoutes,
+  normalizeMenuPermissionScope,
   safeExternalURL
 } from './navigation';
+
+test('menu permission scope keeps platform explicit and defaults legacy values to tenant', () => {
+  assert.equal(normalizeMenuPermissionScope('platform'), 'platform');
+  assert.equal(normalizeMenuPermissionScope('tenant'), 'tenant');
+  assert.equal(normalizeMenuPermissionScope(undefined), 'tenant');
+  assert.equal(normalizeMenuPermissionScope('unknown'), 'tenant');
+});
 
 test('navigationToRoutes scopes routes and never evaluates backend component names', () => {
   const [applicationRoute] = navigationToRoutes({

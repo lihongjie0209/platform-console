@@ -212,8 +212,12 @@ export function activeApplicationRoutes(navigations: PublishedNavigation[], appl
 
 export type MenuPermissionScope = 'tenant' | 'platform';
 
+export function normalizeMenuPermissionScope(value: unknown): MenuPermissionScope {
+  return value === 'platform' ? 'platform' : 'tenant';
+}
+
 function menuPermissionScope(menu: ApplicationMenu): MenuPermissionScope {
-  return menu.permission_scope === 'platform' ? 'platform' : 'tenant';
+  return normalizeMenuPermissionScope(menu.permission_scope);
 }
 
 export function navigationPermissionCodes(navigations: PublishedNavigation[]) {
