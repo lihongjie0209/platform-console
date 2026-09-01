@@ -1,5 +1,6 @@
 import type { components as AuditContract } from '@/service/contracts/generated/audit';
 import { platformRequest } from '@/service/request';
+import { applicationScope } from '@/platform/application-context';
 
 export type AuditRecordContract = AuditContract['schemas']['httptransport.AuditRecordResponseBody'];
 export type AuditExportResult = AuditContract['schemas']['httptransport.ExportAuditResponseBody'];
@@ -7,6 +8,7 @@ export type AuditExportResult = AuditContract['schemas']['httptransport.ExportAu
 export interface AuditRecord extends AuditRecordContract, Record<string, unknown> {
   id: string;
   tenant_id: string;
+  application_id: string;
   actor_id: string;
   actor_type: string;
   action: string;
@@ -21,6 +23,7 @@ export interface AuditRecord extends AuditRecordContract, Record<string, unknown
 
 export interface AuditQuery {
   tenantID: string;
+  applicationID: string;
   actorID?: string;
   actorType?: string;
   action?: string;
@@ -53,7 +56,7 @@ async function unwrap<T>(request: PromiseLike<{ data: T | null; error: unknown }
 
 function queryPayload(query: AuditQuery) {
   return {
-    tenant_id: query.tenantID,
+    ...applicationScope(query.tenantID, query.applicationID),
     actor_id: query.actorID || '',
     actor_type: query.actorType || '',
     action: query.action || '',

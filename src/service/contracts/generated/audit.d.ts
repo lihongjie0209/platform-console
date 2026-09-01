@@ -380,6 +380,7 @@ export interface components {
             actor_id?: string;
             actor_type?: string;
             after_summary?: Record<string, never>;
+            application_id?: string;
             before_summary?: Record<string, never>;
             created_at?: string;
             created_by?: string;
@@ -399,6 +400,7 @@ export interface components {
             action?: string;
             actor_id?: string;
             actor_type?: string;
+            application_id?: string;
             max_records?: number;
             occurred_from?: string;
             occurred_to?: string;
@@ -428,6 +430,7 @@ export interface components {
             action?: string;
             actor_id?: string;
             actor_type?: string;
+            application_id?: string;
             occurred_from?: string;
             occurred_to?: string;
             page?: number;
@@ -444,6 +447,7 @@ export interface components {
             actor_id?: string;
             actor_type?: string;
             after_summary?: Record<string, never>;
+            application_id?: string;
             before_summary?: Record<string, never>;
             id?: string;
             occurred_at?: string;

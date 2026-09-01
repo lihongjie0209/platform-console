@@ -29,6 +29,7 @@ const occurredRange = ref<string[]>([]);
 const detailVisible = ref(false);
 const selected = ref<AuditRecord>();
 const tenantID = computed(() => platformStore.selectedTenantId);
+const applicationID = computed(() => platformStore.selectedApplicationId);
 const form = reactive<SearchForm>({
   actor_id: '',
   actor_type: '',
@@ -43,6 +44,7 @@ const form = reactive<SearchForm>({
 function currentQuery(): AuditQuery {
   return {
     tenantID: tenantID.value,
+    applicationID: applicationID.value,
     actorID: form.actor_id,
     actorType: form.actor_type,
     action: form.action,
@@ -59,7 +61,7 @@ function currentQuery(): AuditQuery {
 }
 
 async function loadData() {
-  if (!tenantID.value) {
+  if (!tenantID.value || !applicationID.value) {
     rows.value = [];
     total.value = 0;
     return;
@@ -105,7 +107,7 @@ function summaryText(value: unknown) {
 }
 
 async function exportCSV() {
-  if (!tenantID.value) return;
+  if (!tenantID.value || !applicationID.value) return;
   exporting.value = true;
   try {
     const result = await exportAuditRecords(currentQuery());
@@ -133,7 +135,7 @@ function changePageSize(value: number) {
   loadData();
 }
 
-watch(tenantID, () => {
+watch([tenantID, applicationID], () => {
   page.value = 1;
   loadData();
 });
@@ -146,16 +148,24 @@ onMounted(loadData);
       <div class="flex-y-center justify-between gap-12px">
         <div>
           <h2 class="m-0 text-18px font-semibold">审计记录</h2>
-          <p class="mb-0 mt-6px text-13px text-#999">按当前租户查询不可变业务审计，支持请求和 Trace 全链路追踪。</p>
+          <p class="mb-0 mt-6px text-13px text-#999">
+            按当前租户和应用查询不可变业务审计，支持请求和 Trace 全链路追踪。
+          </p>
         </div>
         <div class="flex-y-center gap-8px">
           <ElButton :loading="loading" @click="loadData">刷新</ElButton>
-          <ElButton :loading="exporting" :disabled="!tenantID" @click="exportCSV">导出 CSV</ElButton>
+          <ElButton :loading="exporting" :disabled="!tenantID || !applicationID" @click="exportCSV">导出 CSV</ElButton>
         </div>
       </div>
     </template>
 
-    <ElAlert v-if="!tenantID" title="请先在应用选择页选择租户" type="warning" show-icon :closable="false" />
+    <ElAlert
+      v-if="!tenantID || !applicationID"
+      title="请先在应用选择页选择租户和应用"
+      type="warning"
+      show-icon
+      :closable="false"
+    />
     <template v-else>
       <ElForm inline class="mb-16px" @submit.prevent="search">
         <ElFormItem label="操作者"><ElInput v-model="form.actor_id" clearable placeholder="Actor ID" /></ElFormItem>
