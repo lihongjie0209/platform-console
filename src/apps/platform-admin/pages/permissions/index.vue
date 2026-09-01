@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import {
+  type PermissionManagementScope,
+  permissionManagementContextKey,
+  permissionManagementScopeOptions
+} from '@/platform/permission-management';
 import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
 import type { Permission, PermissionForm } from '../../api';
-import { createPermission, listPermissions, updatePermission } from '../../api';
+import { createMyPermission, listMyPermissions, updateMyPermission } from '../../api';
 
 defineOptions({ name: 'PlatformAdminPermissions' });
 interface Query extends Record<string, unknown> {
@@ -13,6 +18,7 @@ interface Query extends Record<string, unknown> {
 }
 const platformStore = usePlatformStore();
 const tenantID = computed(() => platformStore.selectedTenantId);
+const permissionScope = ref<PermissionManagementScope>('tenant');
 const emptyForm = (): PermissionForm => ({
   code: '',
   name: '',
@@ -93,7 +99,12 @@ const config: BizCrudConfig<Permission, Query, PermissionForm, string> = {
 };
 const adapter: BizCrudAdapter<Permission, Query, PermissionForm, string> = {
   async list(query) {
-    const result = await listPermissions(tenantID.value, query.current, query.size);
+    const result = await listMyPermissions({
+      tenantID: tenantID.value,
+      permissionScope: permissionScope.value,
+      page: query.current,
+      pageSize: query.size
+    });
     return {
       items: result.items,
       total: result.total,
@@ -101,14 +112,23 @@ const adapter: BizCrudAdapter<Permission, Query, PermissionForm, string> = {
       pageSize: result.page_size
     };
   },
-  create: form => createPermission(tenantID.value, form),
-  update: updatePermission
+  create: form => createMyPermission({ tenantID: tenantID.value, permissionScope: permissionScope.value, form }),
+  update: (permissionID, form) =>
+    updateMyPermission({ tenantID: tenantID.value, permissionScope: permissionScope.value, permissionID, form })
 };
 </script>
 
 <template>
   <ElAlert v-if="!tenantID" title="请先在应用选择页选择租户" type="warning" show-icon :closable="false" />
-  <BizCrudPage v-else :key="tenantID" :config="config" :adapter="adapter">
+  <BizCrudPage
+    v-else
+    :key="permissionManagementContextKey(tenantID, permissionScope)"
+    :config="config"
+    :adapter="adapter"
+  >
+    <template #toolbar-prefix>
+      <ElSegmented v-model="permissionScope" :options="permissionManagementScopeOptions" />
+    </template>
     <template #cell-status="{ row }">
       <BizStatusTag :label="String(row.status)" :type="row.status === 'active' ? 'success' : 'danger'" />
     </template>

@@ -620,6 +620,13 @@ export interface PermissionCatalogQuery {
   pageSize?: number;
 }
 
+export interface ScopedPermissionRequest {
+  tenantID: string;
+  permissionScope: 'tenant' | 'platform';
+  form: PermissionForm;
+  permissionID?: string;
+}
+
 export function listMyPermissionCatalog(query: PermissionCatalogQuery) {
   return unwrap(
     authorizationRequest<ResourcePage<Permission>>({
@@ -631,6 +638,57 @@ export function listMyPermissionCatalog(query: PermissionCatalogQuery) {
         search: query.search || '',
         page: query.page || 1,
         page_size: query.pageSize || 50
+      }
+    })
+  );
+}
+
+export function listMyPermissions(query: PermissionCatalogQuery) {
+  return unwrap(
+    authorizationRequest<ResourcePage<Permission>>({
+      url: '/api/v1/authorization/my-permissions/list',
+      method: 'post',
+      data: {
+        tenant_id: query.tenantID,
+        permission_scope: query.permissionScope,
+        page: query.page || 1,
+        page_size: query.pageSize || 20
+      }
+    })
+  );
+}
+
+export async function createMyPermission(request: ScopedPermissionRequest) {
+  await unwrap(
+    authorizationRequest<Permission>({
+      url: '/api/v1/authorization/my-permissions/create',
+      method: 'post',
+      data: {
+        tenant_id: request.tenantID,
+        permission_scope: request.permissionScope,
+        code: request.form.code,
+        name: request.form.name,
+        resource_type: request.form.resource_type,
+        action: request.form.action,
+        condition_expression: request.form.condition_expression
+      }
+    })
+  );
+}
+
+export async function updateMyPermission(request: ScopedPermissionRequest) {
+  await unwrap(
+    authorizationRequest<Permission>({
+      url: '/api/v1/authorization/my-permissions/update',
+      method: 'post',
+      data: {
+        tenant_id: request.tenantID,
+        permission_scope: request.permissionScope,
+        permission_id: request.permissionID,
+        name: request.form.name,
+        condition_expression: request.form.condition_expression,
+        status: request.form.status,
+        version: request.form.version
       }
     })
   );

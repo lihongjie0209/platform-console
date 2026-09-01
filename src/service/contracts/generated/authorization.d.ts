@@ -308,6 +308,129 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/authorization/my-permissions/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a permission in the authenticated user's tenant or platform scope */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Scoped permission */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.CreateMyPermissionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/authorization/my-permissions/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List permissions in the authenticated user's tenant or platform scope */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Scoped permission pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListMyPermissionsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/authorization/my-permissions/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update a permission in the authenticated user's tenant or platform scope */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Scoped permission update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.UpdateMyPermissionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/authorization/permissions/create": {
         parameters: {
             query?: never;
@@ -921,6 +1044,16 @@ export interface components {
             subject_type: string;
             tenant_id: string;
         };
+        "httptransport.CreateMyPermissionRequest": {
+            action: string;
+            code: string;
+            condition_expression?: string;
+            name: string;
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
+            resource_type: string;
+            tenant_id: string;
+        };
         "httptransport.CreatePermissionRequest": {
             action: string;
             code: string;
@@ -956,6 +1089,13 @@ export interface components {
             search?: string;
             tenant_id: string;
         };
+        "httptransport.ListMyPermissionsRequest": {
+            page?: number;
+            page_size?: number;
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
+            tenant_id: string;
+        };
         "httptransport.ListPermissionsRequest": {
             page?: number;
             page_size?: number;
@@ -984,6 +1124,16 @@ export interface components {
         };
         "httptransport.RevokeRolePermissionRequest": {
             role_permission_id: string;
+            version: number;
+        };
+        "httptransport.UpdateMyPermissionRequest": {
+            condition_expression?: string;
+            name: string;
+            permission_id: string;
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
+            status: string;
+            tenant_id: string;
             version: number;
         };
         "httptransport.UpdatePermissionRequest": {
