@@ -7,6 +7,7 @@ import { useRouteStore } from '@/store/modules/route';
 import { useRouterPush } from '@/hooks/common/router';
 import { localStg } from '@/utils/storage';
 import { SetupStoreId } from '@/enum';
+import { reconcileContextTabs } from '@/platform/tab-context';
 import { useThemeStore } from '../theme';
 import {
   extractTabsByAllRoutes,
@@ -29,6 +30,7 @@ export const useTabStore = defineStore(SetupStoreId.Tab, () => {
 
   /** Tabs */
   const tabs = ref<App.Global.Tab[]>([]);
+  const initialized = ref(false);
 
   /** Get active tab */
   const homeTab = ref<App.Global.Tab>();
@@ -67,6 +69,24 @@ export const useTabStore = defineStore(SetupStoreId.Tab, () => {
     }
 
     addTab(currentRoute);
+    initialized.value = true;
+  }
+
+  /** Drop tabs backed by routes removed during a tenant navigation refresh. */
+  function reconcileTabsWithRoutes() {
+    // Before GlobalTab mounts, initTabStore still needs to restore and filter the
+    // persisted tabs itself. Do not overwrite that cache with an empty store.
+    if (!initialized.value) return;
+
+    const availableRouteNames = new Set(router.getRoutes().flatMap(route => (route.name ? [route.name] : [])));
+    const state = reconcileContextTabs(tabs.value, availableRouteNames, {
+      activeTabId: activeTabId.value,
+      homeTabId: homeTab.value?.id || ''
+    });
+
+    tabs.value = state.tabs;
+    activeTabId.value = state.activeTabId;
+    cacheTabs();
   }
 
   /**
@@ -291,6 +311,7 @@ export const useTabStore = defineStore(SetupStoreId.Tab, () => {
     activeTabId,
     initHomeTab,
     initTabStore,
+    reconcileTabsWithRoutes,
     addTab,
     removeTab,
     removeActiveTab,

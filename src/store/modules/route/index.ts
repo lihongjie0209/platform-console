@@ -223,6 +223,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
     setRouteHome('applications');
     handleUpdateRootRouteRedirect('applications');
     tabStore.initHomeTab();
+    tabStore.reconcileTabsWithRoutes();
   }
 
   /** handle constant and auth routes */
