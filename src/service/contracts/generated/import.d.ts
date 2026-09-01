@@ -561,6 +561,7 @@ export interface components {
             status?: string;
         };
         "httptransport.CompleteUploadRequest": {
+            application_id?: string;
             id?: string;
             source_bytes?: number;
             source_checksum?: string;
@@ -568,12 +569,14 @@ export interface components {
             version?: number;
         };
         "httptransport.ConfirmImportRequest": {
+            application_id?: string;
             id?: string;
             idempotency_key?: string;
             tenant_id?: string;
             version?: number;
         };
         "httptransport.CreateImportRequest": {
+            application_id?: string;
             dataset_code?: string;
             filename?: string;
             format?: string;
@@ -582,26 +585,31 @@ export interface components {
             tenant_id?: string;
         };
         "httptransport.DescribeImportDatasetRequest": {
+            application_id?: string;
             dataset_code?: string;
             provider_service?: string;
             tenant_id?: string;
         };
         "httptransport.ErrorReportRequest": {
+            application_id?: string;
             id?: string;
             tenant_id?: string;
             ttl_seconds?: number;
         };
         "httptransport.ImportSelector": {
+            application_id?: string;
             id?: string;
             tenant_id?: string;
         };
         "httptransport.ListImportDatasetsRequest": {
+            application_id?: string;
             page?: number;
             page_size?: number;
             search?: string;
             tenant_id?: string;
         };
         "httptransport.ListImportsRequest": {
+            application_id?: string;
             created_from?: string;
             created_to?: string;
             dataset_code?: string;
@@ -617,12 +625,14 @@ export interface components {
             request_id?: string;
         };
         "httptransport.RetryImportRequest": {
+            application_id?: string;
             id?: string;
             idempotency_key?: string;
             tenant_id?: string;
             version?: number;
         };
         "httptransport.VersionedImportRequest": {
+            application_id?: string;
             id?: string;
             tenant_id?: string;
             version?: number;

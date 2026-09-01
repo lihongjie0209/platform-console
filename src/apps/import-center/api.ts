@@ -1,4 +1,5 @@
 import { platformRequest } from '@/service/request';
+import { applicationScope } from '@/platform/application-context';
 export interface ImportDataset extends Record<string, unknown> {
   provider_service: string;
   code: string;
@@ -9,6 +10,7 @@ export interface ImportDataset extends Record<string, unknown> {
 export interface ImportJob extends Record<string, unknown> {
   id: string;
   tenant_id: string;
+  application_id: string;
   dataset_code: string;
   provider_service: string;
   format: string;
@@ -42,21 +44,21 @@ async function unwrap<T>(value: PromiseLike<{ data: T | null; error: unknown }>)
   if (data === null) throw new Error('import service returned an empty response');
   return data;
 }
-export const listDatasets = (tenantID: string, search: string) =>
+export const listDatasets = (tenantID: string, applicationID: string, search: string) =>
   unwrap<Page<ImportDataset>>(
     request({
       url: '/api/v1/imports/datasets/list',
       method: 'post',
-      data: { tenant_id: tenantID, search, page: 1, page_size: 100 }
+      data: { ...applicationScope(tenantID, applicationID), search, page: 1, page_size: 100 }
     })
   );
-export const listImports = (input: { tenantID: string; status: string; datasetCode: string }) =>
+export const listImports = (input: { tenantID: string; applicationID: string; status: string; datasetCode: string }) =>
   unwrap<Page<ImportJob>>(
     request({
       url: '/api/v1/imports/list',
       method: 'post',
       data: {
-        tenant_id: input.tenantID,
+        ...applicationScope(input.tenantID, input.applicationID),
         status: input.status,
         dataset_code: input.datasetCode,
         page: 1,
@@ -64,13 +66,19 @@ export const listImports = (input: { tenantID: string; status: string; datasetCo
       }
     })
   );
-export const createImport = (input: { tenantID: string; dataset: ImportDataset; format: string; filename: string }) =>
+export const createImport = (input: {
+  tenantID: string;
+  applicationID: string;
+  dataset: ImportDataset;
+  format: string;
+  filename: string;
+}) =>
   unwrap<UploadResult>(
     request({
       url: '/api/v1/imports/create',
       method: 'post',
       data: {
-        tenant_id: input.tenantID,
+        ...applicationScope(input.tenantID, input.applicationID),
         dataset_code: input.dataset.code,
         provider_service: input.dataset.provider_service,
         format: input.format,
@@ -91,7 +99,7 @@ export const completeImportUpload = (job: ImportJob, size: number, checksum: str
       url: '/api/v1/imports/complete-upload',
       method: 'post',
       data: {
-        tenant_id: job.tenant_id,
+        ...applicationScope(job.tenant_id, job.application_id),
         id: job.id,
         version: job.version,
         source_bytes: size,
@@ -104,7 +112,12 @@ export const confirmImport = (job: ImportJob) =>
     request({
       url: '/api/v1/imports/confirm',
       method: 'post',
-      data: { tenant_id: job.tenant_id, id: job.id, version: job.version, idempotency_key: crypto.randomUUID() }
+      data: {
+        ...applicationScope(job.tenant_id, job.application_id),
+        id: job.id,
+        version: job.version,
+        idempotency_key: crypto.randomUUID()
+      }
     })
   );
 export const cancelImport = (job: ImportJob) =>
@@ -112,7 +125,7 @@ export const cancelImport = (job: ImportJob) =>
     request({
       url: '/api/v1/imports/cancel',
       method: 'post',
-      data: { tenant_id: job.tenant_id, id: job.id, version: job.version }
+      data: { ...applicationScope(job.tenant_id, job.application_id), id: job.id, version: job.version }
     })
   );
 export const retryImport = (job: ImportJob) =>
@@ -120,7 +133,12 @@ export const retryImport = (job: ImportJob) =>
     request({
       url: '/api/v1/imports/retry',
       method: 'post',
-      data: { tenant_id: job.tenant_id, id: job.id, version: job.version, idempotency_key: crypto.randomUUID() }
+      data: {
+        ...applicationScope(job.tenant_id, job.application_id),
+        id: job.id,
+        version: job.version,
+        idempotency_key: crypto.randomUUID()
+      }
     })
   );
 export const errorReport = (job: ImportJob) =>
@@ -128,6 +146,6 @@ export const errorReport = (job: ImportJob) =>
     request({
       url: '/api/v1/imports/error-report',
       method: 'post',
-      data: { tenant_id: job.tenant_id, id: job.id, ttl_seconds: 300 }
+      data: { ...applicationScope(job.tenant_id, job.application_id), id: job.id, ttl_seconds: 300 }
     })
   );

@@ -585,6 +585,9 @@
             "httptransport.CompleteUploadRequest": {
                 "type": "object",
                 "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
                     "id": {
                         "type": "string"
                     },
@@ -605,6 +608,9 @@
             "httptransport.ConfirmImportRequest": {
                 "type": "object",
                 "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
                     "id": {
                         "type": "string"
                     },
@@ -622,6 +628,9 @@
             "httptransport.CreateImportRequest": {
                 "type": "object",
                 "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
                     "dataset_code": {
                         "type": "string"
                     },
@@ -645,6 +654,9 @@
             "httptransport.DescribeImportDatasetRequest": {
                 "type": "object",
                 "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
                     "dataset_code": {
                         "type": "string"
                     },
@@ -659,6 +671,9 @@
             "httptransport.ErrorReportRequest": {
                 "type": "object",
                 "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
                     "id": {
                         "type": "string"
                     },
@@ -673,6 +688,9 @@
             "httptransport.ImportSelector": {
                 "type": "object",
                 "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
                     "id": {
                         "type": "string"
                     },
@@ -684,6 +702,9 @@
             "httptransport.ListImportDatasetsRequest": {
                 "type": "object",
                 "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
                     "page": {
                         "type": "integer"
                     },
@@ -701,6 +722,9 @@
             "httptransport.ListImportsRequest": {
                 "type": "object",
                 "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
                     "created_from": {
                         "type": "string"
                     },
@@ -742,6 +766,9 @@
             "httptransport.RetryImportRequest": {
                 "type": "object",
                 "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
                     "id": {
                         "type": "string"
                     },
@@ -759,6 +786,9 @@
             "httptransport.VersionedImportRequest": {
                 "type": "object",
                 "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
                     "id": {
                         "type": "string"
                     },
