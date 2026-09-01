@@ -3,7 +3,7 @@ import { defineStore } from 'pinia';
 import type { PlatformApplication, PublishedNavigation, TenantSummary } from '@/service/api';
 import {
   fetchMyPermissionCodes,
-  fetchPublishedNavigation,
+  fetchPublishedNavigations,
   fetchSelectTenant,
   fetchTenantApplications,
   fetchUserTenants
@@ -110,12 +110,17 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
       const { data, error } = await fetchTenantApplications(tenantId);
       if (error) throw error;
 
-      const results = await Promise.all(data.applications.map(item => fetchPublishedNavigation(item.id)));
+      const applicationIDs = data.applications.map(item => item.id);
+      let navigationItems: PublishedNavigation[] = [];
+      if (applicationIDs.length) {
+        const { data: navigationData, error: navigationError } = await fetchPublishedNavigations(applicationIDs);
+        if (navigationError) throw navigationError;
+        navigationItems = navigationData.items;
+      }
       if (revision !== requestRevision) return;
 
       applications.value = data.applications.filter(item => item.status === 'active');
-      const successfulNavigations = results.flatMap(result => (result.error ? [] : [result.data]));
-      const activeNavigations = retainActiveNavigations(applications.value, successfulNavigations);
+      const activeNavigations = retainActiveNavigations(applications.value, navigationItems);
       const allowedCodes = await fetchAllowedNavigationPermissionCodes(tenantId, activeNavigations);
       if (revision !== requestRevision) return;
       navigations.value = filterNavigationsByPermissions(activeNavigations, allowedCodes);

@@ -101,6 +101,14 @@ export function fetchPublishedNavigation(applicationID: string) {
   });
 }
 
+export function fetchPublishedNavigations(applicationIDs: string[]) {
+  return applicationRequest<{ items: PublishedNavigation[] }>({
+    url: '/api/v1/applications/navigation/batch-get',
+    method: 'post',
+    data: { application_ids: applicationIDs }
+  });
+}
+
 export function fetchMyPermissionCodes(
   tenantID: string,
   permissionScope: 'tenant' | 'platform',

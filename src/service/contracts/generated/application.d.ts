@@ -303,6 +303,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/applications/navigation/batch-get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get published navigation for multiple granted applications */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Application IDs */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.BatchNavigationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.BatchNavigationResponse"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/applications/navigation/get": {
         parameters: {
             query?: never;
@@ -874,6 +917,12 @@ export interface components {
             application_ids: string[];
             at?: string;
             tenant_id: string;
+        };
+        "httptransport.BatchNavigationRequest": {
+            application_ids: string[];
+        };
+        "httptransport.BatchNavigationResponse": {
+            items?: components["schemas"]["httptransport.NavigationResponse"][];
         };
         "httptransport.CreateApplicationRequest": {
             code: string;
