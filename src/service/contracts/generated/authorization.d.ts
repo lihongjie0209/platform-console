@@ -215,6 +215,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/authorization/my-permission-catalog/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Search permissions available to the authenticated tenant or platform administrator */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Selected tenant, permission scope, search and pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListMyPermissionCatalogRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+                /** @description Permission catalog access denied */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/authorization/my-permissions/check": {
         parameters: {
             query?: never;
@@ -896,6 +946,14 @@ export interface components {
             page_size?: number;
             subject_id?: string;
             subject_type?: string;
+            tenant_id: string;
+        };
+        "httptransport.ListMyPermissionCatalogRequest": {
+            page?: number;
+            page_size?: number;
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
+            search?: string;
             tenant_id: string;
         };
         "httptransport.ListPermissionsRequest": {

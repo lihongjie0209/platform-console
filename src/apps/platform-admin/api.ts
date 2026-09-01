@@ -612,6 +612,30 @@ export function listPermissions(tenantID: string, page: number, pageSize: number
   );
 }
 
+export interface PermissionCatalogQuery {
+  tenantID: string;
+  permissionScope: 'tenant' | 'platform';
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export function listMyPermissionCatalog(query: PermissionCatalogQuery) {
+  return unwrap(
+    authorizationRequest<ResourcePage<Permission>>({
+      url: '/api/v1/authorization/my-permission-catalog/list',
+      method: 'post',
+      data: {
+        tenant_id: query.tenantID,
+        permission_scope: query.permissionScope,
+        search: query.search || '',
+        page: query.page || 1,
+        page_size: query.pageSize || 50
+      }
+    })
+  );
+}
+
 export async function createPermission(tenantID: string, form: PermissionForm) {
   await unwrap(
     authorizationRequest<Permission>({

@@ -1,7 +1,7 @@
 {
   "identity": "https://raw.githubusercontent.com/lihongjie0209/identity-service/main/docs/swagger.json",
   "tenant": "https://raw.githubusercontent.com/lihongjie0209/tenant-service/dd56e79/docs/swagger.json",
-  "authorization": "https://raw.githubusercontent.com/lihongjie0209/authorization-service/14fabb4/docs/swagger.json",
+  "authorization": "https://raw.githubusercontent.com/lihongjie0209/authorization-service/a8cce76/docs/swagger.json",
   "application": "https://raw.githubusercontent.com/lihongjie0209/application-service/8b0a714/docs/swagger.json",
   "audit": "https://raw.githubusercontent.com/lihongjie0209/audit-service/main/docs/swagger.json",
   "config": "https://raw.githubusercontent.com/lihongjie0209/config-service/main/docs/swagger.json",

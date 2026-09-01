@@ -1,10 +1,20 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
+import { usePlatformStore } from '@/store/modules/platform';
 import { applicationPageOptions } from '@/apps/registry';
+import { type PermissionCatalogOption, buildPermissionCatalogOptions } from '@/platform/permission-catalog';
 import { type MenuPermissionScope, normalizeMenuPermissionScope } from '@/platform/navigation';
 import type { Application, ApplicationMenu } from '../../api';
-import { deleteMenu, getApplication, listApplications, listMenuDraft, publishMenus, upsertMenu } from '../../api';
+import {
+  deleteMenu,
+  getApplication,
+  listApplications,
+  listMenuDraft,
+  listMyPermissionCatalog,
+  publishMenus,
+  upsertMenu
+} from '../../api';
 import { buildMenuTree, descendantMenuIDs } from '../../menu-tree';
 
 defineOptions({ name: 'PlatformAdminMenus' });
@@ -30,6 +40,10 @@ interface MenuForm {
 const loading = ref(false);
 const saving = ref(false);
 const publishing = ref(false);
+const permissionLoading = ref(false);
+const permissionOptions = ref<PermissionCatalogOption[]>([]);
+const platformStore = usePlatformStore();
+let permissionRequestSequence = 0;
 const applications = ref<Application[]>([]);
 const applicationID = ref('');
 const menus = ref<ApplicationMenu[]>([]);
@@ -40,6 +54,7 @@ const formRef = ref<FormInstance>();
 const form = reactive<MenuForm>(emptyMenu());
 const tree = computed(() => buildMenuTree(menus.value));
 const selectedApplication = computed(() => applications.value.find(item => item.id === applicationID.value));
+const selectedTenantID = computed(() => platformStore.selectedTenantId);
 const forbiddenParentIDs = computed(() => (form.id ? descendantMenuIDs(menus.value, form.id) : new Set<string>()));
 
 const rules: FormRules<MenuForm> = {
@@ -97,6 +112,7 @@ async function loadMenus() {
 function openCreate(parentID = '') {
   resetForm(emptyMenu(parentID));
   editorVisible.value = true;
+  loadPermissionOptions();
 }
 
 function openEdit(menu: ApplicationMenu) {
@@ -119,6 +135,39 @@ function openEdit(menu: ApplicationMenu) {
     version: Number(menu.version || 0)
   });
   editorVisible.value = true;
+  loadPermissionOptions();
+}
+
+async function loadPermissionOptions(search = '') {
+  permissionRequestSequence += 1;
+  const sequence = permissionRequestSequence;
+  if (!selectedTenantID.value) {
+    permissionOptions.value = buildPermissionCatalogOptions([], form.permission_code);
+    return;
+  }
+  permissionLoading.value = true;
+  try {
+    const result = await listMyPermissionCatalog({
+      tenantID: selectedTenantID.value,
+      permissionScope: form.permission_scope,
+      search
+    });
+    if (sequence === permissionRequestSequence) {
+      permissionOptions.value = buildPermissionCatalogOptions(result.items, form.permission_code);
+    }
+  } catch {
+    if (sequence === permissionRequestSequence) {
+      permissionOptions.value = buildPermissionCatalogOptions([], form.permission_code);
+    }
+  } finally {
+    if (sequence === permissionRequestSequence) permissionLoading.value = false;
+  }
+}
+
+function changePermissionScope() {
+  form.permission_code = '';
+  permissionOptions.value = [];
+  loadPermissionOptions();
 }
 
 async function saveMenu() {
@@ -255,6 +304,14 @@ onMounted(async () => {
   </ElCard>
 
   <ElDrawer v-model="editorVisible" :title="form.id ? '编辑菜单' : '新增菜单'" size="600px" destroy-on-close>
+    <ElAlert
+      v-if="!selectedTenantID"
+      class="mb-16px"
+      type="warning"
+      show-icon
+      :closable="false"
+      title="请先选择租户，系统需要使用租户会话安全查询权限目录。"
+    />
     <ElForm ref="formRef" :model="form" :rules="rules" label-position="top">
       <ElFormItem label="父菜单" prop="parent_id">
         <ElSelect v-model="form.parent_id" class="w-full" clearable placeholder="根菜单">
@@ -294,9 +351,30 @@ onMounted(async () => {
         <ElFormItem v-if="form.type === 'external'" label="外部 URL" prop="external_url" class="col-span-2">
           <ElInput v-model="form.external_url" />
         </ElFormItem>
-        <ElFormItem label="权限码"><ElInput v-model="form.permission_code" /></ElFormItem>
+        <ElFormItem label="权限码">
+          <ElSelect
+            v-model="form.permission_code"
+            class="w-full"
+            clearable
+            filterable
+            remote
+            reserve-keyword
+            :disabled="!selectedTenantID"
+            :loading="permissionLoading"
+            :remote-method="loadPermissionOptions"
+            placeholder="搜索并选择权限码（可留空）"
+            @visible-change="visible => visible && loadPermissionOptions()"
+          >
+            <ElOption
+              v-for="option in permissionOptions"
+              :key="option.code"
+              :label="option.label"
+              :value="option.code"
+            />
+          </ElSelect>
+        </ElFormItem>
         <ElFormItem label="权限作用域">
-          <ElSelect v-model="form.permission_scope" class="w-full">
+          <ElSelect v-model="form.permission_scope" class="w-full" @change="changePermissionScope">
             <ElOption label="租户权限" value="tenant" />
             <ElOption label="平台权限" value="platform" />
           </ElSelect>
