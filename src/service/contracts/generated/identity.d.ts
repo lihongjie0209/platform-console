@@ -40,6 +40,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change the current user's password and revoke other active sessions */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Current and new password */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ChangePasswordRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ChangePasswordResponseBody"];
+                        };
+                    };
+                };
+                /** @description Code 10001: invalid password */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+                /** @description Code 20001: current password is invalid */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -776,6 +837,14 @@ export interface components {
                 [key: string]: components["schemas"]["health.Dependency"];
             };
             status?: string;
+        };
+        "httptransport.ChangePasswordRequest": {
+            current_password: string;
+            new_password: string;
+        };
+        "httptransport.ChangePasswordResponseBody": {
+            changed?: boolean;
+            revoked_sessions?: number;
         };
         "httptransport.CreateServiceAccountRequest": {
             audiences: string[];

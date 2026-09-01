@@ -17,5 +17,10 @@ declare namespace Api {
       roles: string[];
       buttons: string[];
     }
+
+    interface ChangePasswordResult {
+      changed: boolean;
+      revoked_sessions: number;
+    }
   }
 }

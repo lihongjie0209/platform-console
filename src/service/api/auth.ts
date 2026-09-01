@@ -38,3 +38,15 @@ export function fetchRefreshToken(refreshToken: string) {
     }
   });
 }
+
+/** Change the current user's password and revoke every other active session. */
+export function fetchChangePassword(currentPassword: string, newPassword: string) {
+  return identityRequest<Api.Auth.ChangePasswordResult>({
+    url: '/api/v1/auth/change-password',
+    method: 'post',
+    data: {
+      current_password: currentPassword,
+      new_password: newPassword
+    }
+  });
+}
