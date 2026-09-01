@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
+import { passwordPolicyError } from '@/platform/password-policy';
 import type { UserForm, UserIdentity } from '../../api';
 import { createUser, listUsers, updateUserStatus } from '../../api';
 
@@ -36,7 +37,8 @@ const config: BizCrudConfig<UserIdentity, Query, UserForm, string> = {
         { label: '全部', value: '' },
         { label: '启用', value: 'active' },
         { label: '停用', value: 'disabled' },
-        { label: '锁定', value: 'locked' }
+        { label: '锁定', value: 'locked' },
+        { label: '关闭', value: 'closed' }
       ]
     }
   ],
@@ -73,7 +75,17 @@ const config: BizCrudConfig<UserIdentity, Query, UserForm, string> = {
         label: '初始密码',
         visible: model => !editing(model),
         props: { type: 'password', showPassword: true },
-        rules: [{ required: true, min: 8, message: '密码至少 8 位' }]
+        rules: [
+          { required: true, message: '请输入初始密码' },
+          {
+            validator: (_rule, value, callback) => {
+              const message = passwordPolicyError(String(value || ''));
+              if (message) callback(new Error(message));
+              else callback();
+            },
+            trigger: ['blur', 'change']
+          }
+        ]
       },
       {
         key: 'status',
@@ -82,8 +94,9 @@ const config: BizCrudConfig<UserIdentity, Query, UserForm, string> = {
         visible: editing,
         options: [
           { label: '启用', value: 'active' },
-          { label: '停用', value: 'disabled' },
-          { label: '锁定', value: 'locked' }
+          { label: '停用（退出全部会话）', value: 'disabled' },
+          { label: '锁定（退出全部会话）', value: 'locked' },
+          { label: '关闭（退出全部会话）', value: 'closed' }
         ]
       },
       {

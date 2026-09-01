@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { validatePasswordChange } from './password-policy';
+import { passwordPolicyError, validatePasswordChange } from './password-policy';
+
+test('passwordPolicyError counts UTF-8 bytes like the identity service', () => {
+  assert.equal(passwordPolicyError('short'), '密码长度必须为 12 到 1024 字节');
+  assert.equal(passwordPolicyError('密'.repeat(4)), undefined);
+  assert.equal(passwordPolicyError('a'.repeat(1025)), '密码长度必须为 12 到 1024 字节');
+});
 
 test('validatePasswordChange accepts a distinct confirmed password', () => {
   assert.equal(validatePasswordChange('current-password', 'different-password', 'different-password'), undefined);
