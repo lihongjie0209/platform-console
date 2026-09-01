@@ -1,5 +1,6 @@
 import type { components as ConfigContract } from '@/service/contracts/generated/config';
 import { platformRequest } from '@/service/request';
+import { applicationScope } from '@/platform/application-context';
 
 type ConfigEntryContract = ConfigContract['schemas']['httptransport.ConfigEntryResponseBody'];
 
@@ -7,6 +8,7 @@ export interface ConfigEntry extends ConfigEntryContract, Record<string, unknown
   id: string;
   environment: string;
   tenant_id: string;
+  application_id: string;
   service: string;
   key: string;
   status: string;
@@ -26,6 +28,7 @@ export interface ConfigPage {
 export interface ConfigScope {
   environment: string;
   tenantID: string;
+  applicationID: string;
   service: string;
 }
 
@@ -54,7 +57,7 @@ export function listConfigEntries(scope: ConfigScope, page: number, pageSize: nu
       method: 'post',
       data: {
         environment: scope.environment,
-        tenant_id: scope.tenantID,
+        ...applicationScope(scope.tenantID, scope.applicationID),
         service: scope.service,
         page,
         page_size: pageSize
@@ -71,7 +74,7 @@ export function putConfigDraft(input: ConfigDraftInput) {
       data: {
         id: input.id || '',
         environment: input.environment,
-        tenant_id: input.tenantID,
+        ...applicationScope(input.tenantID, input.applicationID),
         service: input.service,
         key: input.key,
         value: input.value as Record<string, never> | undefined,

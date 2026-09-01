@@ -532,6 +532,7 @@ export interface components {
             status?: string;
         };
         "httptransport.ConfigEntryResponseBody": {
+            application_id?: string;
             created_at?: string;
             created_by?: string;
             environment?: string;
@@ -563,6 +564,7 @@ export interface components {
             total?: number;
         };
         "httptransport.ListConfigRequest": {
+            application_id?: string;
             environment: string;
             page?: number;
             page_size?: number;
@@ -573,6 +575,7 @@ export interface components {
             subject?: string;
         };
         "httptransport.PutConfigRequest": {
+            application_id?: string;
             environment: string;
             expected_version?: number;
             id?: string;
@@ -584,6 +587,7 @@ export interface components {
             value?: Record<string, never>;
         };
         "httptransport.ResolveConfigRequest": {
+            application_id?: string;
             environment: string;
             keys: string[];
             service: string;

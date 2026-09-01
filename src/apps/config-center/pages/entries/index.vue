@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { hasApplicationScope } from '@/platform/application-context';
 import type { ConfigDraftInput, ConfigEntry } from '../../api';
 import {
   approveConfig,
@@ -17,6 +18,8 @@ defineOptions({ name: 'ConfigCenterEntries' });
 
 const platformStore = usePlatformStore();
 const tenantID = computed(() => platformStore.selectedTenantId);
+const applicationID = computed(() => platformStore.selectedApplicationId);
+const applicationName = computed(() => platformStore.selectedApplication?.name || '当前应用');
 const loading = ref(false);
 const saving = ref(false);
 const rows = ref<ConfigEntry[]>([]);
@@ -29,7 +32,10 @@ const editorVisible = ref(false);
 const valueMode = ref<'json' | 'secret'>('json');
 const form = reactive({ id: '', key: '', jsonValue: '{}', secretRef: '', rolloutPercentage: 100, version: 0 });
 
-const scopeReady = computed(() => Boolean(tenantID.value && environment.value && serviceName.value.trim()));
+const scopeReady = computed(
+  () =>
+    hasApplicationScope(tenantID.value, applicationID.value) && Boolean(environment.value && serviceName.value.trim())
+);
 
 async function loadData() {
   if (!scopeReady.value) {
@@ -40,7 +46,12 @@ async function loadData() {
   loading.value = true;
   try {
     const result = await listConfigEntries(
-      { environment: environment.value, tenantID: tenantID.value, service: serviceName.value.trim() },
+      {
+        environment: environment.value,
+        tenantID: tenantID.value,
+        applicationID: applicationID.value,
+        service: serviceName.value.trim()
+      },
       page.value,
       pageSize.value
     );
@@ -101,6 +112,7 @@ async function saveDraft() {
       id: form.id || undefined,
       environment: environment.value,
       tenantID: tenantID.value,
+      applicationID: applicationID.value,
       service: serviceName.value.trim(),
       key: form.key.trim(),
       value,
@@ -160,7 +172,12 @@ function statusType(status: string) {
   return 'info';
 }
 
-watch(tenantID, search);
+watch([tenantID, applicationID], () => {
+  rows.value = [];
+  total.value = 0;
+  editorVisible.value = false;
+  search();
+});
 onMounted(loadData);
 </script>
 
@@ -170,13 +187,21 @@ onMounted(loadData);
       <div class="flex-y-center justify-between gap-12px">
         <div>
           <h2 class="m-0 text-18px font-semibold">动态配置</h2>
-          <p class="mb-0 mt-6px text-13px text-#999">按租户、环境和服务隔离，支持独立审批、发布、灰度与回滚。</p>
+          <p class="mb-0 mt-6px text-13px text-#999">
+            管理 {{ applicationName }} 的配置覆盖，支持审批、发布、灰度与回滚。
+          </p>
         </div>
         <ElButton type="primary" :disabled="!scopeReady" @click="openCreate">新建配置</ElButton>
       </div>
     </template>
 
-    <ElAlert v-if="!tenantID" title="请先在应用选择页选择租户" type="warning" show-icon :closable="false" />
+    <ElAlert
+      v-if="!hasApplicationScope(tenantID, applicationID)"
+      title="请先选择租户和应用"
+      type="warning"
+      show-icon
+      :closable="false"
+    />
     <template v-else>
       <ElForm inline class="mb-16px" @submit.prevent="search">
         <ElFormItem label="环境">
