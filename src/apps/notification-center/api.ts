@@ -1,5 +1,6 @@
 import type { components as NotificationContract } from '@/service/contracts/generated/notification';
 import { platformRequest } from '@/service/request';
+import { applicationScope } from '@/platform/application-context';
 
 type TemplateContract = NotificationContract['schemas']['httptransport.TemplateResponseBody'];
 type DeliveryContract = NotificationContract['schemas']['httptransport.DeliveryResponseBody'];
@@ -7,6 +8,7 @@ type DeliveryContract = NotificationContract['schemas']['httptransport.DeliveryR
 export interface NotificationTemplate extends TemplateContract, Record<string, unknown> {
   id: string;
   tenant_id: string;
+  application_id: string;
   code: string;
   channel: string;
   locale: string;
@@ -19,6 +21,7 @@ export interface NotificationTemplate extends TemplateContract, Record<string, u
 export interface NotificationDelivery extends DeliveryContract, Record<string, unknown> {
   id: string;
   tenant_id: string;
+  application_id: string;
   template_code: string;
   channel: string;
   locale: string;
@@ -44,6 +47,7 @@ export interface DeliveryPage {
 
 export interface TemplateQuery {
   tenantID: string;
+  applicationID: string;
   keyword: string;
   channel: string;
   status: string;
@@ -53,6 +57,7 @@ export interface TemplateQuery {
 
 export interface DeliveryQuery {
   tenantID: string;
+  applicationID: string;
   status: string;
   page: number;
   pageSize: number;
@@ -73,7 +78,7 @@ export function listTemplates(query: TemplateQuery) {
       url: '/api/v1/notifications/templates/list',
       method: 'post',
       data: {
-        tenant_id: query.tenantID,
+        ...applicationScope(query.tenantID, query.applicationID),
         keyword: query.keyword,
         channel: query.channel,
         status: query.status,
@@ -84,13 +89,13 @@ export function listTemplates(query: TemplateQuery) {
   );
 }
 
-export function putTemplate(tenantID: string, value: Partial<NotificationTemplate>) {
+export function putTemplate(tenantID: string, applicationID: string, value: Partial<NotificationTemplate>) {
   return unwrap<NotificationTemplate>(
     notificationRequest({
       url: '/api/v1/notifications/templates/put',
       method: 'post',
       data: {
-        tenant_id: tenantID,
+        ...applicationScope(tenantID, applicationID),
         code: value.code,
         channel: value.channel,
         locale: value.locale,
@@ -108,13 +113,19 @@ export function listDeliveries(query: DeliveryQuery) {
     notificationRequest({
       url: '/api/v1/notifications/deliveries/list',
       method: 'post',
-      data: { tenant_id: query.tenantID, status: query.status, page: query.page, page_size: query.pageSize }
+      data: {
+        ...applicationScope(query.tenantID, query.applicationID),
+        status: query.status,
+        page: query.page,
+        page_size: query.pageSize
+      }
     })
   );
 }
 
 export function sendNotification(input: {
   tenantID: string;
+  applicationID: string;
   templateCode: string;
   channel: string;
   locale: string;
@@ -127,7 +138,7 @@ export function sendNotification(input: {
       url: '/api/v1/notifications/send',
       method: 'post',
       data: {
-        tenant_id: input.tenantID,
+        ...applicationScope(input.tenantID, input.applicationID),
         template_code: input.templateCode,
         channel: input.channel,
         locale: input.locale,

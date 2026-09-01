@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { hasApplicationScope } from '@/platform/application-context';
 import type { NotificationDelivery } from '../../api';
 import { listDeliveries, sendNotification } from '../../api';
 import { parseNotificationVariables } from '../../variables';
@@ -8,6 +9,9 @@ import { parseNotificationVariables } from '../../variables';
 defineOptions({ name: 'NotificationCenterDeliveries' });
 const platformStore = usePlatformStore();
 const tenantID = computed(() => platformStore.selectedTenantId);
+const applicationID = computed(() => platformStore.selectedApplicationId);
+const applicationName = computed(() => platformStore.selectedApplication?.name || '当前应用');
+const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const loading = ref(false);
 const sending = ref(false);
 const rows = ref<NotificationDelivery[]>([]);
@@ -28,11 +32,12 @@ const form = reactive({
 });
 
 async function loadData() {
-  if (!tenantID.value) return;
+  if (!scopeReady.value) return;
   loading.value = true;
   try {
     const result = await listDeliveries({
       tenantID: tenantID.value,
+      applicationID: applicationID.value,
       status: status.value,
       page: page.value,
       pageSize: pageSize.value
@@ -59,7 +64,7 @@ function openSend() {
   visible.value = true;
 }
 async function send() {
-  if (!tenantID.value) return;
+  if (!scopeReady.value) return;
   let variables: Record<string, string>;
   try {
     variables = parseNotificationVariables(form.variables);
@@ -69,7 +74,12 @@ async function send() {
   }
   sending.value = true;
   try {
-    await sendNotification({ tenantID: tenantID.value, ...form, variables });
+    await sendNotification({
+      tenantID: tenantID.value,
+      applicationID: applicationID.value,
+      ...form,
+      variables
+    });
     visible.value = false;
     window.$message?.success('通知已进入发送队列');
     await loadData();
@@ -81,7 +91,14 @@ function showDetail(row: NotificationDelivery) {
   detail.value = row;
   detailVisible.value = true;
 }
-watch(tenantID, search);
+watch([tenantID, applicationID], () => {
+  rows.value = [];
+  total.value = 0;
+  visible.value = false;
+  detail.value = undefined;
+  detailVisible.value = false;
+  search();
+});
 onMounted(loadData);
 </script>
 
@@ -91,12 +108,14 @@ onMounted(loadData);
       <div class="flex-y-center justify-between">
         <div>
           <h2 class="m-0 text-18px font-semibold">发送记录</h2>
-          <p class="mb-0 mt-6px text-13px text-#999">查询异步投递状态、供应商回执和失败原因。</p>
+          <p class="mb-0 mt-6px text-13px text-#999">
+            查询 {{ applicationName }} 的异步投递状态、供应商回执和失败原因。
+          </p>
         </div>
-        <ElButton type="primary" :disabled="!tenantID" @click="openSend">发送测试通知</ElButton>
+        <ElButton type="primary" :disabled="!scopeReady" @click="openSend">发送测试通知</ElButton>
       </div>
     </template>
-    <ElAlert v-if="!tenantID" title="请先选择租户" type="warning" show-icon :closable="false" />
+    <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" show-icon :closable="false" />
     <template v-else>
       <ElForm inline class="mb-16px">
         <ElFormItem label="状态">

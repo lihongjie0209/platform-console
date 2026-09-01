@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { hasApplicationScope } from '@/platform/application-context';
 import type { NotificationTemplate } from '../../api';
 import { listTemplates, putTemplate } from '../../api';
 
 defineOptions({ name: 'NotificationCenterTemplates' });
 const platformStore = usePlatformStore();
 const tenantID = computed(() => platformStore.selectedTenantId);
+const applicationID = computed(() => platformStore.selectedApplicationId);
+const applicationName = computed(() => platformStore.selectedApplication?.name || '当前应用');
+const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const loading = ref(false);
 const saving = ref(false);
 const rows = ref<NotificationTemplate[]>([]);
@@ -28,11 +32,12 @@ const form = reactive({
 });
 
 async function loadData() {
-  if (!tenantID.value) return;
+  if (!scopeReady.value) return;
   loading.value = true;
   try {
     const result = await listTemplates({
       tenantID: tenantID.value,
+      applicationID: applicationID.value,
       keyword: keyword.value,
       channel: channel.value,
       status: status.value,
@@ -52,15 +57,23 @@ function search() {
 function edit(row?: NotificationTemplate) {
   Object.assign(
     form,
-    row || { code: '', channel: 'email', locale: 'zh-cn', subject: '', content: '', status: 'active', version: 0 }
+    row || {
+      code: '',
+      channel: 'email',
+      locale: 'zh-cn',
+      subject: '',
+      content: '',
+      status: 'active',
+      version: 0
+    }
   );
   visible.value = true;
 }
 async function save() {
-  if (!tenantID.value || !form.code.trim() || !form.content) return;
+  if (!scopeReady.value || !form.code.trim() || !form.content) return;
   saving.value = true;
   try {
-    await putTemplate(tenantID.value, form);
+    await putTemplate(tenantID.value, applicationID.value, form);
     visible.value = false;
     window.$message?.success('模板已保存');
     await loadData();
@@ -68,7 +81,12 @@ async function save() {
     saving.value = false;
   }
 }
-watch(tenantID, search);
+watch([tenantID, applicationID], () => {
+  rows.value = [];
+  total.value = 0;
+  visible.value = false;
+  search();
+});
 onMounted(loadData);
 </script>
 
@@ -78,12 +96,12 @@ onMounted(loadData);
       <div class="flex-y-center justify-between">
         <div>
           <h2 class="m-0 text-18px font-semibold">通知模板</h2>
-          <p class="mb-0 mt-6px text-13px text-#999">维护租户级多渠道、多语言模板。</p>
+          <p class="mb-0 mt-6px text-13px text-#999">维护 {{ applicationName }} 的多渠道、多语言模板。</p>
         </div>
-        <ElButton type="primary" :disabled="!tenantID" @click="edit()">新建模板</ElButton>
+        <ElButton type="primary" :disabled="!scopeReady" @click="edit()">新建模板</ElButton>
       </div>
     </template>
-    <ElAlert v-if="!tenantID" title="请先选择租户" type="warning" show-icon :closable="false" />
+    <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" show-icon :closable="false" />
     <template v-else>
       <ElForm inline class="mb-16px" @submit.prevent="search">
         <ElFormItem label="搜索"><ElInput v-model="keyword" clearable placeholder="编码或主题" /></ElFormItem>

@@ -462,6 +462,7 @@ export interface components {
             total?: number;
         };
         "httptransport.DeliveryResponseBody": {
+            application_id?: string;
             attempts?: number;
             channel?: string;
             created_at?: string;
@@ -483,16 +484,19 @@ export interface components {
             version?: number;
         };
         "httptransport.GetDeliveryRequest": {
+            application_id: string;
             id: string;
             tenant_id: string;
         };
         "httptransport.ListDeliveriesRequest": {
+            application_id: string;
             page?: number;
             page_size?: number;
             status?: string;
             tenant_id: string;
         };
         "httptransport.ListTemplatesRequest": {
+            application_id: string;
             channel?: string;
             keyword?: string;
             page?: number;
@@ -504,6 +508,7 @@ export interface components {
             subject?: string;
         };
         "httptransport.ProviderReceiptRequest": {
+            application_id: string;
             failure_reason?: string;
             provider: string;
             provider_message_id: string;
@@ -511,6 +516,7 @@ export interface components {
             tenant_id: string;
         };
         "httptransport.PutTemplateRequest": {
+            application_id: string;
             channel: string;
             code: string;
             content: string;
@@ -527,6 +533,7 @@ export interface components {
             request_id?: string;
         };
         "httptransport.SendNotificationRequest": {
+            application_id: string;
             channel: string;
             idempotency_key: string;
             locale: string;
@@ -544,6 +551,7 @@ export interface components {
             total?: number;
         };
         "httptransport.TemplateResponseBody": {
+            application_id?: string;
             channel?: string;
             code?: string;
             content?: string;
