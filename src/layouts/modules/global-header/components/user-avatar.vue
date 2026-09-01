@@ -41,24 +41,27 @@ const options = computed(() => {
   return opts;
 });
 
-function logout() {
-  window.$messageBox
-    ?.confirm($t('common.logoutConfirm'), $t('common.tip'), {
+async function logout() {
+  try {
+    await window.$messageBox?.confirm($t('common.logoutConfirm'), $t('common.tip'), {
       confirmButtonText: $t('common.confirm'),
       cancelButtonText: $t('common.cancel'),
       type: 'warning'
-    })
-    .then(() => {
-      authStore.resetStore();
     });
+    await authStore.logout();
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') {
+      window.$message?.error('退出登录失败');
+    }
+  }
 }
 
-function handleDropdown(key: DropdownKey) {
+async function handleDropdown(key: DropdownKey) {
   if (key === 'logout') {
-    logout();
+    await logout();
   } else {
     // If your other options are jumps from other routes, they will be directly supported here
-    routerPushByKey(key);
+    await routerPushByKey(key);
   }
 }
 </script>
@@ -77,6 +80,7 @@ function handleDropdown(key: DropdownKey) {
           class="mx-4px my-1px rounded-6px"
           :icon="icon"
           :command="key"
+          :disabled="key === 'logout' && authStore.logoutLoading"
         >
           {{ label }}
         </ElDropdownItem>

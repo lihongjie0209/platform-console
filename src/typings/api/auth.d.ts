@@ -31,5 +31,9 @@ declare namespace Api {
       changed: boolean;
       revoked_sessions: number;
     }
+
+    interface LogoutResult {
+      revoked: boolean;
+    }
   }
 }

@@ -50,3 +50,15 @@ export function fetchChangePassword(currentPassword: string, newPassword: string
     }
   });
 }
+
+/** Revoke the current server-side session. */
+export function fetchLogout(sessionID: string) {
+  return identityRequest<Api.Auth.LogoutResult>({
+    url: '/api/v1/auth/logout',
+    method: 'post',
+    data: {
+      session_id: sessionID,
+      reason: 'user logout'
+    }
+  });
+}

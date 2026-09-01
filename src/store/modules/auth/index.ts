@@ -2,12 +2,13 @@ import { computed, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { defineStore } from 'pinia';
 import { useLoading } from '@sa/hooks';
-import { fetchGetUserInfo, fetchLogin } from '@/service/api';
+import { fetchGetUserInfo, fetchLogin, fetchLogout } from '@/service/api';
 import { useRouterPush } from '@/hooks/common/router';
 import { localStg, sessionStg } from '@/utils/storage';
 import { SetupStoreId } from '@/enum';
 import { $t } from '@/locales';
 import { emptyUserInfo, normalizeUserInfo } from '@/platform/user-profile';
+import { revokeCurrentSession } from '@/platform/session-lifecycle';
 import { useRouteStore } from '../route';
 import { useTabStore } from '../tab';
 import { clearAuthStorage, getToken } from './shared';
@@ -19,6 +20,7 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   const tabStore = useTabStore();
   const { toLogin, redirectFromLogin } = useRouterPush(false);
   const { loading: loginLoading, startLoading, endLoading } = useLoading();
+  const { loading: logoutLoading, startLoading: startLogoutLoading, endLoading: endLogoutLoading } = useLoading();
 
   const token = ref(getToken());
 
@@ -164,13 +166,35 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     }
   }
 
+  async function logout() {
+    startLogoutLoading();
+    let revoked: boolean;
+    try {
+      revoked = await revokeCurrentSession(
+        userInfo.session_id,
+        async sessionID => {
+          const result = await fetchLogout(sessionID);
+          return !result.error;
+        },
+        resetStore
+      );
+    } finally {
+      endLogoutLoading();
+    }
+    if (!revoked) {
+      window.$message?.warning('本地登录状态已清除，但服务端会话撤销失败，请联系管理员处理活跃会话。');
+    }
+  }
+
   return {
     token,
     userInfo,
     isStaticSuper,
     isLogin,
     loginLoading,
+    logoutLoading,
     resetStore,
+    logout,
     login,
     initUserInfo
   };
