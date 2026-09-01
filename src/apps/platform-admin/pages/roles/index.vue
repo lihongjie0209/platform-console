@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import {
+  type AuthorizationManagementScope,
+  authorizationManagementContextKey,
+  authorizationManagementScopeOptions
+} from '@/platform/authorization-management';
 import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
 import type { Role, RoleForm } from '../../api';
-import { createRole, listRoles, updateRole } from '../../api';
+import { createMyRole, listMyRoles, updateMyRole } from '../../api';
 
 defineOptions({ name: 'PlatformAdminRoles' });
 interface Query extends Record<string, unknown> {
@@ -13,6 +18,7 @@ interface Query extends Record<string, unknown> {
 }
 const platformStore = usePlatformStore();
 const tenantID = computed(() => platformStore.selectedTenantId);
+const roleScope = ref<AuthorizationManagementScope>('tenant');
 const emptyForm = (): RoleForm => ({
   code: '',
   name: '',
@@ -86,7 +92,12 @@ const config: BizCrudConfig<Role, Query, RoleForm, string> = {
 };
 const adapter: BizCrudAdapter<Role, Query, RoleForm, string> = {
   async list(query) {
-    const result = await listRoles(tenantID.value, query.current, query.size);
+    const result = await listMyRoles({
+      tenantID: tenantID.value,
+      permissionScope: roleScope.value,
+      page: query.current,
+      pageSize: query.size
+    });
     return {
       items: result.items,
       total: result.total,
@@ -94,14 +105,17 @@ const adapter: BizCrudAdapter<Role, Query, RoleForm, string> = {
       pageSize: result.page_size
     };
   },
-  create: form => createRole(tenantID.value, form),
-  update: updateRole
+  create: form => createMyRole({ tenantID: tenantID.value, permissionScope: roleScope.value, form }),
+  update: (roleID, form) => updateMyRole({ tenantID: tenantID.value, permissionScope: roleScope.value, roleID, form })
 };
 </script>
 
 <template>
   <ElAlert v-if="!tenantID" title="请先在应用选择页选择租户" type="warning" show-icon :closable="false" />
-  <BizCrudPage v-else :key="tenantID" :config="config" :adapter="adapter">
+  <BizCrudPage v-else :key="authorizationManagementContextKey(tenantID, roleScope)" :config="config" :adapter="adapter">
+    <template #toolbar-prefix>
+      <ElSegmented v-model="roleScope" :options="authorizationManagementScopeOptions" />
+    </template>
     <template #cell-status="{ row }">
       <BizStatusTag :label="String(row.status)" :type="row.status === 'active' ? 'success' : 'danger'" />
     </template>

@@ -2,10 +2,10 @@
 import { computed, ref } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import {
-  type PermissionManagementScope,
-  permissionManagementContextKey,
-  permissionManagementScopeOptions
-} from '@/platform/permission-management';
+  type AuthorizationManagementScope,
+  authorizationManagementContextKey,
+  authorizationManagementScopeOptions
+} from '@/platform/authorization-management';
 import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
 import type { Permission, PermissionForm } from '../../api';
@@ -18,7 +18,7 @@ interface Query extends Record<string, unknown> {
 }
 const platformStore = usePlatformStore();
 const tenantID = computed(() => platformStore.selectedTenantId);
-const permissionScope = ref<PermissionManagementScope>('tenant');
+const permissionScope = ref<AuthorizationManagementScope>('tenant');
 const emptyForm = (): PermissionForm => ({
   code: '',
   name: '',
@@ -122,12 +122,12 @@ const adapter: BizCrudAdapter<Permission, Query, PermissionForm, string> = {
   <ElAlert v-if="!tenantID" title="请先在应用选择页选择租户" type="warning" show-icon :closable="false" />
   <BizCrudPage
     v-else
-    :key="permissionManagementContextKey(tenantID, permissionScope)"
+    :key="authorizationManagementContextKey(tenantID, permissionScope)"
     :config="config"
     :adapter="adapter"
   >
     <template #toolbar-prefix>
-      <ElSegmented v-model="permissionScope" :options="permissionManagementScopeOptions" />
+      <ElSegmented v-model="permissionScope" :options="authorizationManagementScopeOptions" />
     </template>
     <template #cell-status="{ row }">
       <BizStatusTag :label="String(row.status)" :type="row.status === 'active' ? 'success' : 'danger'" />

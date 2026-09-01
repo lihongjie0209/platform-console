@@ -602,6 +602,70 @@ export async function updateRole(id: string, form: RoleForm) {
   );
 }
 
+export interface ScopedRoleRequest {
+  tenantID: string;
+  permissionScope: 'tenant' | 'platform';
+  form: RoleForm;
+  roleID?: string;
+}
+export interface ScopedRoleListQuery {
+  tenantID: string;
+  permissionScope: 'tenant' | 'platform';
+  page: number;
+  pageSize: number;
+}
+
+export function listMyRoles(query: ScopedRoleListQuery) {
+  return unwrap(
+    authorizationRequest<ResourcePage<Role>>({
+      url: '/api/v1/authorization/my-roles/list',
+      method: 'post',
+      data: {
+        tenant_id: query.tenantID,
+        permission_scope: query.permissionScope,
+        page: query.page,
+        page_size: query.pageSize
+      }
+    })
+  );
+}
+
+export async function createMyRole(request: ScopedRoleRequest) {
+  await unwrap(
+    authorizationRequest<Role>({
+      url: '/api/v1/authorization/my-roles/create',
+      method: 'post',
+      data: {
+        tenant_id: request.tenantID,
+        permission_scope: request.permissionScope,
+        code: request.form.code,
+        name: request.form.name,
+        description: request.form.description,
+        data_scope: request.form.data_scope
+      }
+    })
+  );
+}
+
+export async function updateMyRole(request: ScopedRoleRequest) {
+  await unwrap(
+    authorizationRequest<Role>({
+      url: '/api/v1/authorization/my-roles/update',
+      method: 'post',
+      data: {
+        tenant_id: request.tenantID,
+        permission_scope: request.permissionScope,
+        role_id: request.roleID,
+        name: request.form.name,
+        description: request.form.description,
+        data_scope: request.form.data_scope,
+        status: request.form.status,
+        version: request.form.version
+      }
+    })
+  );
+}
+
 export function listPermissions(tenantID: string, page: number, pageSize: number) {
   return unwrap(
     authorizationRequest<ResourcePage<Permission>>({

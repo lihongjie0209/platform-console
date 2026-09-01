@@ -431,6 +431,129 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/authorization/my-roles/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a role in the authenticated user's tenant or platform scope */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Scoped role */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.CreateMyRoleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/authorization/my-roles/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List roles in the authenticated user's tenant or platform scope */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Scoped role pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListMyRolesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/authorization/my-roles/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update a role in the authenticated user's tenant or platform scope */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Scoped role update */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.UpdateMyRoleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/authorization/permissions/create": {
         parameters: {
             query?: never;
@@ -1054,6 +1177,15 @@ export interface components {
             resource_type: string;
             tenant_id: string;
         };
+        "httptransport.CreateMyRoleRequest": {
+            code: string;
+            data_scope: string;
+            description?: string;
+            name: string;
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
+            tenant_id: string;
+        };
         "httptransport.CreatePermissionRequest": {
             action: string;
             code: string;
@@ -1096,6 +1228,13 @@ export interface components {
             permission_scope: "tenant" | "platform";
             tenant_id: string;
         };
+        "httptransport.ListMyRolesRequest": {
+            page?: number;
+            page_size?: number;
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
+            tenant_id: string;
+        };
         "httptransport.ListPermissionsRequest": {
             page?: number;
             page_size?: number;
@@ -1132,6 +1271,17 @@ export interface components {
             permission_id: string;
             /** @enum {string} */
             permission_scope: "tenant" | "platform";
+            status: string;
+            tenant_id: string;
+            version: number;
+        };
+        "httptransport.UpdateMyRoleRequest": {
+            data_scope: string;
+            description?: string;
+            name: string;
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
+            role_id: string;
             status: string;
             tenant_id: string;
             version: number;
