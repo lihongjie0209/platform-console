@@ -2,10 +2,10 @@
 window.__PLATFORM_CONFIG__ = {
   environment: 'development',
   services: {
-    identity: 'http://127.0.0.1:18080',
-    tenant: 'http://127.0.0.1:18081',
-    authorization: 'http://127.0.0.1:18082',
-    application: 'http://127.0.0.1:18083',
+    identity: 'http://127.0.0.1:18081',
+    tenant: 'http://127.0.0.1:18082',
+    authorization: 'http://127.0.0.1:18083',
+    application: 'http://127.0.0.1:18090',
     audit: 'http://127.0.0.1:18084',
     config: 'http://127.0.0.1:18085',
     notification: 'http://127.0.0.1:18086',
@@ -20,6 +20,7 @@ window.__PLATFORM_CONFIG__ = {
     rule: 'http://127.0.0.1:18098',
     'data-export': 'http://127.0.0.1:18099',
     import: 'http://127.0.0.1:18100',
-    webhook: 'http://127.0.0.1:18093'
+    webhook: 'http://127.0.0.1:18093',
+    swagger: 'http://127.0.0.1:18089'
   }
 };

@@ -23,9 +23,10 @@ const services = [
   'IMPORT',
   'SWAGGER'
 ];
-const [entrypoint, template] = await Promise.all([
+const [entrypoint, template, developmentConfig] = await Promise.all([
   readFile(new URL('../docker/40-platform-runtime-config.sh', import.meta.url), 'utf8'),
-  readFile(new URL('../docker/platform-config.js.template', import.meta.url), 'utf8')
+  readFile(new URL('../docker/platform-config.js.template', import.meta.url), 'utf8'),
+  readFile(new URL('../public/platform-config.js', import.meta.url), 'utf8')
 ]);
 
 for (const service of services) {
@@ -33,4 +34,10 @@ for (const service of services) {
   assert.match(entrypoint, new RegExp(`:\\s+"\\$\\{${variable}:=`), `${variable} must have an optional default`);
   assert.match(entrypoint, new RegExp(`\\$\\{${variable}\\}`), `${variable} must be included in envsubst`);
   assert.match(template, new RegExp(`\\$\\{${variable}\\}`), `${variable} must be rendered into runtime config`);
+  const serviceKey = service.toLowerCase().replaceAll('_', '-');
+  assert.match(
+    developmentConfig,
+    new RegExp(`['"]?${serviceKey}['"]?\\s*:`),
+    `${serviceKey} must exist in development runtime config`
+  );
 }

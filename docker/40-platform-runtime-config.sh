@@ -26,7 +26,7 @@ set -eu
 if [ "$PLATFORM_ENV" = 'production' ]; then
   for service_url in "$PLATFORM_IDENTITY_URL" "$PLATFORM_TENANT_URL" "$PLATFORM_AUTHORIZATION_URL" "$PLATFORM_APPLICATION_URL"; do
     if [ -z "$service_url" ]; then
-      echo 'all PLATFORM_*_URL values are required in production' >&2
+      echo 'core platform service URLs are required in production' >&2
       exit 1
     fi
   done
