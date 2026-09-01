@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { activeApplicationRoutes, applicationEntryPath, navigationToRoutes } from './navigation';
+import {
+  activeApplicationRoutes,
+  applicationEntryPath,
+  applicationMenuEntries,
+  navigationToRoutes,
+  safeExternalURL
+} from './navigation';
 
 test('navigationToRoutes scopes routes and never evaluates backend component names', () => {
   const [applicationRoute] = navigationToRoutes({
@@ -34,12 +40,22 @@ test('navigationToRoutes scopes routes and never evaluates backend component nam
     ]
   });
 
-  const [route] = applicationRoute.children!;
+  const [, route] = applicationRoute.children!;
   assert.equal(route.path, '/apps/identity-service/accounts');
   assert.equal(route.component, 'view.platform_page');
   assert.equal(route.name, 'platform_identity-service_accounts');
   assert.equal(applicationRoute.meta?.applicationId, 'app-1');
   assert.equal(route.meta?.applicationId, 'app-1');
+});
+
+test('external application links allow only absolute HTTP(S) URLs without credentials', () => {
+  const scriptURL = ['java', 'script:alert(1)'].join('');
+  assert.equal(safeExternalURL('https://docs.example.com/path'), 'https://docs.example.com/path');
+  assert.equal(safeExternalURL('http://localhost:8080/docs'), 'http://localhost:8080/docs');
+  assert.equal(safeExternalURL(scriptURL), '');
+  assert.equal(safeExternalURL('data:text/html,unsafe'), '');
+  assert.equal(safeExternalURL('//example.com/docs'), '');
+  assert.equal(safeExternalURL('https://user:secret@example.com/docs'), '');
 });
 
 test('navigationToRoutes excludes action permission nodes', () => {
@@ -144,7 +160,63 @@ test('applicationEntryPath uses a valid configured default and falls back to the
 
   assert.equal(applicationEntryPath(navigation), '/apps/orders/reports');
   navigation.application.default_route = 'missing';
-  assert.equal(applicationEntryPath(navigation), '/apps/orders/list');
+  assert.equal(applicationEntryPath(navigation), '/apps/orders/overview');
+});
+
+test('every application has a workspace and exposes only visible page shortcuts', () => {
+  const navigation = {
+    application: {
+      id: 'app-1',
+      code: 'orders',
+      name: 'Orders',
+      description: '',
+      icon: '',
+      default_route: '',
+      status: 'active'
+    },
+    menus: [
+      {
+        id: 'visible',
+        application_id: 'app-1',
+        parent_id: '',
+        code: 'list',
+        type: 'page',
+        name: '订单',
+        i18n_key: '',
+        route: 'list',
+        component: 'orders.list',
+        icon: '',
+        external_url: '',
+        permission_code: '',
+        sort_order: 1,
+        visible: true,
+        status: 'active'
+      },
+      {
+        id: 'action',
+        application_id: 'app-1',
+        parent_id: '',
+        code: 'create',
+        type: 'action',
+        name: '创建',
+        i18n_key: '',
+        route: '',
+        component: '',
+        icon: '',
+        external_url: '',
+        permission_code: 'orders.create',
+        sort_order: 2,
+        visible: true,
+        status: 'active'
+      }
+    ]
+  };
+
+  assert.equal(applicationEntryPath({ ...navigation, menus: [] }), '/apps/orders/overview');
+  assert.deepEqual(
+    applicationMenuEntries(navigation).map(item => item.path),
+    ['/apps/orders/list']
+  );
 });
 
 test('activeApplicationRoutes mounts only the selected application workspace', () => {

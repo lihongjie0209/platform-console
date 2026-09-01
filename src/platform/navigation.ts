@@ -77,6 +77,27 @@ function childrenByParent(menus: ApplicationMenu[], parentID: string) {
   return menus.filter(menu => menu.parent_id === parentID);
 }
 
+function applicationWorkspaceRoute(application: PlatformApplication): ElegantConstRoute {
+  return {
+    name: `platform_${routeSegment(application.code)}_workspace`,
+    path: `/apps/${routeSegment(application.code)}/overview`,
+    component: 'view.platform_page',
+    meta: {
+      title: '应用概览',
+      icon: 'mdi:view-dashboard-outline',
+      order: -1,
+      applicationId: application.id
+    },
+    props: {
+      applicationCode: application.code,
+      applicationName: application.name,
+      menuCode: '__workspace__',
+      menuName: '应用概览',
+      workspace: true
+    }
+  } as ElegantConstRoute;
+}
+
 /**
  * Converts only published, visible menu metadata to local Vue routes. Backend supplied
  * component strings are deliberately treated as data: the console never dynamically
@@ -90,7 +111,7 @@ export function navigationToRoutes(navigation: PublishedNavigation): ElegantCons
   const roots = menus.filter(menu => !menu.parent_id || !menus.some(candidate => candidate.id === menu.parent_id));
 
   const scope = `/apps/${routeSegment(application.code)}`;
-  const children = roots.map(menu => menuRoute(application, menu, menus));
+  const children = [applicationWorkspaceRoute(application), ...roots.map(menu => menuRoute(application, menu, menus))];
 
   return [
     {
@@ -121,6 +142,47 @@ export function applicationEntryPath(navigation: PublishedNavigation) {
   }
 
   return paths[0];
+}
+
+export interface ApplicationMenuEntry {
+  id: string;
+  code: string;
+  name: string;
+  icon: string;
+  path: string;
+  externalURL: string;
+}
+
+export function safeExternalURL(raw: string) {
+  try {
+    const parsed = new URL(raw);
+    if ((parsed.protocol === 'https:' || parsed.protocol === 'http:') && !parsed.username && !parsed.password) {
+      return parsed.href;
+    }
+  } catch {
+    // Legacy or malformed catalog data fails closed and is not rendered as a link.
+  }
+  return '';
+}
+
+/** Flattens published page menus into safe workspace shortcuts. */
+export function applicationMenuEntries(navigation: PublishedNavigation): ApplicationMenuEntry[] {
+  return navigation.menus
+    .filter(
+      menu =>
+        menu.status === 'active' &&
+        menu.visible &&
+        (menu.type === 'page' || (menu.type === 'external' && Boolean(safeExternalURL(menu.external_url))))
+    )
+    .sort((left, right) => left.sort_order - right.sort_order)
+    .map(menu => ({
+      id: menu.id,
+      code: menu.code,
+      name: menu.name,
+      icon: menu.icon || FALLBACK_ICON,
+      path: routePath(navigation.application, menu),
+      externalURL: safeExternalURL(menu.external_url)
+    }));
 }
 
 export function applicationSelectionRoute(): ElegantConstRoute {

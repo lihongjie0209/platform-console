@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { resolveApplicationPage } from '@/apps/registry';
+import { safeExternalURL } from '@/platform/navigation';
+import ApplicationWorkspace from '@/components/business/application/application-workspace.vue';
 
 defineOptions({ name: 'PlatformPage' });
 
@@ -11,17 +13,20 @@ const props = defineProps<{
   menuName: string;
   componentKey?: string;
   externalURL?: string;
+  workspace?: boolean;
 }>();
 
 const pageComponent = computed(() => resolveApplicationPage(props.componentKey, props.applicationCode));
 
 function openExternalURL() {
-  if (props.externalURL) window.open(props.externalURL, '_blank', 'noopener,noreferrer');
+  const target = safeExternalURL(props.externalURL || '');
+  if (target) window.open(target, '_blank', 'noopener,noreferrer');
 }
 </script>
 
 <template>
-  <component :is="pageComponent" v-if="pageComponent" />
+  <ApplicationWorkspace v-if="workspace" />
+  <component :is="pageComponent" v-else-if="pageComponent" />
   <ElCard v-else class="card-wrapper" shadow="never">
     <template #header>
       <div class="flex-y-center justify-between gap-12px">

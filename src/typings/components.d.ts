@@ -12,6 +12,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ApplicationWorkspace: typeof import('./../components/business/application/application-workspace.vue')['default']
     AppProvider: typeof import('./../components/common/app-provider.vue')['default']
     BetterScroll: typeof import('./../components/custom/better-scroll.vue')['default']
     BizActionButton: typeof import('./../components/business/common/biz-action-button.vue')['default']
@@ -192,6 +193,7 @@ declare module 'vue' {
 
 // For TSX support
 declare global {
+  const ApplicationWorkspace: typeof import('./../components/business/application/application-workspace.vue')['default']
   const AppProvider: typeof import('./../components/common/app-provider.vue')['default']
   const BetterScroll: typeof import('./../components/custom/better-scroll.vue')['default']
   const BizActionButton: typeof import('./../components/business/common/biz-action-button.vue')['default']
