@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { PlatformApplication, PublishedNavigation, TenantSummary } from '@/service/api/platform-navigation';
-import { filterApplications, retainActiveNavigations, selectActiveTenant } from './application-context';
+import {
+  filterApplications,
+  hasApplicationScope,
+  retainActiveNavigations,
+  selectActiveTenant
+} from './application-context';
 
 const tenants: TenantSummary[] = [
   { id: 'disabled', code: 'disabled', name: 'Disabled', status: 'disabled' },
@@ -46,4 +51,10 @@ test('application launcher filters search and removes inactive navigation', () =
     retainActiveNavigations(applications, navigations).map(item => item.application.id),
     ['app-a']
   );
+});
+
+test('application-scoped pages require both tenant and selected application', () => {
+  assert.equal(hasApplicationScope('tenant-a', 'app-a'), true);
+  assert.equal(hasApplicationScope('tenant-a', ''), false);
+  assert.equal(hasApplicationScope('', 'app-a'), false);
 });

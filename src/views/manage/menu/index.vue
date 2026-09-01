@@ -1,6 +1,7 @@
 <script setup lang="tsx">
 import { ref } from 'vue';
 import type { Ref } from 'vue';
+import { ElPopconfirm } from 'element-plus';
 import { useBoolean } from '@sa/hooks';
 import { yesOrNoRecord } from '@/constants/common';
 import { enableStatusRecord, menuTypeRecord } from '@/constants/business';

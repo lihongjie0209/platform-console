@@ -20,3 +20,7 @@ export function filterApplications(applications: PlatformApplication[], keyword:
     )
   );
 }
+
+export function hasApplicationScope(tenantId: string, applicationId: string) {
+  return Boolean(tenantId.trim() && applicationId.trim());
+}

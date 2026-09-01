@@ -426,6 +426,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rules/evaluate-batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Evaluate up to 100 rule requests */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Evaluation batch */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.BatchEvaluateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.BatchEvaluateResponse"];
+                        };
+                    };
+                };
+                /** @description Code 10001: batch size must be between 1 and 100 */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/version": {
         parameters: {
             query?: never;
@@ -572,6 +624,18 @@ export interface components {
             };
             status?: string;
         };
+        "httptransport.BatchEvaluateRequest": {
+            requests?: components["schemas"]["httptransport.EvaluateRequest"][];
+        };
+        "httptransport.BatchEvaluateResponse": {
+            results?: components["schemas"]["httptransport.BatchEvaluateResult"][];
+        };
+        "httptransport.BatchEvaluateResult": {
+            error_code?: number;
+            error_message?: string;
+            index?: number;
+            response?: components["schemas"]["httptransport.EvaluateResponse"];
+        };
         "httptransport.CreateRuleSetRequest": {
             code?: string;
             description?: string;
@@ -590,6 +654,13 @@ export interface components {
             rule_set_id?: string;
             tenant_id?: string;
             version_number?: number;
+        };
+        "httptransport.EvaluateResponse": {
+            checksum?: string;
+            evaluated_version_number?: number;
+            matched?: boolean;
+            matched_rule?: string;
+            result?: Record<string, never>;
         };
         "httptransport.GetRuleSetRequest": {
             code?: string;

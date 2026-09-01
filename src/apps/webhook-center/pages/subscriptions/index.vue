@@ -1,22 +1,24 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { hasApplicationScope } from '@/platform/application-context';
 import { parseJSONObject } from '@/apps/commerce/json';
 import type { WebhookSubscription } from '../../api';
 import { deleteSubscription, listSubscriptions, rotateSecret, saveSubscription, testSubscription } from '../../api';
 defineOptions({ name: 'WebhookCenterSubscriptions' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
+const applicationID = computed(() => store.selectedApplicationId);
+const applicationName = computed(() => store.selectedApplication?.name || '当前应用');
+const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const rows = ref<WebhookSubscription[]>([]);
 const status = ref('');
 const search = ref('');
-const applicationID = ref('');
 const visible = ref(false);
 const editing = ref<WebhookSubscription>();
 const secret = ref('');
 const testPayload = ref('{}');
 const form = reactive({
-  applicationID: '',
   name: '',
   endpointURL: '',
   subjectFilter: 'platform.>',
@@ -26,7 +28,7 @@ const form = reactive({
   retryInitialSeconds: 5
 });
 async function load() {
-  if (!tenantID.value) return;
+  if (!scopeReady.value) return;
   const v = await listSubscriptions({
     tenantID: tenantID.value,
     applicationID: applicationID.value,
@@ -41,7 +43,6 @@ function open(v?: WebhookSubscription) {
     form,
     v
       ? {
-          applicationID: v.application_id || '',
           name: v.name,
           endpointURL: v.endpoint_url,
           subjectFilter: v.subject_filter,
@@ -51,7 +52,6 @@ function open(v?: WebhookSubscription) {
           retryInitialSeconds: v.retry_initial_seconds || 5
         }
       : {
-          applicationID: '',
           name: '',
           endpointURL: '',
           subjectFilter: 'platform.>',
@@ -64,8 +64,11 @@ function open(v?: WebhookSubscription) {
   visible.value = true;
 }
 async function save() {
-  if (!tenantID.value) return;
-  const result = await saveSubscription(editing.value, tenantID.value, form);
+  if (!scopeReady.value) return;
+  const result = await saveSubscription(editing.value, tenantID.value, {
+    ...form,
+    applicationID: applicationID.value
+  });
   if ('signing_secret' in result) {
     secret.value = result.signing_secret;
     window.$message?.warning('签名密钥仅显示一次，请立即保存');
@@ -91,7 +94,7 @@ async function test(v: WebhookSubscription) {
     window.$message?.error(e instanceof Error ? e.message : '测试失败');
   }
 }
-watch(tenantID, load);
+watch([tenantID, applicationID], load);
 onMounted(load);
 </script>
 
@@ -103,7 +106,7 @@ onMounted(load);
           <h2 class="m-0">Webhook 订阅</h2>
           <p class="mb-0 text-#999">配置事件过滤、超时和重试；签名密钥创建或轮换后仅显示一次。</p>
         </div>
-        <ElButton type="primary" :disabled="!tenantID" @click="open()">新建订阅</ElButton>
+        <ElButton type="primary" :disabled="!scopeReady" @click="open()">新建订阅</ElButton>
       </div>
     </template>
     <ElAlert
@@ -115,10 +118,17 @@ onMounted(load);
       class="mb-16px"
     />
     <ElAlert v-if="!tenantID" title="请先选择租户" type="warning" :closable="false" />
+    <ElAlert
+      v-else-if="!applicationID"
+      title="请先从应用选择页进入一个应用"
+      type="warning"
+      show-icon
+      :closable="false"
+    />
     <template v-else>
+      <ElAlert :title="`当前应用：${applicationName}`" type="info" show-icon :closable="false" class="mb-16px" />
       <ElForm inline>
         <ElFormItem label="搜索"><ElInput v-model="search" /></ElFormItem>
-        <ElFormItem label="应用 ID"><ElInput v-model="applicationID" /></ElFormItem>
         <ElFormItem label="状态"><ElInput v-model="status" /></ElFormItem>
         <ElButton @click="load">查询</ElButton>
       </ElForm>
@@ -143,7 +153,6 @@ onMounted(load);
   </ElCard>
   <ElDialog v-model="visible" :title="editing ? '编辑订阅' : '新建订阅'">
     <ElForm label-width="110px">
-      <ElFormItem label="应用 ID"><ElInput v-model="form.applicationID" :disabled="Boolean(editing)" /></ElFormItem>
       <ElFormItem label="名称"><ElInput v-model="form.name" /></ElFormItem>
       <ElFormItem label="回调地址"><ElInput v-model="form.endpointURL" /></ElFormItem>
       <ElFormItem label="事件过滤"><ElInput v-model="form.subjectFilter" /></ElFormItem>
