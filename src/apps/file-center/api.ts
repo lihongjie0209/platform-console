@@ -23,6 +23,19 @@ export interface UploadAuthorization extends FileContractAuthorization {
   headers: Record<string, string>;
 }
 
+export interface MultipartAuthorization {
+  file: FileMetadata;
+  upload_id: string;
+  part_size: number;
+  part_count: number;
+  expires_at: string;
+}
+
+export interface CompletedPart {
+  part_number: number;
+  etag: string;
+}
+
 export interface FilePage {
   files: FileMetadata[];
   total: number;
@@ -90,6 +103,89 @@ export function initiateUpload(input: {
         size: input.size,
         checksum_sha256: input.checksumSHA256,
         idempotency_key: input.idempotencyKey
+      }
+    })
+  );
+}
+
+export function initiateMultipartUpload(input: {
+  tenantID: string;
+  applicationID: string;
+  filename: string;
+  contentType: string;
+  size: number;
+  checksumSHA256: string;
+  idempotencyKey: string;
+  partSize: number;
+}) {
+  return unwrap<MultipartAuthorization>(
+    fileRequest({
+      url: '/api/v1/files/uploads/multipart/initiate',
+      method: 'post',
+      data: {
+        ...applicationScope(input.tenantID, input.applicationID),
+        filename: input.filename,
+        content_type: input.contentType,
+        size: input.size,
+        checksum_sha256: input.checksumSHA256,
+        idempotency_key: input.idempotencyKey,
+        part_size: input.partSize
+      }
+    })
+  );
+}
+
+export function authorizeUploadPart(file: FileMetadata, partNumber: number) {
+  return unwrap<UploadAuthorization>(
+    fileRequest({
+      url: '/api/v1/files/uploads/multipart/authorize-part',
+      method: 'post',
+      data: {
+        id: file.id,
+        ...applicationScope(file.tenant_id, file.application_id),
+        part_number: partNumber
+      }
+    })
+  );
+}
+
+export async function putAuthorizedPart(authorization: UploadAuthorization, source: Blob) {
+  const headers = new Headers();
+  Object.entries(authorization.headers || {}).forEach(([name, value]) => {
+    if (name.toLowerCase() !== 'content-length') headers.set(name, value);
+  });
+  const response = await fetch(authorization.url, { method: 'PUT', headers, body: source });
+  if (!response.ok) throw new Error(`对象存储分片上传失败（HTTP ${response.status}）`);
+  const etag = response.headers.get('ETag')?.trim();
+  if (!etag) throw new Error('对象存储未暴露 ETag 响应头，请检查 Bucket CORS 配置');
+  return etag;
+}
+
+export function completeMultipartUpload(file: FileMetadata, checksumSHA256: string, parts: CompletedPart[]) {
+  return unwrap<FileMetadata>(
+    fileRequest({
+      url: '/api/v1/files/uploads/multipart/complete',
+      method: 'post',
+      data: {
+        id: file.id,
+        ...applicationScope(file.tenant_id, file.application_id),
+        checksum_sha256: checksumSHA256,
+        parts,
+        expected_version: file.version
+      }
+    })
+  );
+}
+
+export function abortMultipartUpload(file: FileMetadata) {
+  return unwrap<FileMetadata>(
+    fileRequest({
+      url: '/api/v1/files/uploads/multipart/abort',
+      method: 'post',
+      data: {
+        id: file.id,
+        ...applicationScope(file.tenant_id, file.application_id),
+        expected_version: file.version
       }
     })
   );

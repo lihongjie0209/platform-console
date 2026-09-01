@@ -78,6 +78,7 @@
     "dompurify": "3.3.3",
     "echarts": "6.0.0",
     "element-plus": "^2.13.6",
+    "hash-wasm": "^4.12.0",
     "jsbarcode": "3.12.3",
     "json5": "2.2.3",
     "nprogress": "0.2.0",

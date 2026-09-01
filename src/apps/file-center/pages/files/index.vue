@@ -5,12 +5,26 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { hasApplicationScope } from '@/platform/application-context';
 import { BizCopyText } from '@/components/business';
 import type { FileMetadata } from '../../api';
-import { authorizeDownload, completeUpload, deleteFile, initiateUpload, listFiles, putAuthorizedFile } from '../../api';
+import {
+  abortMultipartUpload,
+  authorizeDownload,
+  authorizeUploadPart,
+  completeMultipartUpload,
+  completeUpload,
+  deleteFile,
+  initiateMultipartUpload,
+  initiateUpload,
+  listFiles,
+  putAuthorizedFile,
+  putAuthorizedPart
+} from '../../api';
 import { formatFileSize, sha256Hex } from '../../checksum';
+import { multipartBuckets, multipartRanges } from '../../multipart-upload';
 
 defineOptions({ name: 'FileCenterFiles' });
 
 const maxDirectUploadBytes = 100 * 1024 * 1024;
+const multipartPartSize = 16 * 1024 * 1024;
 const platformStore = usePlatformStore();
 const tenantID = computed(() => platformStore.selectedTenantId);
 const applicationID = computed(() => platformStore.selectedApplicationId);
@@ -18,6 +32,7 @@ const applicationName = computed(() => platformStore.selectedApplication?.name |
 const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const loading = ref(false);
 const uploading = ref(false);
+const uploadProgress = ref(0);
 const rows = ref<FileMetadata[]>([]);
 const total = ref(0);
 const page = ref(1);
@@ -74,32 +89,65 @@ function openUpload() {
 function selectUploadFile(file: UploadFile) {
   const source = file.raw;
   if (!source) return;
-  if (source.size > maxDirectUploadBytes) {
-    window.$message?.error('当前页面直传文件不能超过 100 MB，大文件请使用分片上传客户端');
-    uploadFiles.value = [];
-    selectedFile.value = undefined;
-    return;
-  }
   selectedFile.value = source;
+}
+
+async function uploadDirect(source: File, checksum: string) {
+  const authorization = await initiateUpload({
+    tenantID: tenantID.value,
+    applicationID: applicationID.value,
+    filename: source.name,
+    contentType: source.type || 'application/octet-stream',
+    size: source.size,
+    checksumSHA256: checksum,
+    idempotencyKey: crypto.randomUUID()
+  });
+  await putAuthorizedFile(authorization, source);
+  await completeUpload(authorization.file, checksum);
+  uploadProgress.value = 100;
+}
+
+async function uploadMultipart(source: File, checksum: string) {
+  const session = await initiateMultipartUpload({
+    tenantID: tenantID.value,
+    applicationID: applicationID.value,
+    filename: source.name,
+    contentType: source.type || 'application/octet-stream',
+    size: source.size,
+    checksumSHA256: checksum,
+    idempotencyKey: crypto.randomUUID(),
+    partSize: multipartPartSize
+  });
+  const ranges = multipartRanges(source.size, session.part_size);
+  const completed: Array<{ part_number: number; etag: string }> = [];
+  try {
+    const uploadRange = async (range: (typeof ranges)[number]) => {
+      const authorization = await authorizeUploadPart(session.file, range.partNumber);
+      const etag = await putAuthorizedPart(authorization, source.slice(range.start, range.end));
+      completed.push({ part_number: range.partNumber, etag });
+      uploadProgress.value = Math.round((completed.length / ranges.length) * 100);
+    };
+    const buckets = multipartBuckets(ranges, 3);
+    await Promise.all(
+      buckets.map(bucket => bucket.reduce((chain, range) => chain.then(() => uploadRange(range)), Promise.resolve()))
+    );
+    completed.sort((left, right) => left.part_number - right.part_number);
+    await completeMultipartUpload(session.file, checksum, completed);
+  } catch (error) {
+    await abortMultipartUpload(session.file).catch(() => undefined);
+    throw error;
+  }
 }
 
 async function upload() {
   const source = selectedFile.value;
   if (!scopeReady.value || !source) return;
   uploading.value = true;
+  uploadProgress.value = 0;
   try {
     const checksum = await sha256Hex(source);
-    const authorization = await initiateUpload({
-      tenantID: tenantID.value,
-      applicationID: applicationID.value,
-      filename: source.name,
-      contentType: source.type || 'application/octet-stream',
-      size: source.size,
-      checksumSHA256: checksum,
-      idempotencyKey: crypto.randomUUID()
-    });
-    await putAuthorizedFile(authorization, source);
-    await completeUpload(authorization.file, checksum);
+    if (source.size <= maxDirectUploadBytes) await uploadDirect(source, checksum);
+    else await uploadMultipart(source, checksum);
     uploadVisible.value = false;
     window.$message?.success('文件上传完成');
     await loadData();
@@ -143,6 +191,7 @@ watch([tenantID, applicationID], () => {
   uploadVisible.value = false;
   uploadFiles.value = [];
   selectedFile.value = undefined;
+  uploadProgress.value = 0;
   search();
 });
 onMounted(loadData);
@@ -252,9 +301,12 @@ onMounted(loadData);
     <ElUpload v-model:file-list="uploadFiles" drag :auto-upload="false" :limit="1" @change="selectUploadFile">
       <div class="py-24px">将文件拖到此处，或点击选择</div>
       <template #tip>
-        <div class="text-12px text-#999">当前支持不超过 100 MB 的单文件直传，上传前会在浏览器计算 SHA-256。</div>
+        <div class="text-12px text-#999">
+          不超过 100 MB 使用直传，更大的文件自动使用 16 MiB 分片；上传前会计算 SHA-256。
+        </div>
       </template>
     </ElUpload>
+    <ElProgress v-if="uploading" class="mt-16px" :percentage="uploadProgress" />
     <template #footer>
       <ElButton :disabled="uploading" @click="uploadVisible = false">取消</ElButton>
       <ElButton type="primary" :loading="uploading" :disabled="!selectedFile" @click="upload">上传</ElButton>

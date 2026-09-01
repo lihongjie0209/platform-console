@@ -1,6 +1,20 @@
+import { createSHA256 } from 'hash-wasm';
+
+const DEFAULT_CHECKSUM_CHUNK_SIZE = 4 * 1024 * 1024;
+
 export async function sha256Hex(value: Blob): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', await value.arrayBuffer());
-  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+  const hasher = await createSHA256();
+  hasher.init();
+
+  async function updateChunk(offset: number): Promise<void> {
+    if (offset >= value.size) return;
+    const chunk = value.slice(offset, Math.min(offset + DEFAULT_CHECKSUM_CHUNK_SIZE, value.size));
+    hasher.update(new Uint8Array(await chunk.arrayBuffer()));
+    await updateChunk(offset + DEFAULT_CHECKSUM_CHUNK_SIZE);
+  }
+
+  await updateChunk(0);
+  return hasher.digest('hex');
 }
 
 export function formatFileSize(bytes: number): string {
