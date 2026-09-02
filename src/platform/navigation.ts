@@ -168,12 +168,19 @@ export function applicationEntryPath(navigation: PublishedNavigation) {
 
 export interface ApplicationMenuEntry {
   id: string;
+  parentID: string;
   code: string;
   name: string;
   icon: string;
   path: string;
   externalURL: string;
   available: boolean;
+}
+
+export interface ApplicationMenuSection {
+  id: string;
+  label: string;
+  entries: ApplicationMenuEntry[];
 }
 
 export interface ApplicationNavigationCompatibility {
@@ -293,6 +300,7 @@ export function applicationMenuEntries(navigation: PublishedNavigation): Applica
       const externalURL = safeExternalURL(menu.external_url);
       return {
         id: menu.id,
+        parentID: menu.parent_id,
         code: menu.code,
         name: menu.name,
         icon: menu.icon || FALLBACK_ICON,
@@ -303,6 +311,32 @@ export function applicationMenuEntries(navigation: PublishedNavigation): Applica
           (menu.type === 'page' && pageBelongsToApplication(menu.component, navigation.application.code))
       };
     });
+}
+
+/** Preserves the catalog's top-level directory information on an application's workspace. */
+export function applicationMenuSections(navigation: PublishedNavigation): ApplicationMenuSection[] {
+  const menus = new Map(navigation.menus.map(menu => [menu.id, menu]));
+  const sections = new Map<string, ApplicationMenuSection>();
+
+  for (const entry of applicationMenuEntries(navigation)) {
+    let parentID = entry.parentID;
+    let directory: ApplicationMenu | undefined;
+    const visited = new Set<string>();
+    while (parentID && !visited.has(parentID)) {
+      visited.add(parentID);
+      const parent = menus.get(parentID);
+      if (!parent) break;
+      if (parent.type === 'directory') directory = parent;
+      parentID = parent.parent_id;
+    }
+
+    const id = directory?.id || '__root__';
+    const section = sections.get(id) ?? { id, label: directory?.name || '功能入口', entries: [] };
+    section.entries.push(entry);
+    sections.set(id, section);
+  }
+
+  return Array.from(sections.values());
 }
 
 export function applicationSelectionRoute(): ElegantConstRoute {

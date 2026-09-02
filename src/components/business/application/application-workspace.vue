@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePlatformStore } from '@/store/modules/platform';
-import { applicationMenuEntries, applicationNavigationCompatibility } from '@/platform/navigation';
+import { applicationMenuSections, applicationNavigationCompatibility } from '@/platform/navigation';
 import { applicationCategoryDetails } from '@/platform/application-groups';
 import { BizEmptyState, BizPageContainer } from '@/components/business';
 
@@ -15,7 +15,8 @@ const navigation = computed(() =>
   platformStore.navigations.find(item => item.application.id === platformStore.selectedApplicationId)
 );
 const application = computed(() => navigation.value?.application || platformStore.selectedApplication);
-const entries = computed(() => (navigation.value ? applicationMenuEntries(navigation.value) : []));
+const sections = computed(() => (navigation.value ? applicationMenuSections(navigation.value) : []));
+const entries = computed(() => sections.value.flatMap(section => section.entries));
 const category = computed(() => (application.value ? applicationCategoryDetails(application.value) : undefined));
 const compatibility = computed(() =>
   navigation.value
@@ -62,35 +63,42 @@ async function openEntry(entry: (typeof entries.value)[number]) {
       title="应用尚未发布功能页面"
       description="应用授权已经生效；管理员发布菜单后，功能入口会自动出现在这里。"
     />
-    <ElRow v-else :gutter="16">
-      <ElCol v-for="entry in entries" :key="entry.id" :xs="24" :sm="12" :lg="8" :xl="6">
-        <button
-          class="mb-16px w-full cursor-pointer border-0 bg-transparent p-0 text-left"
-          :class="{ 'cursor-not-allowed opacity-65': !entry.available }"
-          type="button"
-          :disabled="!entry.available"
-          @click="openEntry(entry)"
-        >
-          <ElCard class="h-full hover:shadow-md" shadow="hover">
-            <div class="flex items-center gap-12px">
-              <div class="size-42px flex-center shrink-0 rounded-9px bg-primary-50 text-primary">
-                <SvgIcon :icon="entry.icon" class="text-24px" />
-              </div>
-              <div class="min-w-0 flex-1">
-                <div class="truncate text-15px font-medium">{{ entry.name }}</div>
-                <div class="mt-4px flex items-center gap-6px text-12px text-gray-400">
-                  <span class="truncate">{{ entry.code }}</span>
-                  <ElTag v-if="!entry.available" size="small" type="warning" effect="plain">待安装</ElTag>
+    <div v-else class="flex flex-col gap-20px">
+      <section v-for="section in sections" :key="section.id">
+        <h2 v-if="sections.length > 1 || section.id !== '__root__'" class="mb-12px mt-0 text-15px font-semibold">
+          {{ section.label }}
+        </h2>
+        <ElRow :gutter="16">
+          <ElCol v-for="entry in section.entries" :key="entry.id" :xs="24" :sm="12" :lg="8" :xl="6">
+            <button
+              class="mb-16px w-full cursor-pointer border-0 bg-transparent p-0 text-left"
+              :class="{ 'cursor-not-allowed opacity-65': !entry.available }"
+              type="button"
+              :disabled="!entry.available"
+              @click="openEntry(entry)"
+            >
+              <ElCard class="h-full hover:shadow-md" shadow="hover">
+                <div class="flex items-center gap-12px">
+                  <div class="size-42px flex-center shrink-0 rounded-9px bg-primary-50 text-primary">
+                    <SvgIcon :icon="entry.icon" class="text-24px" />
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="truncate text-15px font-medium">{{ entry.name }}</div>
+                    <div class="mt-4px flex items-center gap-6px text-12px text-gray-400">
+                      <span class="truncate">{{ entry.code }}</span>
+                      <ElTag v-if="!entry.available" size="small" type="warning" effect="plain">待安装</ElTag>
+                    </div>
+                  </div>
+                  <SvgIcon
+                    :icon="entry.available && entry.externalURL ? 'mdi:open-in-new' : 'mdi:chevron-right'"
+                    class="text-18px text-gray-400"
+                  />
                 </div>
-              </div>
-              <SvgIcon
-                :icon="entry.available && entry.externalURL ? 'mdi:open-in-new' : 'mdi:chevron-right'"
-                class="text-18px text-gray-400"
-              />
-            </div>
-          </ElCard>
-        </button>
-      </ElCol>
-    </ElRow>
+              </ElCard>
+            </button>
+          </ElCol>
+        </ElRow>
+      </section>
+    </div>
   </BizPageContainer>
 </template>

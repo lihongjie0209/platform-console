@@ -8,6 +8,7 @@ import {
   applicationEntryStatusLabel,
   applicationEntryStatusMessage,
   applicationMenuEntries,
+  applicationMenuSections,
   applicationNavigationCompatibility,
   filterNavigationsByPermissions,
   hasAllowedPermission,
@@ -369,6 +370,51 @@ test('every application has a workspace and exposes only visible page shortcuts'
     ['/apps/orders/list']
   );
   assert.equal(applicationMenuEntries(navigation)[0]?.available, false);
+});
+
+test('workspace sections follow the top-level menu directory and tolerate cyclic parents', () => {
+  const navigation = {
+    application: {
+      id: 'billing-id',
+      code: 'billing-center',
+      name: 'Billing',
+      description: '',
+      icon: '',
+      default_route: '',
+      status: 'active'
+    },
+    menus: [
+      applicationMenu({ id: 'root-page', component: 'billing-center.plans', sort_order: 1 }),
+      applicationMenu({ id: 'finance', type: 'directory', name: '财务管理', route: 'finance', sort_order: 2 }),
+      applicationMenu({
+        id: 'invoices',
+        parent_id: 'finance',
+        component: 'billing-center.invoices',
+        sort_order: 3
+      }),
+      applicationMenu({ id: 'cycle-a', type: 'directory', parent_id: 'cycle-b', route: 'cycle-a' }),
+      applicationMenu({ id: 'cycle-b', type: 'directory', parent_id: 'cycle-a', route: 'cycle-b' }),
+      applicationMenu({
+        id: 'cycle-page',
+        parent_id: 'cycle-a',
+        component: 'billing-center.payments',
+        sort_order: 4
+      })
+    ]
+  } as Parameters<typeof applicationMenuSections>[0];
+
+  assert.deepEqual(
+    applicationMenuSections(navigation).map(section => ({
+      id: section.id,
+      label: section.label,
+      entries: section.entries.map(entry => entry.id)
+    })),
+    [
+      { id: '__root__', label: '功能入口', entries: ['root-page'] },
+      { id: 'finance', label: '财务管理', entries: ['invoices'] },
+      { id: 'cycle-b', label: 'cycle-b', entries: ['cycle-page'] }
+    ]
+  );
 });
 
 test('activeApplicationRoutes mounts only a runnable selected application workspace', () => {
