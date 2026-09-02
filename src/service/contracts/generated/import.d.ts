@@ -75,7 +75,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ImportJobBody"];
+                        };
                     };
                 };
             };
@@ -157,7 +159,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ImportUploadBody"];
+                        };
                     };
                 };
             };
@@ -325,7 +329,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ImportJobBody"];
+                        };
                     };
                 };
             };
@@ -366,7 +372,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ImportPageBody"];
+                        };
                     };
                 };
             };
@@ -632,10 +640,53 @@ export interface components {
             supports_dry_run?: boolean;
             title?: string;
         };
+        "httptransport.ImportJobBody": {
+            application_id?: string;
+            applied_rows?: number;
+            completed_at?: string;
+            created_at?: string;
+            created_by?: string;
+            dataset_code?: string;
+            error_code?: string;
+            error_message?: string;
+            filename?: string;
+            format?: string;
+            id?: string;
+            invalid_rows?: number;
+            progress_percent?: number;
+            provider_service?: string;
+            result_expires_at?: string;
+            source_bytes?: number;
+            source_checksum?: string;
+            started_at?: string;
+            status?: string;
+            tenant_id?: string;
+            total_rows?: number;
+            updated_at?: string;
+            updated_by?: string;
+            upload_expires_at?: string;
+            valid_rows?: number;
+            version?: number;
+        };
+        "httptransport.ImportPageBody": {
+            items?: components["schemas"]["httptransport.ImportJobBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
         "httptransport.ImportSelector": {
             application_id?: string;
             id?: string;
             tenant_id?: string;
+        };
+        "httptransport.ImportUploadBody": {
+            duplicate?: boolean;
+            job?: components["schemas"]["httptransport.ImportJobBody"];
+            upload_headers?: {
+                [key: string]: string;
+            };
+            upload_url?: string;
+            upload_url_expires_at?: string;
         };
         "httptransport.ListImportDatasetsRequest": {
             application_id?: string;

@@ -19,7 +19,7 @@ export type ImportDatasetDescriptor = ImportContract['schemas']['httptransport.I
     formats: string[];
     columns: ImportColumn[];
   };
-export interface ImportJob extends Record<string, unknown> {
+export type ImportJob = ImportContract['schemas']['httptransport.ImportJobBody'] & {
   id: string;
   tenant_id: string;
   application_id: string;
@@ -35,16 +35,10 @@ export interface ImportJob extends Record<string, unknown> {
   applied_rows: number;
   progress_percent: number;
   error_message: string;
-  error_code?: string;
-  source_checksum?: string;
-  upload_expires_at?: string;
-  started_at?: string;
-  completed_at?: string;
-  result_expires_at?: string;
   created_at: string;
   updated_at: string;
   version: number;
-}
+};
 interface Page<T> {
   items: T[];
   total: number;
