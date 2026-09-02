@@ -34,7 +34,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.DecisionsBody"];
+                        };
                     };
                 };
             };
@@ -76,7 +78,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["authorization.Binding"];
+                            body?: components["schemas"]["httptransport.BindingBody"];
                         };
                     };
                 };
@@ -162,7 +164,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["authorization.Binding"];
+                            body?: components["schemas"]["httptransport.BindingBody"];
                         };
                     };
                 };
@@ -204,7 +206,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.DecisionBody"];
+                        };
                     };
                 };
             };
@@ -245,7 +249,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.BindingBody"];
+                        };
                     };
                 };
             };
@@ -286,7 +292,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.BindingPageResponseBody"];
+                        };
                     };
                 };
             };
@@ -327,7 +335,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.BindingBody"];
+                        };
                     };
                 };
             };
@@ -368,7 +378,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PermissionPageBody"];
+                        };
                     };
                 };
                 /** @description Permission catalog access denied */
@@ -419,7 +431,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["authorization.PermissionCodeDecision"];
+                            body?: components["schemas"]["httptransport.PermissionCodeDecisionBody"];
                         };
                     };
                 };
@@ -461,7 +473,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PermissionBody"];
+                        };
                     };
                 };
             };
@@ -502,7 +516,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PermissionPageBody"];
+                        };
                     };
                 };
             };
@@ -543,7 +559,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PermissionBody"];
+                        };
                     };
                 };
             };
@@ -584,7 +602,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RolePermissionBody"];
+                        };
                     };
                 };
             };
@@ -625,7 +645,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RolePermissionsBody"];
+                        };
                     };
                 };
             };
@@ -666,7 +688,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RolePermissionBody"];
+                        };
                     };
                 };
             };
@@ -707,7 +731,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RoleBody"];
+                        };
                     };
                 };
             };
@@ -748,7 +774,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RolePageBody"];
+                        };
                     };
                 };
             };
@@ -789,7 +817,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RoleBody"];
+                        };
                     };
                 };
             };
@@ -830,7 +860,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PermissionBody"];
+                        };
                     };
                 };
             };
@@ -871,7 +903,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PermissionPageBody"];
+                        };
                     };
                 };
             };
@@ -912,7 +946,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PermissionBody"];
+                        };
                     };
                 };
             };
@@ -953,7 +989,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RolePermissionBody"];
+                        };
                     };
                 };
             };
@@ -994,7 +1032,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RolePermissionsBody"];
+                        };
                     };
                 };
             };
@@ -1035,7 +1075,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RolePermissionBody"];
+                        };
                     };
                 };
             };
@@ -1076,7 +1118,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RoleBody"];
+                        };
                     };
                 };
             };
@@ -1117,7 +1161,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RolePageBody"];
+                        };
                     };
                 };
             };
@@ -1158,7 +1204,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RoleBody"];
+                        };
                     };
                 };
             };
@@ -1345,24 +1393,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        "authorization.Binding": {
-            created_at?: string;
-            created_by?: string;
-            id?: string;
-            organization_unit_id?: string;
-            role_id?: string;
-            status?: string;
-            subject_id?: string;
-            subject_type?: string;
-            tenant_id?: string;
-            updated_at?: string;
-            updated_by?: string;
-            version?: number;
-        };
-        "authorization.PermissionCodeDecision": {
-            allowed_codes?: string[];
-            policy_version?: number;
-        };
         "buildinfo.Info": {
             build_time?: string;
             commit?: string;
@@ -1383,8 +1413,22 @@ export interface components {
         "httptransport.BatchCheckAuthorizationRequest": {
             checks: components["schemas"]["httptransport.CheckAuthorizationRequest"][];
         };
+        "httptransport.BindingBody": {
+            created_at?: string;
+            created_by?: string;
+            id?: string;
+            organization_unit_id?: string;
+            role_id?: string;
+            status?: string;
+            subject_id?: string;
+            subject_type?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
         "httptransport.BindingPageResponseBody": {
-            items?: components["schemas"]["authorization.Binding"][];
+            items?: components["schemas"]["httptransport.BindingBody"][];
             page?: number;
             page_size?: number;
             total?: number;
@@ -1455,6 +1499,17 @@ export interface components {
             description?: string;
             name: string;
             tenant_id: string;
+        };
+        "httptransport.DecisionBody": {
+            allowed?: boolean;
+            data_scope?: string;
+            decision_id?: string;
+            organization_unit_ids?: string[];
+            policy_version?: number;
+            reason?: string;
+        };
+        "httptransport.DecisionsBody": {
+            decisions?: components["schemas"]["httptransport.DecisionBody"][];
         };
         "httptransport.GrantMyRolePermissionRequest": {
             permission_id: string;
@@ -1528,6 +1583,31 @@ export interface components {
         "httptransport.MeResponseBody": {
             subject?: string;
         };
+        "httptransport.PermissionBody": {
+            action?: string;
+            code?: string;
+            condition_expression?: string;
+            created_at?: string;
+            created_by?: string;
+            id?: string;
+            name?: string;
+            resource_type?: string;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
+        "httptransport.PermissionCodeDecisionBody": {
+            allowed_codes?: string[];
+            policy_version?: number;
+        };
+        "httptransport.PermissionPageBody": {
+            items?: components["schemas"]["httptransport.PermissionBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
         "httptransport.Response": {
             body?: unknown;
             code?: number;
@@ -1555,6 +1635,41 @@ export interface components {
         "httptransport.RevokeRolePermissionRequest": {
             role_permission_id: string;
             version: number;
+        };
+        "httptransport.RoleBody": {
+            code?: string;
+            created_at?: string;
+            created_by?: string;
+            data_scope?: string;
+            description?: string;
+            id?: string;
+            name?: string;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
+        "httptransport.RolePageBody": {
+            items?: components["schemas"]["httptransport.RoleBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
+        "httptransport.RolePermissionBody": {
+            created_at?: string;
+            created_by?: string;
+            id?: string;
+            permission_id?: string;
+            role_id?: string;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
+        "httptransport.RolePermissionsBody": {
+            role_permissions?: components["schemas"]["httptransport.RolePermissionBody"][];
         };
         "httptransport.UpdateMyPermissionRequest": {
             condition_expression?: string;

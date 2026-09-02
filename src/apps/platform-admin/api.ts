@@ -16,12 +16,15 @@ export type Invitation = TenantContract['schemas']['tenant.Invitation'] & Record
 export type Quota = TenantContract['schemas']['tenant.Quota'] & Record<string, unknown>;
 export type GroupMember = TenantContract['schemas']['tenant.GroupMember'] & Record<string, unknown>;
 export type CreateInvitationResult = TenantContract['schemas']['httptransport.CreateInvitationResponseBody'];
-export type Binding = AuthorizationContract['schemas']['authorization.Binding'] & Record<string, unknown>;
+type RoleContract = AuthorizationContract['schemas']['httptransport.RoleBody'];
+type PermissionContract = AuthorizationContract['schemas']['httptransport.PermissionBody'];
+type RolePermissionContract = AuthorizationContract['schemas']['httptransport.RolePermissionBody'];
+export type Binding = AuthorizationContract['schemas']['httptransport.BindingBody'] & Record<string, unknown>;
 export type ServiceAccountContract = IdentityContract['schemas']['httptransport.ServiceAccountResponseBody'];
 export type CreateServiceAccountResult = IdentityContract['schemas']['httptransport.CreateServiceAccountResponseBody'];
 export type SessionContract = IdentityContract['schemas']['httptransport.SessionResponseBody'];
 
-export interface Role extends Record<string, unknown> {
+export interface Role extends RoleContract, Record<string, unknown> {
   id: string;
   code: string;
   name: string;
@@ -31,7 +34,7 @@ export interface Role extends Record<string, unknown> {
   version: number;
 }
 
-export interface Permission extends Record<string, unknown> {
+export interface Permission extends PermissionContract, Record<string, unknown> {
   id: string;
   code: string;
   name: string;
@@ -61,7 +64,7 @@ export interface PermissionForm extends Record<string, unknown> {
   version: number;
 }
 
-export interface RolePermission extends Record<string, unknown> {
+export interface RolePermission extends RolePermissionContract, Record<string, unknown> {
   id: string;
   role_id: string;
   permission_id: string;
