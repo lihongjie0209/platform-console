@@ -8,6 +8,7 @@ import {
   applicationEntryStatusLabel,
   applicationEntryStatusMessage
 } from '@/platform/navigation';
+import { groupApplications } from '@/platform/application-groups';
 
 defineOptions({ name: 'ApplicationSwitcher' });
 
@@ -18,6 +19,15 @@ const routeStore = useRouteStore();
 
 const selectedName = computed(() => platformStore.selectedApplication?.name || '选择应用');
 const selectedIcon = computed(() => platformStore.selectedApplication?.icon || 'mdi:apps');
+const switcherGroups = computed(() =>
+  groupApplications(platformStore.applications).map(group => ({
+    ...group,
+    applications: group.applications.map(application => ({
+      application,
+      decision: applicationEntryDecision(platformStore.navigations.find(item => item.application.id === application.id))
+    }))
+  }))
+);
 
 function entryDecision(applicationId: string) {
   return applicationEntryDecision(platformStore.navigations.find(item => item.application.id === applicationId));
@@ -60,21 +70,26 @@ async function handleCommand(command: string) {
     </button>
     <template #dropdown>
       <ElDropdownMenu>
-        <ElDropdownItem
-          v-for="application in platformStore.applications"
-          :key="application.id"
-          :command="application.id"
-          :disabled="entryDecision(application.id).status !== 'ready'"
-          :class="{
-            'text-primary font-semibold': application.id === platformStore.selectedApplicationId
-          }"
-        >
-          <SvgIcon :icon="application.icon || 'mdi:application-outline'" class="mr-8px text-17px" />
-          <span class="max-w-240px truncate">{{ application.name }}</span>
-          <ElTag v-if="entryDecision(application.id).status !== 'ready'" class="ml-8px" size="small" type="warning">
-            {{ applicationEntryStatusLabel(entryDecision(application.id).status) }}
-          </ElTag>
-        </ElDropdownItem>
+        <template v-for="(group, groupIndex) in switcherGroups" :key="group.category">
+          <ElDropdownItem :divided="groupIndex > 0" disabled class="cursor-default text-12px text-gray-400">
+            {{ group.label }}
+          </ElDropdownItem>
+          <ElDropdownItem
+            v-for="item in group.applications"
+            :key="item.application.id"
+            :command="item.application.id"
+            :disabled="item.decision.status !== 'ready'"
+            :class="{
+              'text-primary font-semibold': item.application.id === platformStore.selectedApplicationId
+            }"
+          >
+            <SvgIcon :icon="item.application.icon || 'mdi:application-outline'" class="mr-8px text-17px" />
+            <span class="max-w-240px truncate">{{ item.application.name }}</span>
+            <ElTag v-if="item.decision.status !== 'ready'" class="ml-8px" size="small" type="warning">
+              {{ applicationEntryStatusLabel(item.decision.status) }}
+            </ElTag>
+          </ElDropdownItem>
+        </template>
         <ElDropdownItem divided :command="launcherCommand">
           <SvgIcon icon="mdi:view-grid-outline" class="mr-8px text-17px" />
           返回应用选择页
