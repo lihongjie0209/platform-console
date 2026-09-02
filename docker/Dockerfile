@@ -1,6 +1,8 @@
 FROM node:24-alpine AS build
 
 ARG NPM_REGISTRY=https://registry.npmjs.org/
+ARG GIT_COMMIT=unknown
+ENV PLATFORM_CONSOLE_GIT_COMMIT=$GIT_COMMIT
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY packages ./packages

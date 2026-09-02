@@ -57,6 +57,8 @@ jobs:
           load: true
           push: false
           tags: platform-console:ci
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
       - name: Verify non-root runtime configuration
         run: |
           docker run -d --name platform-console-ci \

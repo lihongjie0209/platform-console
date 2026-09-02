@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { consoleBuildInfo, formatConsoleBuild } from '@/platform/build-info';
+
 defineOptions({
   name: 'GlobalFooter'
 });
@@ -6,13 +8,7 @@ defineOptions({
 
 <template>
   <DarkModeContainer class="h-full flex-center">
-    <a
-      href="https://github.com/soybeanjs/soybean-admin-elp/blob/main/LICENSE"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      Copyright MIT © 2021 Soybean
-    </a>
+    <span title="构建时间">Platform Console {{ formatConsoleBuild(consoleBuildInfo) }}</span>
   </DarkModeContainer>
 </template>
 

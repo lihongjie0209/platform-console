@@ -16,7 +16,10 @@ test('application load telemetry contains safe routing context without error mes
     kind: 'page',
     errorType: 'TypeError',
     attempts: 1,
-    retrying: true
+    retrying: true,
+    consoleVersion: 'dev',
+    gitCommit: 'unknown',
+    buildTime: ''
   });
   assert.equal(JSON.stringify(failure).includes('internal details'), false);
 });

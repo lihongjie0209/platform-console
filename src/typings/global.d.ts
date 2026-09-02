@@ -14,4 +14,8 @@ declare global {
 
   /** Build time of the project */
   export const BUILD_TIME: string;
+  /** Package version embedded in the frontend bundle */
+  export const APP_VERSION: string;
+  /** Source revision embedded in the frontend bundle */
+  export const GIT_COMMIT: string;
 }

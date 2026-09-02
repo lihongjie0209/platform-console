@@ -1,3 +1,5 @@
+import { consoleBuildInfo } from './build-info';
+
 export const applicationLoadFailureEvent = 'platform:application-load-failure';
 
 export interface ApplicationLoadContext {
@@ -10,6 +12,9 @@ export interface ApplicationLoadFailure extends ApplicationLoadContext {
   errorType: string;
   attempts: number;
   retrying: boolean;
+  consoleVersion: string;
+  gitCommit: string;
+  buildTime: string;
 }
 
 export interface ApplicationLoadAttempt {
@@ -29,7 +34,10 @@ export function createApplicationLoadFailure({
     ...context,
     errorType: error instanceof Error ? error.name || 'Error' : typeof error,
     attempts,
-    retrying
+    retrying,
+    consoleVersion: consoleBuildInfo.version,
+    gitCommit: consoleBuildInfo.gitCommit,
+    buildTime: consoleBuildInfo.buildTime
   };
 }
 
