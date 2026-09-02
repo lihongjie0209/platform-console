@@ -4,6 +4,7 @@ import { getPaletteColorByNumber, mixColor } from '@sa/color';
 import { loginModuleRecord } from '@/constants/app';
 import { useAppStore } from '@/store/modules/app';
 import { useThemeStore } from '@/store/modules/theme';
+import { normalizeLoginModule } from '@/platform/login-policy';
 import { $t } from '@/locales';
 import PwdLogin from './modules/pwd-login.vue';
 import ResetPwd from './modules/reset-pwd.vue';
@@ -21,7 +22,7 @@ const appStore = useAppStore();
 const themeStore = useThemeStore();
 
 const activeModule = computed(() => {
-  const module = props.module === 'reset-pwd' ? 'reset-pwd' : 'pwd-login';
+  const module = normalizeLoginModule(props.module);
   return { label: loginModuleRecord[module], component: module === 'reset-pwd' ? ResetPwd : PwdLogin };
 });
 
