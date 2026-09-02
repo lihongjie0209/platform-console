@@ -161,7 +161,7 @@ export interface ApplicationNavigationCompatibility {
   usable: boolean;
 }
 
-export type ApplicationEntryStatus = 'ready' | 'unpublished' | 'unavailable';
+export type ApplicationEntryStatus = 'ready' | 'unpublished' | 'unavailable' | 'empty';
 
 export interface ApplicationEntryDecision {
   status: ApplicationEntryStatus;
@@ -206,9 +206,19 @@ export function applicationNavigationCompatibility(
 
 export function applicationEntryDecision(navigation?: PublishedNavigation): ApplicationEntryDecision {
   if (!navigation) return { status: 'unpublished', path: '' };
-  if (!applicationNavigationCompatibility(navigation).usable) return { status: 'unavailable', path: '' };
+  const compatibility = applicationNavigationCompatibility(navigation);
+  if (!compatibility.usable) {
+    return { status: compatibility.unsupportedPages > 0 ? 'unavailable' : 'empty', path: '' };
+  }
   const path = applicationEntryPath(navigation);
   return path ? { status: 'ready', path } : { status: 'unpublished', path: '' };
+}
+
+export function applicationEntryStatusLabel(status: ApplicationEntryStatus) {
+  if (status === 'unavailable') return '待安装';
+  if (status === 'empty') return '无可用功能';
+  if (status === 'unpublished') return '未发布';
+  return '';
 }
 
 /** Keeps a persisted application selection only when it is still granted and runnable. */

@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePlatformStore } from '@/store/modules/platform';
 import { useRouteStore } from '@/store/modules/route';
-import { applicationEntryDecision } from '@/platform/navigation';
+import { applicationEntryDecision, applicationEntryStatusLabel } from '@/platform/navigation';
 
 defineOptions({ name: 'ApplicationSwitcher' });
 
@@ -32,6 +32,10 @@ async function handleCommand(command: string) {
   }
   if (decision.status === 'unavailable') {
     window.$message?.warning('当前控制台版本尚未安装该应用的可执行页面，请升级控制台或联系管理员');
+    return;
+  }
+  if (decision.status === 'empty') {
+    window.$message?.warning('当前账号在该应用下暂无可用功能，请联系管理员检查菜单与权限配置');
     return;
   }
 
@@ -66,7 +70,7 @@ async function handleCommand(command: string) {
           <SvgIcon :icon="application.icon || 'mdi:application-outline'" class="mr-8px text-17px" />
           <span class="max-w-240px truncate">{{ application.name }}</span>
           <ElTag v-if="entryDecision(application.id).status !== 'ready'" class="ml-8px" size="small" type="warning">
-            {{ entryDecision(application.id).status === 'unavailable' ? '待安装' : '未发布' }}
+            {{ applicationEntryStatusLabel(entryDecision(application.id).status) }}
           </ElTag>
         </ElDropdownItem>
         <ElDropdownItem divided :command="launcherCommand">

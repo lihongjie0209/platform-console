@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/store/modules/auth';
 import { usePlatformStore } from '@/store/modules/platform';
 import { useRouteStore } from '@/store/modules/route';
-import { applicationEntryDecision } from '@/platform/navigation';
+import { applicationEntryDecision, applicationEntryStatusLabel } from '@/platform/navigation';
 import { filterApplications } from '@/platform/application-context';
 import { BizEmptyState, BizPageContainer } from '@/components/business';
 
@@ -65,6 +65,10 @@ async function openApplication(applicationId: string) {
   }
   if (decision.status === 'unavailable') {
     window.$message?.warning('当前控制台版本尚未安装该应用的可执行页面，请升级控制台或联系管理员');
+    return;
+  }
+  if (decision.status === 'empty') {
+    window.$message?.warning('当前账号在该应用下暂无可用功能，请联系管理员检查菜单与权限配置');
     return;
   }
 
@@ -137,7 +141,7 @@ async function openApplication(applicationId: string) {
                     type="warning"
                     effect="plain"
                   >
-                    {{ applicationEntryState(application.id).status === 'unavailable' ? '待安装' : '未发布' }}
+                    {{ applicationEntryStatusLabel(applicationEntryState(application.id).status) }}
                   </ElTag>
                 </div>
                 <p class="mb-0 mt-12px min-h-40px text-13px text-gray-500 leading-20px">

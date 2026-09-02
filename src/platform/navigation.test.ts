@@ -5,6 +5,7 @@ import {
   activeApplicationRoutes,
   applicationEntryDecision,
   applicationEntryPath,
+  applicationEntryStatusLabel,
   applicationMenuEntries,
   applicationNavigationCompatibility,
   filterNavigationsByPermissions,
@@ -488,6 +489,7 @@ test('every application entry point uses the same publication and compatibility 
   } as NonNullable<Parameters<typeof applicationEntryDecision>[0]>;
 
   assert.deepEqual(applicationEntryDecision(), { status: 'unpublished', path: '' });
+  assert.deepEqual(applicationEntryDecision({ ...navigation, menus: [] }), { status: 'empty', path: '' });
   assert.deepEqual(applicationEntryDecision(navigation), {
     status: 'ready',
     path: '/apps/billing-center/overview'
@@ -499,4 +501,8 @@ test('every application entry point uses the same publication and compatibility 
     }),
     { status: 'unavailable', path: '' }
   );
+  assert.equal(applicationEntryStatusLabel('unpublished'), '未发布');
+  assert.equal(applicationEntryStatusLabel('unavailable'), '待安装');
+  assert.equal(applicationEntryStatusLabel('empty'), '无可用功能');
+  assert.equal(applicationEntryStatusLabel('ready'), '');
 });
