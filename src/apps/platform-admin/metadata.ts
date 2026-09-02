@@ -1,16 +1,7 @@
 import type { ApplicationCategory } from '../types';
+import { isApplicationCategory } from '../categories';
 
-export const applicationCategoryOptions: readonly { label: string; value: ApplicationCategory }[] = [
-  { label: '平台治理', value: 'platform' },
-  { label: '平台运维', value: 'operations' },
-  { label: '流程与自动化', value: 'automation' },
-  { label: '数据能力', value: 'data' },
-  { label: '集成能力', value: 'integration' },
-  { label: '计量与商业', value: 'commerce' },
-  { label: '业务应用', value: 'business' }
-];
-
-const applicationCategories = new Set<ApplicationCategory>(applicationCategoryOptions.map(option => option.value));
+export { applicationCategoryOptions } from '../categories';
 
 export function parseJSONRecord(value: string, fieldName = 'JSON value'): Record<string, unknown> {
   const parsed: unknown = JSON.parse(value || '{}');
@@ -27,9 +18,7 @@ export function parseJSONObject(value: string): Record<string, unknown> {
 export function applicationCategoryFromMetadata(value: string): ApplicationCategory {
   try {
     const category = Reflect.get(parseJSONObject(value), 'category');
-    return typeof category === 'string' && applicationCategories.has(category as ApplicationCategory)
-      ? (category as ApplicationCategory)
-      : 'business';
+    return isApplicationCategory(category) ? category : 'business';
   } catch {
     return 'business';
   }
@@ -37,7 +26,7 @@ export function applicationCategoryFromMetadata(value: string): ApplicationCateg
 
 export function applicationMetadata(value: string, category: ApplicationCategory): Record<string, unknown> {
   const metadata = parseJSONObject(value);
-  metadata.category = applicationCategories.has(category) ? category : 'business';
+  metadata.category = isApplicationCategory(category) ? category : 'business';
   return metadata;
 }
 
