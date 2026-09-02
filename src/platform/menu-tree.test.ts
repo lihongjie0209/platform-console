@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { ApplicationMenu } from '../apps/platform-admin/api';
-import { buildMenuTree, descendantMenuIDs } from '../apps/platform-admin/menu-tree';
+import {
+  buildMenuTree,
+  descendantMenuIDs,
+  findMenuRouteConflict,
+  normalizedMenuRoute
+} from '../apps/platform-admin/menu-tree';
 
 const menus = [
   { id: 'child', parent_id: 'root', sort_order: 2, code: 'child' },
@@ -18,4 +23,55 @@ test('buildMenuTree creates a stable sorted hierarchy', () => {
 
 test('descendantMenuIDs prevents cyclic parent selection', () => {
   assert.deepEqual([...descendantMenuIDs(menus, 'child')].sort(), ['child', 'grandchild']);
+});
+
+test('menu route conflicts use the final application URL namespace', () => {
+  const existing = [
+    { id: 'plans', code: 'plans', type: 'page', route: 'plans', status: 'active' },
+    { id: 'disabled', code: 'legacy', type: 'page', route: 'legacy', status: 'disabled' }
+  ];
+  assert.equal(normalizedMenuRoute('billing-center', existing[0]), '/apps/billing-center/plans');
+  assert.deepEqual(
+    findMenuRouteConflict('billing-center', existing, {
+      id: 'new',
+      code: 'legacy-plans',
+      type: 'page',
+      route: '/apps/billing-center/plans'
+    }),
+    { path: '/apps/billing-center/plans', menuCode: 'plans' }
+  );
+  assert.equal(
+    findMenuRouteConflict('billing-center', existing, {
+      id: 'plans',
+      code: 'plans',
+      type: 'page',
+      route: 'plans'
+    }),
+    undefined
+  );
+  assert.equal(
+    findMenuRouteConflict('billing-center', existing, {
+      id: 'new',
+      code: 'legacy',
+      type: 'page',
+      route: 'legacy'
+    }),
+    undefined
+  );
+  assert.deepEqual(
+    findMenuRouteConflict('billing-center', existing, {
+      code: 'overview',
+      type: 'page',
+      route: 'overview'
+    }),
+    { path: '/apps/billing-center/overview', menuCode: '__workspace__' }
+  );
+  assert.deepEqual(
+    findMenuRouteConflict('billing-center', existing, {
+      code: 'root',
+      type: 'page',
+      route: '/apps/billing-center'
+    }),
+    { path: '/apps/billing-center', menuCode: '__application__' }
+  );
 });

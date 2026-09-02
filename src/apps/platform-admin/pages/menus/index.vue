@@ -15,7 +15,7 @@ import {
   publishMenus,
   upsertMenu
 } from '../../api';
-import { buildMenuTree, descendantMenuIDs } from '../../menu-tree';
+import { buildMenuTree, descendantMenuIDs, findMenuRouteConflict } from '../../menu-tree';
 
 defineOptions({ name: 'PlatformAdminMenus' });
 
@@ -173,6 +173,17 @@ function changePermissionScope() {
   loadPermissionOptions();
 }
 
+function menuRouteConflictMessage() {
+  const conflict = findMenuRouteConflict(String(selectedApplication.value?.code || ''), menus.value, {
+    id: form.id,
+    code: form.code,
+    type: form.type,
+    route: form.route,
+    status: 'active'
+  });
+  return conflict ? `最终路由 ${conflict.path} 与 ${conflict.menuCode} 冲突` : '';
+}
+
 async function saveMenu() {
   if (!(await formRef.value?.validate())) return;
   if (form.type === 'page' && (!form.route || !form.component)) {
@@ -188,6 +199,11 @@ async function saveMenu() {
   }
   if (form.type === 'external' && !form.external_url) {
     window.$message?.warning('外部链接菜单必须配置 URL');
+    return;
+  }
+  const conflictMessage = menuRouteConflictMessage();
+  if (conflictMessage) {
+    window.$message?.warning(conflictMessage);
     return;
   }
   saving.value = true;

@@ -4,6 +4,58 @@ export interface ApplicationMenuNode extends ApplicationMenu {
   children: ApplicationMenuNode[];
 }
 
+export interface MenuRouteCandidate {
+  id?: string;
+  code?: string;
+  type?: string;
+  route?: string;
+  status?: string;
+}
+
+export interface MenuRouteConflict {
+  path: string;
+  menuCode: string;
+}
+
+function routeSegment(value: string) {
+  return (
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'menu'
+  );
+}
+
+export function normalizedMenuRoute(applicationCode: string, menu: MenuRouteCandidate) {
+  const scope = `/apps/${routeSegment(applicationCode)}`;
+  const configured = String(menu.route || '').trim();
+  if (!configured) return `${scope}/${routeSegment(String(menu.code || menu.id || ''))}`;
+  if (configured === scope || configured.startsWith(`${scope}/`)) return configured;
+  return `${scope}/${configured.replace(/^\/+/, '')}`;
+}
+
+export function findMenuRouteConflict(
+  applicationCode: string,
+  menus: MenuRouteCandidate[],
+  candidate: MenuRouteCandidate
+): MenuRouteConflict | undefined {
+  if (candidate.type === 'action') return undefined;
+  const scope = `/apps/${routeSegment(applicationCode)}`;
+  const path = normalizedMenuRoute(applicationCode, candidate);
+  if (path === scope) return { path, menuCode: '__application__' };
+  if (path === `${scope}/overview`) return { path, menuCode: '__workspace__' };
+
+  const conflicting = menus.find(
+    menu =>
+      menu.id !== candidate.id &&
+      (menu.status === undefined || menu.status === '' || menu.status === 'active') &&
+      menu.type !== 'action' &&
+      normalizedMenuRoute(applicationCode, menu) === path
+  );
+  return conflicting ? { path, menuCode: String(conflicting.code || conflicting.id || '') } : undefined;
+}
+
 export function buildMenuTree(items: ApplicationMenu[]): ApplicationMenuNode[] {
   const nodes = new Map<string, ApplicationMenuNode>();
   for (const item of items) {
