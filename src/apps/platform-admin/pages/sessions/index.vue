@@ -3,10 +3,11 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
 import { BizCopyText } from '@/components/business';
+import { createLatestRequestGuard } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
-import { collectAllPages } from '@/platform/pagination';
 import type { TenantDirectoryItem, UserIdentity, UserSession } from '../../api';
 import { listSessions, listTenantDirectory, listUsers, revokeSession } from '../../api';
+import { sessionUserLabel as formatSessionUserLabel } from '../../session-display';
 
 defineOptions({ name: 'PlatformAdminSessions' });
 
@@ -16,6 +17,8 @@ interface RevokeForm {
 
 const platformStore = usePlatformStore();
 const loading = ref(false);
+const usersLoading = ref(false);
+const tenantsLoading = ref(false);
 const submitting = ref(false);
 const rows = ref<UserSession[]>([]);
 const users = ref<UserIdentity[]>([]);
@@ -33,6 +36,8 @@ const form = reactive<RevokeForm>({ reason: '' });
 const rules: FormRules<RevokeForm> = {
   reason: [{ required: true, message: '请输入撤销原因', trigger: 'blur' }]
 };
+const usersGuard = createLatestRequestGuard();
+const tenantsGuard = createLatestRequestGuard();
 const userByID = computed(() => new Map(users.value.map(item => [item.id, item])));
 const tenantByID = computed(() => new Map(tenants.value.map(item => [item.id, item])));
 const canRevokeSession = computed(() =>
@@ -44,9 +49,16 @@ function userLabel(id: string) {
   return user ? `${user.display_name || user.username} (${user.username})` : id;
 }
 
+function sessionUserLabel(session: UserSession) {
+  return formatSessionUserLabel(session, userLabel(session.user_id));
+}
+
 function tenantLabel(id: string) {
   if (!id) return '平台级会话';
   const tenant = tenantByID.value.get(id);
+  if (id === platformStore.selectedTenantId && platformStore.selectedTenant) {
+    return `${platformStore.selectedTenant.name} (${platformStore.selectedTenant.code})`;
+  }
   return tenant ? `${tenant.name} (${tenant.code})` : id;
 }
 
@@ -56,15 +68,26 @@ function statusType(value: string) {
   return 'danger';
 }
 
-async function loadCatalogs() {
-  const [userItems, tenantItems] = await Promise.all([
-    collectAllPages((catalogPage, catalogPageSize) => listUsers({ page: catalogPage, pageSize: catalogPageSize })),
-    collectAllPages((catalogPage, catalogPageSize) =>
-      listTenantDirectory({ page: catalogPage, pageSize: catalogPageSize })
-    )
-  ]);
-  users.value = userItems;
-  tenants.value = tenantItems;
+async function searchUsers(keyword: string) {
+  const request = usersGuard.begin();
+  usersLoading.value = true;
+  try {
+    const result = await listUsers({ page: 1, pageSize: 50, keyword: keyword.trim(), status: '' });
+    if (usersGuard.isCurrent(request)) users.value = result.items;
+  } finally {
+    if (usersGuard.isCurrent(request)) usersLoading.value = false;
+  }
+}
+
+async function searchTenants(keyword: string) {
+  const request = tenantsGuard.begin();
+  tenantsLoading.value = true;
+  try {
+    const result = await listTenantDirectory({ page: 1, pageSize: 50, keyword: keyword.trim(), status: 'active' });
+    if (tenantsGuard.isCurrent(request)) tenants.value = result.items;
+  } finally {
+    if (tenantsGuard.isCurrent(request)) tenantsLoading.value = false;
+  }
 }
 
 async function loadData() {
@@ -136,7 +159,7 @@ watch(
     search();
   }
 );
-onMounted(() => Promise.all([loadCatalogs(), loadData()]));
+onMounted(() => Promise.all([searchUsers(''), searchTenants(''), loadData()]));
 </script>
 
 <template>
@@ -159,7 +182,10 @@ onMounted(() => Promise.all([loadCatalogs(), loadData()]));
           v-model="userID"
           clearable
           filterable
-          allow-create
+          remote
+          reserve-keyword
+          :remote-method="searchUsers"
+          :loading="usersLoading"
           class="w-260px"
           placeholder="全部用户或输入用户 ID"
         >
@@ -171,7 +197,10 @@ onMounted(() => Promise.all([loadCatalogs(), loadData()]));
           v-model="tenantID"
           clearable
           filterable
-          allow-create
+          remote
+          reserve-keyword
+          :remote-method="searchTenants"
+          :loading="tenantsLoading"
           class="w-260px"
           placeholder="全部租户或输入租户 ID"
         >
@@ -196,7 +225,7 @@ onMounted(() => Promise.all([loadCatalogs(), loadData()]));
         <template #default="{ row }"><BizCopyText :value="row.session_id" /></template>
       </ElTableColumn>
       <ElTableColumn label="用户" min-width="220">
-        <template #default="{ row }">{{ userLabel(row.user_id) }}</template>
+        <template #default="{ row }">{{ sessionUserLabel(row) }}</template>
       </ElTableColumn>
       <ElTableColumn label="租户" min-width="220">
         <template #default="{ row }">{{ tenantLabel(row.tenant_id) }}</template>
@@ -241,7 +270,7 @@ onMounted(() => Promise.all([loadCatalogs(), loadData()]));
       type="warning"
       show-icon
       :closable="false"
-      :title="`将撤销 ${selected ? userLabel(selected.user_id) : ''} 的指定会话，请填写可审计的原因。`"
+      :title="`将撤销 ${selected ? sessionUserLabel(selected) : ''} 的指定会话，请填写可审计的原因。`"
     />
     <ElForm ref="formRef" :model="form" :rules="rules" label-position="top">
       <ElFormItem label="撤销原因" prop="reason">

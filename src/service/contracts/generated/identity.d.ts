@@ -1762,7 +1762,9 @@ export interface components {
             updated_at?: string;
             updated_by?: string;
             user_agent?: string;
+            user_display_name?: string;
             user_id?: string;
+            username?: string;
             version?: number;
         };
         "httptransport.StartMFASetupRequest": {

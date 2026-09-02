@@ -155,6 +155,8 @@ export interface ServiceAccountQuery {
 export interface UserSession extends SessionContract, Record<string, unknown> {
   session_id: string;
   user_id: string;
+  username: string;
+  user_display_name: string;
   tenant_id: string;
   membership_id: string;
   status: string;
