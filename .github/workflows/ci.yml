@@ -26,6 +26,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm check:application-scope
       - run: pnpm check:contracts
       - run: pnpm check:runtime-config
 

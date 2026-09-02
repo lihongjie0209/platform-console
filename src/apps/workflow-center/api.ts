@@ -1,5 +1,6 @@
 import type { components as WorkflowContract } from '@/service/contracts/generated/workflow';
 import { platformRequest } from '@/service/request';
+import { applicationScope } from '@/platform/application-context';
 type DefinitionSchema = WorkflowContract['schemas']['httptransport.DefinitionDTO'];
 type InstanceSchema = WorkflowContract['schemas']['httptransport.InstanceDTO'];
 type TaskSchema = WorkflowContract['schemas']['httptransport.TaskDTO'];
@@ -74,8 +75,7 @@ export function listDefinitions(input: {
       url: '/api/v1/workflow/definitions/list',
       method: 'post',
       data: {
-        tenant_id: input.tenantID,
-        application_id: input.applicationID,
+        ...applicationScope(input.tenantID, input.applicationID),
         status: input.status,
         search: input.search,
         page: input.page,
@@ -103,8 +103,7 @@ export function saveDefinition(
       data: current
         ? {
             id: current.id,
-            tenant_id: input.tenantID,
-            application_id: input.applicationID,
+            ...applicationScope(input.tenantID, input.applicationID),
             name: input.name,
             description: input.description,
             nodes: input.nodes,
@@ -112,8 +111,7 @@ export function saveDefinition(
             expected_version: current.version
           }
         : {
-            tenant_id: input.tenantID,
-            application_id: input.applicationID,
+            ...applicationScope(input.tenantID, input.applicationID),
             key: input.key,
             name: input.name,
             description: input.description,
@@ -130,8 +128,7 @@ export function changeDefinitionStatus(value: WorkflowDefinition, action: 'publi
       method: 'post',
       data: {
         id: value.id,
-        tenant_id: value.tenant_id,
-        application_id: value.application_id,
+        ...applicationScope(value.tenant_id, value.application_id),
         expected_version: value.version
       }
     })
@@ -151,8 +148,7 @@ export function listInstances(input: {
       url: '/api/v1/workflow/instances/list',
       method: 'post',
       data: {
-        tenant_id: input.tenantID,
-        application_id: input.applicationID,
+        ...applicationScope(input.tenantID, input.applicationID),
         definition_id: input.definitionID,
         status: input.status,
         search: input.search,
@@ -175,8 +171,7 @@ export function startInstance(input: {
       url: '/api/v1/workflow/instances/start',
       method: 'post',
       data: {
-        tenant_id: input.tenantID,
-        application_id: input.applicationID,
+        ...applicationScope(input.tenantID, input.applicationID),
         definition_key: input.definitionKey,
         business_key: input.businessKey,
         title: input.title,
@@ -193,8 +188,7 @@ export function cancelInstance(value: WorkflowInstance, reason: string) {
       method: 'post',
       data: {
         id: value.id,
-        tenant_id: value.tenant_id,
-        application_id: value.application_id,
+        ...applicationScope(value.tenant_id, value.application_id),
         reason,
         expected_version: value.version
       }
@@ -215,8 +209,7 @@ export function listTasks(input: {
       url: '/api/v1/workflow/tasks/list',
       method: 'post',
       data: {
-        tenant_id: input.tenantID,
-        application_id: input.applicationID,
+        ...applicationScope(input.tenantID, input.applicationID),
         instance_id: input.instanceID,
         status: input.status,
         search: input.search,
@@ -233,8 +226,7 @@ export function claimTask(value: WorkflowTask) {
       method: 'post',
       data: {
         id: value.id,
-        tenant_id: value.tenant_id,
-        application_id: value.application_id,
+        ...applicationScope(value.tenant_id, value.application_id),
         expected_version: value.version
       }
     })
@@ -250,8 +242,7 @@ export function completeTask(
       method: 'post',
       data: {
         id: value.id,
-        tenant_id: value.tenant_id,
-        application_id: value.application_id,
+        ...applicationScope(value.tenant_id, value.application_id),
         decision: input.decision,
         comment: input.comment,
         output_json: input.output,
@@ -267,8 +258,7 @@ export function delegateTask(value: WorkflowTask, delegateTo: string, reason: st
       method: 'post',
       data: {
         id: value.id,
-        tenant_id: value.tenant_id,
-        application_id: value.application_id,
+        ...applicationScope(value.tenant_id, value.application_id),
         delegate_to: delegateTo,
         reason,
         expected_version: value.version
