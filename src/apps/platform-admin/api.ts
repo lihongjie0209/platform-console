@@ -5,10 +5,10 @@ import type { components as TenantContract } from '@/service/contracts/generated
 import { platformRequest } from '@/service/request';
 import { parseJSONObject, parseJSONRecord } from './metadata';
 
-export type Application = ApplicationContract['schemas']['application.Application'] & Record<string, unknown>;
-export type ApplicationMenu = ApplicationContract['schemas']['application.Menu'] & Record<string, unknown>;
-export type MenuRelease = ApplicationContract['schemas']['application.MenuRelease'] & Record<string, unknown>;
-export type ApplicationGrant = ApplicationContract['schemas']['application.Grant'] & Record<string, unknown>;
+export type Application = ApplicationContract['schemas']['httptransport.ApplicationBody'] & Record<string, unknown>;
+export type ApplicationMenu = ApplicationContract['schemas']['httptransport.MenuBody'] & Record<string, unknown>;
+export type MenuRelease = ApplicationContract['schemas']['httptransport.MenuReleaseBody'] & Record<string, unknown>;
+export type ApplicationGrant = ApplicationContract['schemas']['httptransport.GrantBody'] & Record<string, unknown>;
 export type Group = TenantContract['schemas']['tenant.Group'] & Record<string, unknown>;
 export type OrganizationUnit = TenantContract['schemas']['tenant.OrganizationUnit'] & Record<string, unknown>;
 export type Membership = TenantContract['schemas']['tenant.Membership'] & Record<string, unknown>;

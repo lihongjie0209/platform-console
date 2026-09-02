@@ -35,7 +35,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["application.Application"];
+                            body?: components["schemas"]["httptransport.ApplicationBody"];
                         };
                     };
                 };
@@ -78,7 +78,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["application.Application"];
+                            body?: components["schemas"]["httptransport.ApplicationBody"];
                         };
                     };
                 };
@@ -120,7 +120,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ApplicationPageBody"];
+                        };
                     };
                 };
             };
@@ -291,7 +293,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["application.Menu"];
+                            body?: components["schemas"]["httptransport.MenuBody"];
                         };
                     };
                 };
@@ -456,7 +458,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["application.Grant"];
+                            body?: components["schemas"]["httptransport.GrantBody"];
                         };
                     };
                 };
@@ -585,7 +587,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["application.Grant"];
+                            body?: components["schemas"]["httptransport.GrantBody"];
                         };
                     };
                 };
@@ -628,7 +630,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["application.Application"];
+                            body?: components["schemas"]["httptransport.ApplicationBody"];
                         };
                     };
                 };
@@ -825,74 +827,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        "application.Application": {
-            code?: string;
-            created_at?: string;
-            created_by?: string;
-            default_route?: string;
-            description?: string;
-            icon?: string;
-            id?: string;
-            metadata_json?: string;
-            name?: string;
-            published_release?: number;
-            sort_order?: number;
-            status?: string;
-            updated_at?: string;
-            updated_by?: string;
-            version?: number;
-        };
-        "application.Grant": {
-            application_id?: string;
-            created_at?: string;
-            created_by?: string;
-            entitlements_json?: string;
-            id?: string;
-            source?: string;
-            status?: string;
-            tenant_id?: string;
-            updated_at?: string;
-            updated_by?: string;
-            valid_from?: string;
-            valid_until?: string;
-            version?: number;
-        };
-        "application.Menu": {
-            application_id?: string;
-            code?: string;
-            component?: string;
-            created_at?: string;
-            created_by?: string;
-            external_url?: string;
-            i18n_key?: string;
-            icon?: string;
-            id?: string;
-            name?: string;
-            parent_id?: string;
-            permission_code?: string;
-            permission_scope?: string;
-            release_number?: number;
-            route?: string;
-            sort_order?: number;
-            status?: string;
-            type?: string;
-            updated_at?: string;
-            updated_by?: string;
-            version?: number;
-            visible?: boolean;
-        };
-        "application.MenuRelease": {
-            application_id?: string;
-            comment?: string;
-            created_at?: string;
-            created_by?: string;
-            id?: string;
-            release_number?: number;
-            status?: string;
-            updated_at?: string;
-            updated_by?: string;
-            version?: number;
-        };
         "buildinfo.Info": {
             build_time?: string;
             commit?: string;
@@ -910,8 +844,31 @@ export interface components {
             };
             status?: string;
         };
+        "httptransport.ApplicationBody": {
+            code?: string;
+            created_at?: string;
+            created_by?: string;
+            default_route?: string;
+            description?: string;
+            icon?: string;
+            id?: string;
+            metadata_json?: string;
+            name?: string;
+            published_release?: number;
+            sort_order?: number;
+            status?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
         "httptransport.ApplicationIDRequest": {
             application_id: string;
+        };
+        "httptransport.ApplicationPageBody": {
+            items?: components["schemas"]["httptransport.ApplicationBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
         };
         "httptransport.BatchCheckRequest": {
             application_ids: string[];
@@ -937,8 +894,23 @@ export interface components {
             id: string;
             version: number;
         };
-        "httptransport.GrantPage": {
-            items?: components["schemas"]["application.Grant"][];
+        "httptransport.GrantBody": {
+            application_id?: string;
+            created_at?: string;
+            created_by?: string;
+            entitlements_json?: string;
+            id?: string;
+            source?: string;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            valid_from?: string;
+            valid_until?: string;
+            version?: number;
+        };
+        "httptransport.GrantPageBody": {
+            items?: components["schemas"]["httptransport.GrantBody"][];
             page?: number;
             page_size?: number;
             total?: number;
@@ -969,10 +941,63 @@ export interface components {
         "httptransport.MeResponseBody": {
             subject?: string;
         };
+        "httptransport.MenuBody": {
+            application_id?: string;
+            code?: string;
+            component?: string;
+            created_at?: string;
+            created_by?: string;
+            external_url?: string;
+            i18n_key?: string;
+            icon?: string;
+            id?: string;
+            name?: string;
+            parent_id?: string;
+            permission_code?: string;
+            permission_scope?: string;
+            release_number?: number;
+            route?: string;
+            sort_order?: number;
+            status?: string;
+            type?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+            visible?: boolean;
+        };
+        "httptransport.MenuInputBody": {
+            application_id: string;
+            code: string;
+            component?: string;
+            external_url?: string;
+            i18n_key?: string;
+            icon?: string;
+            id?: string;
+            name: string;
+            parent_id?: string;
+            permission_code?: string;
+            permission_scope?: string;
+            route?: string;
+            sort_order?: number;
+            type: string;
+            visible?: boolean;
+        };
+        "httptransport.MenuReleaseBody": {
+            application_id?: string;
+            comment?: string;
+            created_at?: string;
+            created_by?: string;
+            id?: string;
+            release_number?: number;
+            status?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
         "httptransport.NavigationResponse": {
-            application?: components["schemas"]["application.Application"];
-            menus?: components["schemas"]["application.Menu"][];
-            release?: components["schemas"]["application.MenuRelease"];
+            application?: components["schemas"]["httptransport.ApplicationBody"];
+            menus?: components["schemas"]["httptransport.MenuBody"][];
+            release?: components["schemas"]["httptransport.MenuReleaseBody"];
         };
         "httptransport.PublishMenusRequest": {
             application_id: string;
@@ -980,8 +1005,8 @@ export interface components {
             comment?: string;
         };
         "httptransport.PublishMenusResponse": {
-            menus?: components["schemas"]["application.Menu"][];
-            release?: components["schemas"]["application.MenuRelease"];
+            menus?: components["schemas"]["httptransport.MenuBody"][];
+            release?: components["schemas"]["httptransport.MenuReleaseBody"];
         };
         "httptransport.Response": {
             body?: unknown;
@@ -995,8 +1020,8 @@ export interface components {
             version: number;
         };
         "httptransport.TenantApplicationsResponse": {
-            applications?: components["schemas"]["application.Application"][];
-            grants?: components["schemas"]["httptransport.GrantPage"];
+            applications?: components["schemas"]["httptransport.ApplicationBody"][];
+            grants?: components["schemas"]["httptransport.GrantPageBody"];
         };
         "httptransport.UpdateApplicationRequest": {
             default_route?: string;
@@ -1011,7 +1036,7 @@ export interface components {
         };
         "httptransport.UpsertMenuRequest": {
             expected_version?: number;
-            menu: components["schemas"]["application.Menu"];
+            menu: components["schemas"]["httptransport.MenuInputBody"];
         };
     };
     responses: never;

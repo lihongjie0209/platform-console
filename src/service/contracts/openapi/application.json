@@ -43,7 +43,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/application.Application"
+                                                    "$ref": "#/components/schemas/httptransport.ApplicationBody"
                                                 }
                                             }
                                         }
@@ -91,7 +91,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/application.Application"
+                                                    "$ref": "#/components/schemas/httptransport.ApplicationBody"
                                                 }
                                             }
                                         }
@@ -131,7 +131,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.ApplicationPageBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -297,7 +309,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/application.Menu"
+                                                    "$ref": "#/components/schemas/httptransport.MenuBody"
                                                 }
                                             }
                                         }
@@ -469,7 +481,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/application.Grant"
+                                                    "$ref": "#/components/schemas/httptransport.GrantBody"
                                                 }
                                             }
                                         }
@@ -613,7 +625,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/application.Grant"
+                                                    "$ref": "#/components/schemas/httptransport.GrantBody"
                                                 }
                                             }
                                         }
@@ -661,7 +673,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/application.Application"
+                                                    "$ref": "#/components/schemas/httptransport.ApplicationBody"
                                                 }
                                             }
                                         }
@@ -883,7 +895,52 @@
             }
         },
         "schemas": {
-            "application.Application": {
+            "buildinfo.Info": {
+                "type": "object",
+                "properties": {
+                    "build_time": {
+                        "type": "string"
+                    },
+                    "commit": {
+                        "type": "string"
+                    },
+                    "started_at": {
+                        "type": "string"
+                    },
+                    "uptime": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "string"
+                    }
+                }
+            },
+            "health.Dependency": {
+                "type": "object",
+                "properties": {
+                    "latency": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "health.Status": {
+                "type": "object",
+                "properties": {
+                    "dependencies": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/health.Dependency"
+                        }
+                    },
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.ApplicationBody": {
                 "type": "object",
                 "properties": {
                     "code": {
@@ -933,201 +990,6 @@
                     }
                 }
             },
-            "application.Grant": {
-                "type": "object",
-                "properties": {
-                    "application_id": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "created_by": {
-                        "type": "string"
-                    },
-                    "entitlements_json": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "source": {
-                        "type": "string"
-                    },
-                    "status": {
-                        "type": "string"
-                    },
-                    "tenant_id": {
-                        "type": "string"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    },
-                    "updated_by": {
-                        "type": "string"
-                    },
-                    "valid_from": {
-                        "type": "string"
-                    },
-                    "valid_until": {
-                        "type": "string"
-                    },
-                    "version": {
-                        "type": "integer"
-                    }
-                }
-            },
-            "application.Menu": {
-                "type": "object",
-                "properties": {
-                    "application_id": {
-                        "type": "string"
-                    },
-                    "code": {
-                        "type": "string"
-                    },
-                    "component": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "created_by": {
-                        "type": "string"
-                    },
-                    "external_url": {
-                        "type": "string"
-                    },
-                    "i18n_key": {
-                        "type": "string"
-                    },
-                    "icon": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "parent_id": {
-                        "type": "string"
-                    },
-                    "permission_code": {
-                        "type": "string"
-                    },
-                    "permission_scope": {
-                        "type": "string"
-                    },
-                    "release_number": {
-                        "type": "integer"
-                    },
-                    "route": {
-                        "type": "string"
-                    },
-                    "sort_order": {
-                        "type": "integer"
-                    },
-                    "status": {
-                        "type": "string"
-                    },
-                    "type": {
-                        "type": "string"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    },
-                    "updated_by": {
-                        "type": "string"
-                    },
-                    "version": {
-                        "type": "integer"
-                    },
-                    "visible": {
-                        "type": "boolean"
-                    }
-                }
-            },
-            "application.MenuRelease": {
-                "type": "object",
-                "properties": {
-                    "application_id": {
-                        "type": "string"
-                    },
-                    "comment": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "created_by": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "release_number": {
-                        "type": "integer"
-                    },
-                    "status": {
-                        "type": "string"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    },
-                    "updated_by": {
-                        "type": "string"
-                    },
-                    "version": {
-                        "type": "integer"
-                    }
-                }
-            },
-            "buildinfo.Info": {
-                "type": "object",
-                "properties": {
-                    "build_time": {
-                        "type": "string"
-                    },
-                    "commit": {
-                        "type": "string"
-                    },
-                    "started_at": {
-                        "type": "string"
-                    },
-                    "uptime": {
-                        "type": "string"
-                    },
-                    "version": {
-                        "type": "string"
-                    }
-                }
-            },
-            "health.Dependency": {
-                "type": "object",
-                "properties": {
-                    "latency": {
-                        "type": "string"
-                    },
-                    "status": {
-                        "type": "string"
-                    }
-                }
-            },
-            "health.Status": {
-                "type": "object",
-                "properties": {
-                    "dependencies": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "$ref": "#/components/schemas/health.Dependency"
-                        }
-                    },
-                    "status": {
-                        "type": "string"
-                    }
-                }
-            },
             "httptransport.ApplicationIDRequest": {
                 "type": "object",
                 "required": [
@@ -1136,6 +998,26 @@
                 "properties": {
                     "application_id": {
                         "type": "string"
+                    }
+                }
+            },
+            "httptransport.ApplicationPageBody": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.ApplicationBody"
+                        }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "total": {
+                        "type": "integer"
                     }
                 }
             },
@@ -1230,13 +1112,57 @@
                     }
                 }
             },
-            "httptransport.GrantPage": {
+            "httptransport.GrantBody": {
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "entitlements_json": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "source": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "valid_from": {
+                        "type": "string"
+                    },
+                    "valid_until": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.GrantPageBody": {
                 "type": "object",
                 "properties": {
                     "items": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/application.Grant"
+                            "$ref": "#/components/schemas/httptransport.GrantBody"
                         }
                     },
                     "page": {
@@ -1333,20 +1259,182 @@
                     }
                 }
             },
+            "httptransport.MenuBody": {
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "component": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "external_url": {
+                        "type": "string"
+                    },
+                    "i18n_key": {
+                        "type": "string"
+                    },
+                    "icon": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "parent_id": {
+                        "type": "string"
+                    },
+                    "permission_code": {
+                        "type": "string"
+                    },
+                    "permission_scope": {
+                        "type": "string"
+                    },
+                    "release_number": {
+                        "type": "integer"
+                    },
+                    "route": {
+                        "type": "string"
+                    },
+                    "sort_order": {
+                        "type": "integer"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    },
+                    "visible": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "httptransport.MenuInputBody": {
+                "type": "object",
+                "required": [
+                    "application_id",
+                    "code",
+                    "name",
+                    "type"
+                ],
+                "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "component": {
+                        "type": "string"
+                    },
+                    "external_url": {
+                        "type": "string"
+                    },
+                    "i18n_key": {
+                        "type": "string"
+                    },
+                    "icon": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "parent_id": {
+                        "type": "string"
+                    },
+                    "permission_code": {
+                        "type": "string"
+                    },
+                    "permission_scope": {
+                        "type": "string"
+                    },
+                    "route": {
+                        "type": "string"
+                    },
+                    "sort_order": {
+                        "type": "integer"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "visible": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "httptransport.MenuReleaseBody": {
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
+                    "comment": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "release_number": {
+                        "type": "integer"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
             "httptransport.NavigationResponse": {
                 "type": "object",
                 "properties": {
                     "application": {
-                        "$ref": "#/components/schemas/application.Application"
+                        "$ref": "#/components/schemas/httptransport.ApplicationBody"
                     },
                     "menus": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/application.Menu"
+                            "$ref": "#/components/schemas/httptransport.MenuBody"
                         }
                     },
                     "release": {
-                        "$ref": "#/components/schemas/application.MenuRelease"
+                        "$ref": "#/components/schemas/httptransport.MenuReleaseBody"
                     }
                 }
             },
@@ -1374,11 +1462,11 @@
                     "menus": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/application.Menu"
+                            "$ref": "#/components/schemas/httptransport.MenuBody"
                         }
                     },
                     "release": {
-                        "$ref": "#/components/schemas/application.MenuRelease"
+                        "$ref": "#/components/schemas/httptransport.MenuReleaseBody"
                     }
                 }
             },
@@ -1422,11 +1510,11 @@
                     "applications": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/application.Application"
+                            "$ref": "#/components/schemas/httptransport.ApplicationBody"
                         }
                     },
                     "grants": {
-                        "$ref": "#/components/schemas/httptransport.GrantPage"
+                        "$ref": "#/components/schemas/httptransport.GrantPageBody"
                     }
                 }
             },
@@ -1478,7 +1566,7 @@
                         "type": "integer"
                     },
                     "menu": {
-                        "$ref": "#/components/schemas/application.Menu"
+                        "$ref": "#/components/schemas/httptransport.MenuInputBody"
                     }
                 }
             }
