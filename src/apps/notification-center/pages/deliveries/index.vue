@@ -32,6 +32,7 @@ const form = reactive({
   idempotencyKey: ''
 });
 const loadGuard = createLatestRequestGuard();
+const canSend = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'notification.delivery.send' }));
 
 async function loadData() {
   const request = loadGuard.begin();
@@ -63,6 +64,7 @@ function search() {
   loadData();
 }
 function openSend() {
+  if (!canSend.value) return;
   Object.assign(form, {
     templateCode: '',
     channel: 'email',
@@ -74,7 +76,7 @@ function openSend() {
   visible.value = true;
 }
 async function send() {
-  if (!scopeReady.value) return;
+  if (!canSend.value || !scopeReady.value) return;
   let variables: Record<string, string>;
   try {
     variables = parseNotificationVariables(form.variables);
@@ -122,7 +124,7 @@ onMounted(loadData);
             查询 {{ applicationName }} 的异步投递状态、供应商回执和失败原因。
           </p>
         </div>
-        <ElButton type="primary" :disabled="!scopeReady" @click="openSend">发送测试通知</ElButton>
+        <ElButton v-if="canSend" type="primary" :disabled="!scopeReady" @click="openSend">发送测试通知</ElButton>
       </div>
     </template>
     <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" show-icon :closable="false" />
@@ -201,7 +203,7 @@ onMounted(loadData);
     </ElForm>
     <template #footer>
       <ElButton @click="visible = false">取消</ElButton>
-      <ElButton type="primary" :loading="sending" @click="send">发送</ElButton>
+      <ElButton v-if="canSend" type="primary" :loading="sending" @click="send">发送</ElButton>
     </template>
   </ElDialog>
   <ElDrawer v-model="detailVisible" title="投递详情" size="620px">

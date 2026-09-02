@@ -32,6 +32,9 @@ const form = reactive({
   version: 0
 });
 const loadGuard = createLatestRequestGuard();
+const canUpdate = computed(() =>
+  platformStore.hasPermission({ scope: 'tenant', codes: 'notification.template.update' })
+);
 
 async function loadData() {
   const request = loadGuard.begin();
@@ -65,6 +68,7 @@ function search() {
   loadData();
 }
 function edit(row?: NotificationTemplate) {
+  if (!canUpdate.value) return;
   Object.assign(
     form,
     row || {
@@ -80,7 +84,7 @@ function edit(row?: NotificationTemplate) {
   visible.value = true;
 }
 async function save() {
-  if (!scopeReady.value || !form.code.trim() || !form.content) return;
+  if (!canUpdate.value || !scopeReady.value || !form.code.trim() || !form.content) return;
   saving.value = true;
   try {
     await putTemplate(tenantID.value, applicationID.value, form);
@@ -108,7 +112,7 @@ onMounted(loadData);
           <h2 class="m-0 text-18px font-semibold">通知模板</h2>
           <p class="mb-0 mt-6px text-13px text-#999">维护 {{ applicationName }} 的多渠道、多语言模板。</p>
         </div>
-        <ElButton type="primary" :disabled="!scopeReady" @click="edit()">新建模板</ElButton>
+        <ElButton v-if="canUpdate" type="primary" :disabled="!scopeReady" @click="edit()">新建模板</ElButton>
       </div>
     </template>
     <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" show-icon :closable="false" />
@@ -137,7 +141,10 @@ onMounted(loadData);
         <ElTableColumn prop="version" label="版本" width="80" />
         <ElTableColumn prop="updated_at" label="更新时间" min-width="180" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn label="操作" width="90" fixed="right">
-          <template #default="{ row }"><ElButton link type="primary" @click="edit(row)">编辑</ElButton></template>
+          <template #default="{ row }">
+            <ElButton v-if="canUpdate" link type="primary" @click="edit(row)">编辑</ElButton>
+            <span v-else>-</span>
+          </template>
         </ElTableColumn>
       </ElTable>
       <div class="mt-16px flex justify-end">
@@ -192,7 +199,7 @@ onMounted(loadData);
     </ElForm>
     <template #footer>
       <ElButton @click="visible = false">取消</ElButton>
-      <ElButton type="primary" :loading="saving" @click="save">保存</ElButton>
+      <ElButton v-if="canUpdate" type="primary" :loading="saving" @click="save">保存</ElButton>
     </template>
   </ElDialog>
 </template>
