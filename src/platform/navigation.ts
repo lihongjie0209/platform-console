@@ -221,6 +221,13 @@ export function applicationEntryStatusLabel(status: ApplicationEntryStatus) {
   return '';
 }
 
+export function applicationEntryStatusMessage(status: ApplicationEntryStatus) {
+  if (status === 'unavailable') return '当前控制台版本尚未安装该应用的可执行页面，请升级控制台或联系管理员';
+  if (status === 'empty') return '当前账号在该应用下暂无可用功能，请联系管理员检查菜单与权限配置';
+  if (status === 'unpublished') return '该应用尚未发布可用菜单';
+  return '';
+}
+
 /** Keeps a persisted application selection only when it is still granted and runnable. */
 export function retainRunnableApplicationID(
   applications: PlatformApplication[],

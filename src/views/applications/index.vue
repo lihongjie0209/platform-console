@@ -4,7 +4,11 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/store/modules/auth';
 import { usePlatformStore } from '@/store/modules/platform';
 import { useRouteStore } from '@/store/modules/route';
-import { applicationEntryDecision, applicationEntryStatusLabel } from '@/platform/navigation';
+import {
+  applicationEntryDecision,
+  applicationEntryStatusLabel,
+  applicationEntryStatusMessage
+} from '@/platform/navigation';
 import { filterApplications } from '@/platform/application-context';
 import { BizEmptyState, BizPageContainer } from '@/components/business';
 
@@ -59,22 +63,20 @@ async function reloadApplications() {
 async function openApplication(applicationId: string) {
   const navigation = platformStore.navigations.find(item => item.application.id === applicationId);
   const decision = applicationEntryDecision(navigation);
-  if (decision.status === 'unpublished') {
-    window.$message?.warning('该应用尚未发布可用菜单');
-    return;
-  }
-  if (decision.status === 'unavailable') {
-    window.$message?.warning('当前控制台版本尚未安装该应用的可执行页面，请升级控制台或联系管理员');
-    return;
-  }
-  if (decision.status === 'empty') {
-    window.$message?.warning('当前账号在该应用下暂无可用功能，请联系管理员检查菜单与权限配置');
+  const blockedMessage = applicationEntryStatusMessage(decision.status);
+  if (blockedMessage) {
+    window.$message?.warning(blockedMessage);
     return;
   }
 
-  platformStore.selectApplication(applicationId);
-  routeStore.refreshPlatformRoutes();
-  await router.push(decision.path);
+  try {
+    platformStore.selectApplication(applicationId);
+    routeStore.refreshPlatformRoutes();
+    await router.push(decision.path);
+  } catch {
+    window.$message?.error('应用授权或发布状态已变化，请重新选择');
+    await router.push('/applications');
+  }
 }
 </script>
 

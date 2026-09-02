@@ -6,6 +6,7 @@ import {
   applicationEntryDecision,
   applicationEntryPath,
   applicationEntryStatusLabel,
+  applicationEntryStatusMessage,
   applicationMenuEntries,
   applicationNavigationCompatibility,
   filterNavigationsByPermissions,
@@ -492,6 +493,13 @@ test('application compatibility distinguishes installed, external and unavailabl
     }).usable,
     false
   );
+});
+
+test('application entry statuses provide one shared user-facing reason', () => {
+  assert.equal(applicationEntryStatusMessage('ready'), '');
+  assert.match(applicationEntryStatusMessage('unpublished'), /尚未发布/);
+  assert.match(applicationEntryStatusMessage('unavailable'), /尚未安装/);
+  assert.match(applicationEntryStatusMessage('empty'), /暂无可用功能/);
 });
 
 test('every application entry point uses the same publication and compatibility decision', () => {
