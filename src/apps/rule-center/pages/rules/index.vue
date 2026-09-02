@@ -33,6 +33,18 @@ const evaluation = ref('');
 const form = reactive({ code: '', name: '', description: '', status: 'draft' });
 const loadGuard = createLatestRequestGuard();
 const versionGuard = createLatestRequestGuard();
+const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'rule.set.create' }));
+const canUpdate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'rule.set.update' }));
+const canListVersions = computed(() => store.hasPermission({ scope: 'tenant', codes: 'rule.version.list' }));
+const canCreateVersion = computed(() =>
+  store.hasPermission({
+    scope: 'tenant',
+    codes: ['rule.version.create', 'rule.version.validate'],
+    strategy: 'all'
+  })
+);
+const canPublish = computed(() => store.hasPermission({ scope: 'tenant', codes: 'rule.version.publish' }));
+const canEvaluate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'rule.evaluation.execute' }));
 async function load() {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
@@ -50,17 +62,19 @@ async function load() {
   if (loadGuard.isCurrent(request)) rows.value = v.items || [];
 }
 function open(v?: RuleSet) {
+  if ((v && !canUpdate.value) || (!v && !canCreate.value)) return;
   editing.value = v;
   Object.assign(form, v || { code: '', name: '', description: '', status: 'draft' });
   visible.value = true;
 }
 async function save() {
-  if (!scopeReady.value) return;
+  if ((editing.value && !canUpdate.value) || (!editing.value && !canCreate.value) || !scopeReady.value) return;
   await saveRuleSet(editing.value, { tenantID: tenantID.value, applicationID: applicationID.value }, form);
   visible.value = false;
   await load();
 }
 async function versionsFor(v: RuleSet) {
+  if (!canListVersions.value) return;
   const request = versionGuard.begin();
   selected.value = v;
   const result = await listRuleVersions(v);
@@ -70,7 +84,7 @@ async function versionsFor(v: RuleSet) {
   }
 }
 async function createVersion() {
-  if (!selected.value) return;
+  if (!canCreateVersion.value || !selected.value) return;
   const value = parseJSONObject(definition.value, '规则定义');
   const check = await validateRule(selected.value.tenant_id, selected.value.application_id, value);
   if (!check.valid) {
@@ -81,13 +95,14 @@ async function createVersion() {
   await versionsFor(selected.value);
 }
 async function publish(v: RuleVersion) {
-  if (!selected.value) return;
+  if (!canPublish.value || !selected.value) return;
   const result = await publishRuleVersion(selected.value, v);
   selected.value = result.rule_set;
   await load();
   await versionsFor(result.rule_set);
 }
 async function evaluate(v: RuleSet) {
+  if (!canEvaluate.value) return;
   const r = await evaluateRule(v, parseJSONObject(facts.value, '事实'));
   evaluation.value = JSON.stringify(r, null, 2);
 }
@@ -113,7 +128,7 @@ onMounted(load);
           <h2 class="m-0">规则集</h2>
           <p class="mb-0 text-#999">规则版本不可变，校验后发布；执行事实和结果使用结构化 JSON。</p>
         </div>
-        <ElButton type="primary" :disabled="!scopeReady" @click="open()">新建规则集</ElButton>
+        <ElButton v-if="canCreate" type="primary" :disabled="!scopeReady" @click="open()">新建规则集</ElButton>
       </div>
     </template>
     <ElAlert v-if="!tenantID" title="请先选择租户" type="warning" :closable="false" />
@@ -138,9 +153,9 @@ onMounted(load);
         <ElTableColumn prop="published_version_number" label="发布版本" />
         <ElTableColumn label="操作" width="220">
           <template #default="{ row }">
-            <ElButton link @click="open(row)">编辑</ElButton>
-            <ElButton link @click="versionsFor(row)">版本</ElButton>
-            <ElButton v-if="row.status === 'active'" link @click="evaluate(row)">试运行</ElButton>
+            <ElButton v-if="canUpdate" link @click="open(row)">编辑</ElButton>
+            <ElButton v-if="canListVersions" link @click="versionsFor(row)">版本</ElButton>
+            <ElButton v-if="canEvaluate && row.status === 'active'" link @click="evaluate(row)">试运行</ElButton>
           </template>
         </ElTableColumn>
       </ElTable>
@@ -156,19 +171,19 @@ onMounted(load);
     </ElForm>
     <template #footer>
       <ElButton @click="visible = false">取消</ElButton>
-      <ElButton type="primary" @click="save">保存</ElButton>
+      <ElButton v-if="editing ? canUpdate : canCreate" type="primary" @click="save">保存</ElButton>
     </template>
   </ElDialog>
   <ElDrawer v-model="versionVisible" title="规则版本" size="760px">
     <ElInput v-model="definition" type="textarea" :rows="10" />
-    <ElButton class="my-12px" type="primary" @click="createVersion">校验并创建版本</ElButton>
+    <ElButton v-if="canCreateVersion" class="my-12px" type="primary" @click="createVersion">校验并创建版本</ElButton>
     <ElTable :data="versions" border>
       <ElTableColumn prop="version_number" label="版本" />
       <ElTableColumn prop="status" label="状态" />
       <ElTableColumn prop="checksum" label="校验和" />
       <ElTableColumn label="操作">
         <template #default="{ row }">
-          <ElButton v-if="row.status === 'draft'" link @click="publish(row)">发布</ElButton>
+          <ElButton v-if="canPublish && row.status === 'draft'" link @click="publish(row)">发布</ElButton>
         </template>
       </ElTableColumn>
     </ElTable>
