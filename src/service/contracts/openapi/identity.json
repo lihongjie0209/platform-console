@@ -1227,6 +1227,54 @@
                 }
             }
         },
+        "/api/v1/service-accounts/rotate-secret": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "service-accounts"
+                ],
+                "summary": "Rotate a service-account secret with optimistic locking and return it once",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.RotateServiceAccountSecretRequest"
+                            }
+                        }
+                    },
+                    "description": "Service account and version",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.RotateServiceAccountSecretResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/service-accounts/update-status": {
             "post": {
                 "security": [
@@ -2176,6 +2224,32 @@
                         "type": "string"
                     },
                     "session_id": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.RotateServiceAccountSecretRequest": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "version"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.RotateServiceAccountSecretResponseBody": {
+                "type": "object",
+                "properties": {
+                    "client_secret": {
                         "type": "string"
                     },
                     "version": {

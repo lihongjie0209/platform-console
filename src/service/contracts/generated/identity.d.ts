@@ -1145,6 +1145,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/service-accounts/rotate-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rotate a service-account secret with optimistic locking and return it once */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Service account and version */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.RotateServiceAccountSecretRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RotateServiceAccountSecretResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/service-accounts/update-status": {
         parameters: {
             query?: never;
@@ -1619,6 +1662,14 @@ export interface components {
             reason: string;
             session_id: string;
             version: number;
+        };
+        "httptransport.RotateServiceAccountSecretRequest": {
+            id: string;
+            version: number;
+        };
+        "httptransport.RotateServiceAccountSecretResponseBody": {
+            client_secret?: string;
+            version?: number;
         };
         "httptransport.ServiceAccountPageResponseBody": {
             items?: components["schemas"]["httptransport.ServiceAccountResponseBody"][];

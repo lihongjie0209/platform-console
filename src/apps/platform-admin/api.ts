@@ -25,6 +25,8 @@ type RolePermissionContract = AuthorizationContract['schemas']['httptransport.Ro
 export type Binding = AuthorizationContract['schemas']['httptransport.BindingBody'] & Record<string, unknown>;
 export type ServiceAccountContract = IdentityContract['schemas']['httptransport.ServiceAccountResponseBody'];
 export type CreateServiceAccountResult = IdentityContract['schemas']['httptransport.CreateServiceAccountResponseBody'];
+export type RotateServiceAccountSecretResult =
+  IdentityContract['schemas']['httptransport.RotateServiceAccountSecretResponseBody'];
 export type SessionContract = IdentityContract['schemas']['httptransport.SessionResponseBody'];
 type IdentityResponseContract = IdentityContract['schemas']['httptransport.IdentityResponseBody'];
 
@@ -517,6 +519,16 @@ export async function updateServiceAccountStatus(id: string, status: string, ver
       url: '/api/v1/service-accounts/update-status',
       method: 'post',
       data: { id, status, version }
+    })
+  );
+}
+
+export function rotateServiceAccountSecret(id: string, version: number) {
+  return unwrap<RotateServiceAccountSecretResult>(
+    identityRequest({
+      url: '/api/v1/service-accounts/rotate-secret',
+      method: 'post',
+      data: { id, version }
     })
   );
 }

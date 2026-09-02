@@ -3,8 +3,14 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
 import { BizCopyText } from '@/components/business';
+import { confirmUserAction } from '@/platform/user-action';
 import type { ServiceAccount, ServiceAccountForm } from '../../api';
-import { createServiceAccount, listServiceAccounts, updateServiceAccountStatus } from '../../api';
+import {
+  createServiceAccount,
+  listServiceAccounts,
+  rotateServiceAccountSecret,
+  updateServiceAccountStatus
+} from '../../api';
 
 defineOptions({ name: 'PlatformAdminServiceAccounts' });
 
@@ -20,6 +26,8 @@ const createVisible = ref(false);
 const credentialVisible = ref(false);
 const createdClientID = ref('');
 const createdSecret = ref('');
+const credentialTitle = ref('请立即保存客户端凭据');
+const rotatingID = ref('');
 const formRef = ref<FormInstance>();
 const form = reactive<ServiceAccountForm>({ name: '', audiences: [] });
 const rules: FormRules<ServiceAccountForm> = {
@@ -32,6 +40,9 @@ const canCreateAccount = computed(() =>
 );
 const canUpdateAccount = computed(() =>
   platformStore.hasPermission({ scope: 'platform', codes: 'identity.service-account.update-status' })
+);
+const canRotateSecret = computed(() =>
+  platformStore.hasPermission({ scope: 'platform', codes: 'identity.service-account.rotate-secret' })
 );
 
 async function loadData() {
@@ -75,11 +86,36 @@ async function submit() {
     const result = await createServiceAccount(form);
     createdClientID.value = String(result.account?.client_id || '');
     createdSecret.value = String(result.client_secret || '');
+    credentialTitle.value = '请立即保存客户端凭据';
     createVisible.value = false;
     credentialVisible.value = true;
     await loadData();
   } finally {
     submitting.value = false;
+  }
+}
+
+async function rotateSecret(row: ServiceAccount) {
+  if (!canRotateSecret.value || rotatingID.value) return;
+  const confirmed = await confirmUserAction(() =>
+    window.$messageBox!.confirm(`轮换后 ${row.name} 的旧 Client Secret 会立即失效，确认继续？`, '轮换客户端密钥', {
+      type: 'warning',
+      confirmButtonText: '确认轮换',
+      cancelButtonText: '取消'
+    })
+  );
+  if (!confirmed) return;
+
+  rotatingID.value = row.id;
+  try {
+    const result = await rotateServiceAccountSecret(row.id, row.version);
+    createdClientID.value = row.client_id;
+    createdSecret.value = result.client_secret || '';
+    credentialTitle.value = '请立即保存轮换后的客户端密钥';
+    credentialVisible.value = true;
+    await loadData();
+  } finally {
+    rotatingID.value = '';
   }
 }
 
@@ -161,7 +197,7 @@ onMounted(loadData);
         </template>
       </ElTableColumn>
       <ElTableColumn prop="version" label="版本" width="90" />
-      <ElTableColumn label="操作" width="110" fixed="right">
+      <ElTableColumn label="操作" width="190" fixed="right">
         <template #default="{ row }">
           <ElPopconfirm
             v-if="canUpdateAccount"
@@ -174,6 +210,17 @@ onMounted(loadData);
               </ElButton>
             </template>
           </ElPopconfirm>
+          <ElButton
+            v-if="canRotateSecret"
+            class="ml-8px"
+            link
+            type="warning"
+            :loading="rotatingID === row.id"
+            :disabled="Boolean(rotatingID)"
+            @click="rotateSecret(row)"
+          >
+            轮换密钥
+          </ElButton>
         </template>
       </ElTableColumn>
     </ElTable>
@@ -213,7 +260,7 @@ onMounted(loadData);
 
   <ElDialog
     :model-value="credentialVisible"
-    title="请立即保存客户端凭据"
+    :title="credentialTitle"
     width="680px"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
