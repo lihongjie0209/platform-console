@@ -34,6 +34,7 @@
     "build": "vite build --mode prod",
     "build:test": "vite build --mode test",
     "check:application-boundaries": "node scripts/check-application-boundaries.mjs",
+    "check:application-catalog": "tsx scripts/check-application-catalog.ts",
     "check:application-chunks": "node scripts/check-application-chunks.mjs",
     "check:application-scope": "node scripts/check-application-scope.mjs",
     "check:bounded-collections": "node scripts/check-bounded-collections.mjs",
@@ -122,7 +123,8 @@
     "vite-plugin-svg-icons": "2.0.1",
     "vite-plugin-vue-devtools": "8.1.1",
     "vue-eslint-parser": "10.4.0",
-    "vue-tsc": "3.2.6"
+    "vue-tsc": "3.2.6",
+    "yaml": "^2.9.0"
   },
   "simple-git-hooks": {
     "commit-msg": "pnpm sa git-commit-verify",

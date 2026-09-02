@@ -14,6 +14,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
+      - name: Check out application catalog
+        uses: actions/checkout@v5
+        with:
+          repository: lihongjie0209/application-service
+          path: .catalog/application-service
+          persist-credentials: false
       - uses: pnpm/action-setup@v4
         with:
           version: 11.21.0
@@ -27,6 +33,9 @@ jobs:
       - run: pnpm test
       - run: pnpm build
       - run: pnpm check:application-boundaries
+      - run: pnpm check:application-catalog
+        env:
+          PLATFORM_APPLICATION_CATALOG: .catalog/application-service/bootstrap/platform-applications.yaml
       - run: pnpm check:application-chunks
       - run: pnpm check:application-scope
       - run: pnpm check:bounded-collections
