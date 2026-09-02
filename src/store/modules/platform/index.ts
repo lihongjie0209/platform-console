@@ -10,6 +10,7 @@ import {
 } from '@/service/api';
 import { sessionStg } from '@/utils/storage';
 import { SetupStoreId } from '@/enum';
+import { chunkValues, collectAllPages } from '@/platform/pagination';
 import {
   createSerialTaskQueue,
   failedTenantSelectionContext,
@@ -46,6 +47,38 @@ async function fetchAllowedNavigationPermissionCodes(tenantId: string, navigatio
   return allowed;
 }
 
+async function fetchAllUserTenants(subject: string) {
+  return collectAllPages(async (page, pageSize) => {
+    const { data, error } = await fetchUserTenants(subject, page, pageSize);
+    if (error) throw error;
+    return data;
+  });
+}
+
+async function fetchAllTenantApplications(tenantId: string) {
+  return collectAllPages(async (page, pageSize) => {
+    const { data, error } = await fetchTenantApplications(tenantId, page, pageSize);
+    if (error) throw error;
+    return {
+      items: data.applications,
+      total: data.grants.total,
+      page: data.grants.page,
+      page_size: data.grants.page_size
+    };
+  });
+}
+
+async function fetchAllPublishedNavigations(applicationIDs: string[]) {
+  const results = await Promise.all(
+    chunkValues(applicationIDs, 100).map(async batch => {
+      const { data, error } = await fetchPublishedNavigations(batch);
+      if (error) throw error;
+      return data.items;
+    })
+  );
+  return results.flat();
+}
+
 export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
   const loading = ref(false);
   const errorMessage = ref('');
@@ -75,10 +108,7 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
     loading.value = true;
     errorMessage.value = '';
     try {
-      const { data, error } = await fetchUserTenants(subject);
-      if (error) throw error;
-
-      tenants.value = data.items.filter(item => item.status === 'active');
+      tenants.value = (await fetchAllUserTenants(subject)).filter(item => item.status === 'active');
       const selected = selectActiveTenant(tenants.value, selectedTenantId.value);
 
       if (selected) {
@@ -121,19 +151,15 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
       selectedTenantId.value = tenantId;
       sessionStg.set('selectedTenantId', tenantId);
 
-      const { data, error } = await fetchTenantApplications(tenantId);
-      if (error) throw error;
-
-      const applicationIDs = data.applications.map(item => item.id);
+      const tenantApplications = await fetchAllTenantApplications(tenantId);
+      const applicationIDs = tenantApplications.map(item => item.id);
       let navigationItems: PublishedNavigation[] = [];
       if (applicationIDs.length) {
-        const { data: navigationData, error: navigationError } = await fetchPublishedNavigations(applicationIDs);
-        if (navigationError) throw navigationError;
-        navigationItems = navigationData.items;
+        navigationItems = await fetchAllPublishedNavigations(applicationIDs);
       }
       if (revision !== requestRevision) return;
 
-      applications.value = data.applications.filter(item => item.status === 'active');
+      applications.value = tenantApplications.filter(item => item.status === 'active');
       const activeNavigations = retainActiveNavigations(applications.value, navigationItems);
       const allowedCodes = await fetchAllowedNavigationPermissionCodes(tenantId, activeNavigations);
       if (revision !== requestRevision) return;

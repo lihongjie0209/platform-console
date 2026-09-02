@@ -49,6 +49,7 @@ export interface PublishedNavigation {
 }
 
 interface TenantApplications {
+  grants: Page<unknown>;
   applications: PlatformApplication[];
 }
 
@@ -69,19 +70,19 @@ const tenantRequest = platformRequest('tenant');
 const applicationRequest = platformRequest('application');
 const authorizationRequest = platformRequest('authorization');
 
-export function fetchUserTenants(userID: string) {
+export function fetchUserTenants(userID: string, page = 1, pageSize = 100) {
   return tenantRequest<Page<TenantSummary>>({
     url: '/api/v1/tenants/list-by-user',
     method: 'post',
-    data: { user_id: userID, page: 1, page_size: 100 }
+    data: { user_id: userID, page, page_size: pageSize }
   });
 }
 
-export function fetchTenantApplications(tenantID: string) {
+export function fetchTenantApplications(tenantID: string, page = 1, pageSize = 100) {
   return applicationRequest<TenantApplications>({
     url: '/api/v1/applications/tenant-grants/list',
     method: 'post',
-    data: { tenant_id: tenantID, active_only: true, page: 1, page_size: 100 }
+    data: { tenant_id: tenantID, active_only: true, page, page_size: pageSize }
   });
 }
 
