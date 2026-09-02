@@ -46,6 +46,9 @@ const selectedFile = ref<File>();
 const filter = reactive({ keyword: '', status: '', scanStatus: '', contentType: '', ownerID: '' });
 const loadGuard = createLatestRequestGuard();
 const uploadGuard = createLatestRequestGuard();
+const canUpload = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'file.object.upload' }));
+const canDownload = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'file.object.download' }));
+const canDelete = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'file.object.delete' }));
 
 interface UploadContext {
   tenantID: string;
@@ -94,6 +97,7 @@ function resetSearch() {
 }
 
 function openUpload() {
+  if (!canUpload.value) return;
   uploadFiles.value = [];
   selectedFile.value = undefined;
   uploadVisible.value = true;
@@ -156,7 +160,7 @@ async function uploadMultipart(source: File, checksum: string, context: UploadCo
 
 async function upload() {
   const source = selectedFile.value;
-  if (!scopeReady.value || !source) return;
+  if (!canUpload.value || !scopeReady.value || !source) return;
   const request = uploadGuard.begin();
   const context = { tenantID: tenantID.value, applicationID: applicationID.value, request };
   uploading.value = true;
@@ -175,7 +179,7 @@ async function upload() {
 }
 
 async function download(row: FileMetadata) {
-  if (!scopeReady.value) return;
+  if (!canDownload.value || !scopeReady.value) return;
   const authorization = await authorizeDownload(row);
   const anchor = document.createElement('a');
   anchor.href = authorization.url;
@@ -185,7 +189,7 @@ async function download(row: FileMetadata) {
 }
 
 async function remove(row: FileMetadata) {
-  if (!scopeReady.value) return;
+  if (!canDelete.value || !scopeReady.value) return;
   await ElMessageBox.confirm(`确认删除文件“${row.filename}”吗？对象存储中的内容也会被删除。`, '删除文件', {
     type: 'warning',
     confirmButtonText: '删除',
@@ -229,7 +233,7 @@ onMounted(loadData);
         </div>
         <div class="flex-y-center gap-8px">
           <ElButton :loading="loading" @click="loadData">刷新</ElButton>
-          <ElButton type="primary" :disabled="!scopeReady" @click="openUpload">上传文件</ElButton>
+          <ElButton v-if="canUpload" type="primary" :disabled="!scopeReady" @click="openUpload">上传文件</ElButton>
         </div>
       </div>
     </template>
@@ -284,8 +288,15 @@ onMounted(loadData);
         <ElTableColumn label="操作" width="190" fixed="right">
           <template #default="{ row }">
             <ElButton link type="primary" @click="showDetail(row)">详情</ElButton>
-            <ElButton v-if="row.status === 'ready'" link type="primary" @click="download(row)">下载</ElButton>
-            <ElButton v-if="!['deleted', 'expired'].includes(row.status)" link type="danger" @click="remove(row)">
+            <ElButton v-if="canDownload && row.status === 'ready'" link type="primary" @click="download(row)">
+              下载
+            </ElButton>
+            <ElButton
+              v-if="canDelete && !['deleted', 'expired'].includes(row.status)"
+              link
+              type="danger"
+              @click="remove(row)"
+            >
               删除
             </ElButton>
           </template>
@@ -329,7 +340,9 @@ onMounted(loadData);
     <ElProgress v-if="uploading" class="mt-16px" :percentage="uploadProgress" />
     <template #footer>
       <ElButton :disabled="uploading" @click="uploadVisible = false">取消</ElButton>
-      <ElButton type="primary" :loading="uploading" :disabled="!selectedFile" @click="upload">上传</ElButton>
+      <ElButton v-if="canUpload" type="primary" :loading="uploading" :disabled="!selectedFile" @click="upload">
+        上传
+      </ElButton>
     </template>
   </ElDialog>
 
