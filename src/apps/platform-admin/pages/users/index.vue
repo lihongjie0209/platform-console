@@ -1,10 +1,18 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
+import { computed, ref } from 'vue';
+import { BizCopyText, BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
 import { passwordPolicyError } from '@/platform/password-policy';
+import { buildPasswordResetURL } from '@/platform/password-reset';
 import type { UserForm, UserIdentity } from '../../api';
-import { createUser, getUserMFAStatus, listUsers, resetUserMFA, updateUserStatus } from '../../api';
+import {
+  createUser,
+  getUserMFAStatus,
+  issueUserPasswordReset,
+  listUsers,
+  resetUserMFA,
+  updateUserStatus
+} from '../../api';
 
 defineOptions({ name: 'PlatformAdminUsers' });
 interface Query extends Record<string, unknown> {
@@ -50,7 +58,7 @@ const config: BizCrudConfig<UserIdentity, Query, UserForm, string> = {
     { prop: 'phone', label: '手机', minWidth: 150 },
     { prop: 'status', label: '状态', width: 110, slot: 'status' },
     { prop: 'version', label: '版本', width: 90 },
-    { prop: 'id', label: '操作', width: 100, fixed: 'right', slot: 'actions' }
+    { prop: 'id', label: '操作', width: 270, fixed: 'right', slot: 'actions' }
   ],
   form: {
     mode: 'drawer',
@@ -127,6 +135,46 @@ const adapter: BizCrudAdapter<UserIdentity, Query, UserForm, string> = {
 };
 
 const resettingMFAUserID = ref('');
+const passwordResetUserID = ref('');
+const passwordResetToken = ref('');
+const passwordResetExpiresAt = ref('');
+const passwordResetVisible = ref(false);
+
+const passwordResetURL = computed(() => {
+  if (!passwordResetToken.value) return '';
+  return buildPasswordResetURL(window.location.origin, passwordResetToken.value);
+});
+
+function closePasswordResetIssue() {
+  passwordResetVisible.value = false;
+  passwordResetToken.value = '';
+  passwordResetExpiresAt.value = '';
+}
+
+async function issuePasswordReset(row: UserIdentity) {
+  passwordResetUserID.value = row.id;
+  try {
+    const { value: reason } = await ElMessageBox.prompt(
+      `请确认已通过线下渠道核验 ${row.username} 的身份，并填写签发原因。`,
+      '签发一次性密码重置令牌',
+      {
+        type: 'warning',
+        confirmButtonText: '确认签发',
+        cancelButtonText: '取消',
+        inputType: 'textarea',
+        inputValidator: input => Boolean(input?.trim()) || '请输入签发原因'
+      }
+    );
+    const issue = await issueUserPasswordReset(row.id, reason.trim());
+    passwordResetToken.value = issue.reset_token;
+    passwordResetExpiresAt.value = issue.expires_at;
+    passwordResetVisible.value = true;
+  } catch {
+    // The request layer reports service failures; prompt cancellation needs no extra notice.
+  } finally {
+    passwordResetUserID.value = '';
+  }
+}
 
 async function resetMFA(row: UserIdentity) {
   resettingMFAUserID.value = row.id;
@@ -168,7 +216,26 @@ async function resetMFA(row: UserIdentity) {
     </template>
     <template #cell-actions="{ row, edit, canEdit }">
       <BizRowActions :can-edit="canEdit" :can-delete="false" @edit="edit(row)" />
+      <ElButton link :loading="passwordResetUserID === row.id" @click="issuePasswordReset(row)">重置密码</ElButton>
       <ElButton link type="danger" :loading="resettingMFAUserID === row.id" @click="resetMFA(row)">重置 MFA</ElButton>
     </template>
   </BizCrudPage>
+
+  <ElDialog v-model="passwordResetVisible" title="一次性密码重置令牌" width="680px" :close-on-click-modal="false">
+    <ElAlert
+      class="mb-16px"
+      type="warning"
+      show-icon
+      :closable="false"
+      title="令牌和链接仅显示一次，请通过已核验的安全渠道交付给用户。再次签发会立即使本令牌失效。"
+    />
+    <ElDescriptions :column="1" border>
+      <ElDescriptionsItem label="重置令牌"><BizCopyText :value="passwordResetToken" /></ElDescriptionsItem>
+      <ElDescriptionsItem label="重置链接"><BizCopyText :value="passwordResetURL" /></ElDescriptionsItem>
+      <ElDescriptionsItem label="有效期至">{{ passwordResetExpiresAt }}</ElDescriptionsItem>
+    </ElDescriptions>
+    <template #footer>
+      <ElButton type="primary" @click="closePasswordResetIssue">我已安全交付</ElButton>
+    </template>
+  </ElDialog>
 </template>

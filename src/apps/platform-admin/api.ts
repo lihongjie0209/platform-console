@@ -106,6 +106,11 @@ export interface AdminMFAResetResult {
   version: number;
 }
 
+export interface PasswordResetIssue {
+  reset_token: string;
+  expires_at: string;
+}
+
 export interface ServiceAccount extends ServiceAccountContract, Record<string, unknown> {
   id: string;
   client_id: string;
@@ -459,6 +464,16 @@ export function resetUserMFA(userID: string, reason: string, version: number) {
       url: '/api/v1/identities/mfa/reset',
       method: 'post',
       data: { user_id: userID, reason, version }
+    })
+  );
+}
+
+export function issueUserPasswordReset(userID: string, reason: string) {
+  return unwrap<PasswordResetIssue>(
+    identityRequest({
+      url: '/api/v1/identities/password-reset/issue',
+      method: 'post',
+      data: { user_id: userID, reason }
     })
   );
 }

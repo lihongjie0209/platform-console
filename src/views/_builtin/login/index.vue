@@ -6,6 +6,7 @@ import { useAppStore } from '@/store/modules/app';
 import { useThemeStore } from '@/store/modules/theme';
 import { $t } from '@/locales';
 import PwdLogin from './modules/pwd-login.vue';
+import ResetPwd from './modules/reset-pwd.vue';
 
 defineOptions({ name: 'LoginPage' });
 
@@ -19,10 +20,10 @@ const props = defineProps<Props>();
 const appStore = useAppStore();
 const themeStore = useThemeStore();
 
-const activeModule = computed(() => ({
-  label: loginModuleRecord[props.module === 'pwd-login' ? props.module : 'pwd-login'],
-  component: PwdLogin
-}));
+const activeModule = computed(() => {
+  const module = props.module === 'reset-pwd' ? 'reset-pwd' : 'pwd-login';
+  return { label: loginModuleRecord[module], component: module === 'reset-pwd' ? ResetPwd : PwdLogin };
+});
 
 const bgThemeColor = computed(() =>
   themeStore.darkMode ? getPaletteColorByNumber(themeStore.themeColor, 600) : themeStore.themeColor

@@ -510,6 +510,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/password-reset/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Consume a one-time recovery token and replace the password */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description One-time token and new password */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ConfirmPasswordResetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ConfirmPasswordResetResponseBody"];
+                        };
+                    };
+                };
+                /** @description Code 20001: invalid, expired, or consumed token */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/refresh": {
         parameters: {
             query?: never;
@@ -814,6 +866,49 @@ export interface paths {
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
                             body?: components["schemas"]["httptransport.MFAStatusResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/identities/password-reset/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue a one-time password recovery token for another user */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Target user and auditable reason */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.IssuePasswordResetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.IssuePasswordResetResponseBody"];
                         };
                     };
                 };
@@ -1357,6 +1452,14 @@ export interface components {
             revoked_sessions?: number;
             version?: number;
         };
+        "httptransport.ConfirmPasswordResetRequest": {
+            new_password: string;
+            reset_token: string;
+        };
+        "httptransport.ConfirmPasswordResetResponseBody": {
+            changed?: boolean;
+            revoked_sessions?: number;
+        };
         "httptransport.CreateServiceAccountRequest": {
             audiences: string[];
             name: string;
@@ -1382,6 +1485,14 @@ export interface components {
             status?: string;
             username?: string;
             version?: number;
+        };
+        "httptransport.IssuePasswordResetRequest": {
+            reason: string;
+            user_id: string;
+        };
+        "httptransport.IssuePasswordResetResponseBody": {
+            expires_at?: string;
+            reset_token?: string;
         };
         "httptransport.ListIdentitiesRequest": {
             keyword?: string;

@@ -526,6 +526,59 @@
                 }
             }
         },
+        "/api/v1/auth/password-reset/confirm": {
+            "post": {
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Consume a one-time recovery token and replace the password",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.ConfirmPasswordResetRequest"
+                            }
+                        }
+                    },
+                    "description": "One-time token and new password",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.ConfirmPasswordResetResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Code 20001: invalid, expired, or consumed token",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/auth/refresh": {
             "post": {
                 "tags": [
@@ -837,6 +890,54 @@
                                             "properties": {
                                                 "body": {
                                                     "$ref": "#/components/schemas/httptransport.MFAStatusResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/identities/password-reset/issue": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "identities"
+                ],
+                "summary": "Issue a one-time password recovery token for another user",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.IssuePasswordResetRequest"
+                            }
+                        }
+                    },
+                    "description": "Target user and auditable reason",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.IssuePasswordResetResponseBody"
                                                 }
                                             }
                                         }
@@ -1522,6 +1623,32 @@
                     }
                 }
             },
+            "httptransport.ConfirmPasswordResetRequest": {
+                "type": "object",
+                "required": [
+                    "new_password",
+                    "reset_token"
+                ],
+                "properties": {
+                    "new_password": {
+                        "type": "string"
+                    },
+                    "reset_token": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.ConfirmPasswordResetResponseBody": {
+                "type": "object",
+                "properties": {
+                    "changed": {
+                        "type": "boolean"
+                    },
+                    "revoked_sessions": {
+                        "type": "integer"
+                    }
+                }
+            },
             "httptransport.CreateServiceAccountRequest": {
                 "type": "object",
                 "required": [
@@ -1604,6 +1731,32 @@
                     },
                     "version": {
                         "type": "integer"
+                    }
+                }
+            },
+            "httptransport.IssuePasswordResetRequest": {
+                "type": "object",
+                "required": [
+                    "reason",
+                    "user_id"
+                ],
+                "properties": {
+                    "reason": {
+                        "type": "string"
+                    },
+                    "user_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.IssuePasswordResetResponseBody": {
+                "type": "object",
+                "properties": {
+                    "expires_at": {
+                        "type": "string"
+                    },
+                    "reset_token": {
+                        "type": "string"
                     }
                 }
             },

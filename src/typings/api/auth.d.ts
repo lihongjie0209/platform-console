@@ -102,5 +102,10 @@ declare namespace Api {
       disabled: boolean;
       revoked_sessions: number;
     }
+
+    interface PasswordResetResult {
+      changed: boolean;
+      revoked_sessions: number;
+    }
   }
 }

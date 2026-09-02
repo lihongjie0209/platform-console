@@ -142,3 +142,12 @@ export function fetchDisableMFA(currentPassword: string, code: string, version: 
     data: { current_password: currentPassword, code, version }
   });
 }
+
+/** Consume an administrator-issued one-time password recovery token. */
+export function fetchConfirmPasswordReset(resetToken: string, newPassword: string) {
+  return identityRequest<Api.Auth.PasswordResetResult>({
+    url: '/api/v1/auth/password-reset/confirm',
+    method: 'post',
+    data: { reset_token: resetToken, new_password: newPassword }
+  });
+}

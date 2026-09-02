@@ -3,11 +3,13 @@ import { computed, ref } from 'vue';
 import dayjs from 'dayjs';
 import { useAuthStore } from '@/store/modules/auth';
 import { useForm, useFormRules } from '@/hooks/common/form';
+import { useRouterPush } from '@/hooks/common/router';
 
 defineOptions({ name: 'PwdLogin' });
 
 const authStore = useAuthStore();
 const { formRef, validate } = useForm();
+const { toggleLoginModule } = useRouterPush();
 
 interface FormModel {
   userName: string;
@@ -117,6 +119,7 @@ function handlePrimary() {
         <ElButton type="primary" size="large" round block :loading="authStore.loginLoading" @click="handleSubmit">
           {{ $t('common.confirm') }}
         </ElButton>
+        <ElButton link type="primary" @click="toggleLoginModule('reset-pwd')">使用管理员提供的重置令牌</ElButton>
       </ElSpace>
     </template>
   </ElForm>
