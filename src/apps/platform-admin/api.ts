@@ -1207,6 +1207,16 @@ export function listMemberships(query: MembershipQuery) {
   );
 }
 
+export function batchGetMemberships(tenantID: string, membershipIDs: string[]) {
+  return unwrap<{ memberships: Membership[] }>(
+    tenantRequest({
+      url: '/api/v1/memberships/batch-get',
+      method: 'post',
+      data: { tenant_id: tenantID, membership_ids: membershipIDs }
+    })
+  );
+}
+
 export async function addMembership(tenantID: string, form: MembershipForm) {
   await unwrap<Membership>(
     tenantRequest({

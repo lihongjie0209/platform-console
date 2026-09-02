@@ -524,6 +524,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/memberships/batch-get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a bounded set of tenant memberships by ID */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Tenant and membership IDs (maximum 100) */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.BatchGetMembershipsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.MembershipBatchBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/memberships/list": {
         parameters: {
             query?: never;
@@ -1434,6 +1477,10 @@ export interface components {
             tenant_id: string;
             user_id: string;
         };
+        "httptransport.BatchGetMembershipsRequest": {
+            membership_ids: string[];
+            tenant_id: string;
+        };
         "httptransport.ConsumeQuotaRequest": {
             amount: number;
             key: string;
@@ -1575,6 +1622,9 @@ export interface components {
         };
         "httptransport.MeResponseBody": {
             subject?: string;
+        };
+        "httptransport.MembershipBatchBody": {
+            memberships?: components["schemas"]["httptransport.MembershipBody"][];
         };
         "httptransport.MembershipBody": {
             created_at?: string;

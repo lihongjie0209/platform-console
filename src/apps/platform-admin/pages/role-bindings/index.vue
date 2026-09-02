@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
-import { collectAllPages } from '@/platform/pagination';
+import { remoteSearchPage } from '@/platform/remote-search';
 import { confirmUserAction } from '@/platform/user-action';
 import {
   type AuthorizationManagementScope,
@@ -19,6 +19,8 @@ import type {
   UserIdentity
 } from '../../api';
 import {
+  batchGetMemberships,
+  batchGetUsers,
   createMyBinding,
   listGroups,
   listMemberships,
@@ -29,11 +31,13 @@ import {
   listUsers,
   revokeMyBinding
 } from '../../api';
+import { boundedDistinctIDs, mergeUserDirectory } from '../../user-directory';
 
 defineOptions({ name: 'PlatformAdminRoleBindings' });
 const platformStore = usePlatformStore();
 const loading = ref(false);
 const submitting = ref(false);
+const subjectSearching = ref(false);
 const rows = ref<Binding[]>([]);
 const total = ref(0);
 const page = ref(1);
@@ -148,52 +152,87 @@ async function loadRows() {
     });
     rows.value = result.items;
     total.value = result.total;
+    await hydrateVisibleSubjects(result.items);
   } finally {
     loading.value = false;
   }
 }
 async function loadCatalogs() {
   if (!tenantID.value) return;
-  const [roleItems, userItems, serviceAccountItems] = await Promise.all([
-    collectAllPages((catalogPage, catalogPageSize) =>
-      listMyRoles({
-        tenantID: tenantID.value,
-        permissionScope: bindingScope.value,
-        page: catalogPage,
-        pageSize: catalogPageSize
-      })
-    ),
-    collectAllPages((catalogPage, catalogPageSize) => listUsers({ page: catalogPage, pageSize: catalogPageSize })),
-    collectAllPages((catalogPage, catalogPageSize) =>
-      listServiceAccounts({ page: catalogPage, pageSize: catalogPageSize })
-    )
-  ]);
-  roles.value = roleItems;
-  users.value = userItems;
-  serviceAccounts.value = serviceAccountItems;
+  const result = await listMyRoles({
+    tenantID: tenantID.value,
+    permissionScope: bindingScope.value,
+    ...remoteSearchPage(100)
+  });
+  roles.value = result.items;
   if (bindingScope.value === 'platform') {
     memberships.value = [];
     groups.value = [];
     organizations.value = [];
     return;
   }
-  const [membershipItems, groupItems, organizationItems] = await Promise.all([
-    collectAllPages(async (catalogPage, catalogPageSize) => {
-      const result = await listMemberships({
-        tenantID: tenantID.value,
-        page: catalogPage,
-        pageSize: catalogPageSize
-      });
-      return { ...result, items: result.memberships };
-    }),
-    collectAllPages((catalogPage, catalogPageSize) => listGroups(tenantID.value, catalogPage, catalogPageSize)),
-    listOrganizationUnits(tenantID.value)
-  ]);
-  memberships.value = membershipItems;
-  groups.value = groupItems;
-  organizations.value = organizationItems;
+  organizations.value = await listOrganizationUnits(tenantID.value);
 }
-function openCreate() {
+async function hydrateVisibleSubjects(bindings: Binding[]) {
+  const currentTenantID = tenantID.value;
+  if (!currentTenantID) return;
+  const userIDs = boundedDistinctIDs(
+    bindings.filter(item => item.subject_type === 'user').map(item => String(item.subject_id))
+  );
+  const membershipIDs = boundedDistinctIDs(
+    bindings.filter(item => item.subject_type === 'membership').map(item => String(item.subject_id))
+  );
+  const [userResult, membershipResult] = await Promise.all([
+    userIDs.length ? batchGetUsers(userIDs) : Promise.resolve({ items: [] }),
+    membershipIDs.length
+      ? batchGetMemberships(currentTenantID, membershipIDs)
+      : Promise.resolve({ memberships: [] as Membership[] })
+  ]);
+  memberships.value = membershipResult.memberships;
+  const membershipUserIDs = boundedDistinctIDs(membershipResult.memberships.map(item => String(item.user_id)));
+  const membershipUsers = membershipUserIDs.length ? await batchGetUsers(membershipUserIDs) : { items: [] };
+  users.value = mergeUserDirectory(users.value, [...userResult.items, ...membershipUsers.items]);
+}
+async function searchSubjects(keyword = '') {
+  if (!tenantID.value) return;
+  subjectSearching.value = true;
+  try {
+    if (form.subject_type === 'user') {
+      const result = await listUsers({ ...remoteSearchPage(20), keyword, status: 'active' });
+      users.value = mergeUserDirectory(users.value, result.items);
+      return;
+    }
+    if (form.subject_type === 'service_account') {
+      const result = await listServiceAccounts({ ...remoteSearchPage(20), keyword, status: 'active' });
+      serviceAccounts.value = result.items;
+      return;
+    }
+    if (form.subject_type === 'group') {
+      const result = await listGroups(tenantID.value, remoteSearchPage(50).page, remoteSearchPage(50).pageSize);
+      const normalized = keyword.trim().toLocaleLowerCase();
+      groups.value = normalized
+        ? result.items.filter(item => `${item.name} ${item.code}`.toLocaleLowerCase().includes(normalized))
+        : result.items;
+      return;
+    }
+    const userResult = await listUsers({ ...remoteSearchPage(20), keyword, status: 'active' });
+    const membershipResults = await Promise.all(
+      userResult.items.map(user =>
+        listMemberships({
+          tenantID: tenantID.value,
+          userID: String(user.id),
+          status: 'active',
+          ...remoteSearchPage(1)
+        })
+      )
+    );
+    users.value = mergeUserDirectory(users.value, userResult.items);
+    memberships.value = membershipResults.flatMap(result => result.memberships);
+  } finally {
+    subjectSearching.value = false;
+  }
+}
+async function openCreate() {
   if (!canCreateBinding.value) return;
   Object.assign(form, {
     subject_type: bindingScope.value === 'platform' ? 'user' : 'membership',
@@ -203,6 +242,7 @@ function openCreate() {
   });
   formRef.value?.clearValidate();
   dialogVisible.value = true;
+  await searchSubjects();
 }
 async function submit() {
   if (!canCreateBinding.value || !(await formRef.value?.validate())) return;
@@ -244,8 +284,9 @@ function changePageSize(value: number) {
 }
 watch(
   () => form.subject_type,
-  () => {
+  async () => {
     form.subject_id = '';
+    await searchSubjects();
   }
 );
 watch([tenantID, bindingScope], async () => {
@@ -328,7 +369,14 @@ onMounted(() => Promise.all([loadCatalogs(), loadRows()]));
         </ElSelect>
       </ElFormItem>
       <ElFormItem label="主体" prop="subject_id">
-        <ElSelect v-model="form.subject_id" filterable>
+        <ElSelect
+          v-model="form.subject_id"
+          filterable
+          remote
+          :remote-method="searchSubjects"
+          :loading="subjectSearching"
+          reserve-keyword
+        >
           <ElOption v-for="option in subjectOptions" :key="option.value" :label="option.label" :value="option.value" />
         </ElSelect>
       </ElFormItem>
