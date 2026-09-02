@@ -7,7 +7,8 @@ import { useRouteStore } from '@/store/modules/route';
 import {
   applicationEntryDecision,
   applicationEntryStatusLabel,
-  applicationEntryStatusMessage
+  applicationEntryStatusMessage,
+  applicationNavigationCompatibility
 } from '@/platform/navigation';
 import { filterApplications } from '@/platform/application-context';
 import { groupApplications } from '@/platform/application-groups';
@@ -31,9 +32,21 @@ const entryDecisionByApplication = computed(() => {
     platformStore.navigations.map(navigation => [navigation.application.id, applicationEntryDecision(navigation)])
   );
 });
+const compatibilityByApplication = computed(() => {
+  return new Map(
+    platformStore.navigations.map(navigation => [
+      navigation.application.id,
+      applicationNavigationCompatibility(navigation)
+    ])
+  );
+});
 
 function applicationEntryState(applicationId: string) {
   return entryDecisionByApplication.value.get(applicationId) || applicationEntryDecision();
+}
+
+function applicationCompatibility(applicationId: string) {
+  return compatibilityByApplication.value.get(applicationId);
 }
 
 watch(
@@ -157,6 +170,23 @@ async function openApplication(applicationId: string) {
                     <p class="mb-0 mt-12px min-h-40px text-13px text-gray-500 leading-20px">
                       {{ application.description || '暂无应用说明' }}
                     </p>
+                    <div class="mt-10px flex flex-wrap items-center gap-6px text-12px text-gray-400">
+                      <span>
+                        {{
+                          (applicationCompatibility(application.id)?.supportedPages || 0) +
+                          (applicationCompatibility(application.id)?.externalPages || 0)
+                        }}
+                        个可用功能
+                      </span>
+                      <ElTag
+                        v-if="applicationCompatibility(application.id)?.unsupportedPages"
+                        size="small"
+                        type="warning"
+                        effect="plain"
+                      >
+                        {{ applicationCompatibility(application.id)?.unsupportedPages }} 个页面待安装
+                      </ElTag>
+                    </div>
                   </div>
                   <SvgIcon icon="mdi:chevron-right" class="mt-14px shrink-0 text-20px text-gray-400" />
                 </div>
