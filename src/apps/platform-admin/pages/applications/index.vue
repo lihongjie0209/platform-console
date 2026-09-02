@@ -4,7 +4,7 @@ import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business'
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
 import type { Application, ApplicationForm } from '../../api';
 import { createApplication, getApplication, listApplications, updateApplication } from '../../api';
-import { parseJSONObject } from '../../metadata';
+import { applicationCodeError, parseJSONObject } from '../../metadata';
 
 defineOptions({ name: 'PlatformAdminApplications' });
 
@@ -36,6 +36,15 @@ const metadataRule: FormItemRule = {
     } catch {
       callback(new Error('请输入有效的 JSON 对象'));
     }
+  },
+  trigger: 'blur'
+};
+
+const applicationCodeRule: FormItemRule = {
+  validator: (_rule, value, callback) => {
+    const message = applicationCodeError(value);
+    if (message) callback(new Error(message));
+    else callback();
   },
   trigger: 'blur'
 };
@@ -79,7 +88,7 @@ const config: BizCrudConfig<Application, ApplicationQuery, ApplicationForm, stri
         key: 'code',
         label: '应用编码',
         disabled: model => Number(model.version) > 0,
-        rules: [{ required: true, message: '请输入应用编码' }]
+        rules: [{ required: true, message: '请输入应用编码' }, applicationCodeRule]
       },
       { key: 'name', label: '应用名称', rules: [{ required: true, message: '请输入应用名称' }] },
       { key: 'description', label: '描述', type: 'textarea', props: { rows: 3 } },
