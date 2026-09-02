@@ -17,12 +17,27 @@ const categories: readonly { category: ApplicationCategory; label: string }[] = 
   { category: 'commerce', label: '计量与商业' },
   { category: 'business', label: '业务应用' }
 ];
+const categoryValues = new Set<ApplicationCategory>(categories.map(item => item.category));
+
+function configuredCategory(application: PlatformApplication): ApplicationCategory | undefined {
+  if (!application.metadata_json) return undefined;
+  try {
+    const metadata: unknown = JSON.parse(application.metadata_json);
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return undefined;
+    const category = Reflect.get(metadata, 'category');
+    return typeof category === 'string' && categoryValues.has(category as ApplicationCategory)
+      ? (category as ApplicationCategory)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /** Groups the granted application catalog by product boundary, not by backend service dependency. */
 export function groupApplications(applications: PlatformApplication[]): ApplicationGroup[] {
   const grouped = new Map<ApplicationCategory, PlatformApplication[]>();
   for (const application of applications) {
-    const category = applicationModuleFor(application.code)?.category ?? 'business';
+    const category = configuredCategory(application) ?? applicationModuleFor(application.code)?.category ?? 'business';
     const items = grouped.get(category) ?? [];
     items.push(application);
     grouped.set(category, items);

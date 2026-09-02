@@ -44,3 +44,22 @@ test('keeps future backend-defined applications visible as business applications
     ['crm', 'erp']
   );
 });
+
+test('uses a valid server-managed category and safely ignores malformed metadata', () => {
+  const crm = application('crm');
+  crm.metadata_json = JSON.stringify({ category: 'commerce' });
+  const malformed = application('future-platform');
+  malformed.metadata_json = '{';
+  const unsupported = application('legacy');
+  unsupported.metadata_json = JSON.stringify({ category: 'unknown' });
+
+  const groups = groupApplications([crm, malformed, unsupported]);
+
+  assert.deepEqual(
+    groups.map(group => [group.category, group.applications.map(item => item.code)]),
+    [
+      ['commerce', ['crm']],
+      ['business', ['future-platform', 'legacy']]
+    ]
+  );
+});

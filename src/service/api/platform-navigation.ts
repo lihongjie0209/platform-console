@@ -23,6 +23,7 @@ export interface PlatformApplication {
   default_route: string;
   sort_order?: number;
   status: string;
+  metadata_json?: string;
 }
 
 export interface ApplicationMenu {
