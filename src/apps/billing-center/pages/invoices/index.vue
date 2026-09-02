@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { hasApplicationScope } from '@/platform/application-context';
+import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import type { Invoice } from '../../api';
 import { finalizeInvoice, listInvoices, voidInvoice } from '../../api';
 defineOptions({ name: 'BillingCenterInvoices' });
@@ -12,7 +12,9 @@ const applicationName = computed(() => store.selectedApplication?.name || 'å½“å‰
 const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const rows = ref<Invoice[]>([]);
 const status = ref('');
+const loadGuard = createLatestRequestGuard();
 async function load() {
+  const request = loadGuard.begin();
   if (!scopeReady.value) {
     rows.value = [];
     return;
@@ -24,7 +26,7 @@ async function load() {
     page: 1,
     pageSize: 100
   });
-  rows.value = v.items || [];
+  if (loadGuard.isCurrent(request)) rows.value = v.items || [];
 }
 async function finalize(v: Invoice) {
   await finalizeInvoice(v, new Date(Date.now() + 7 * 86400000).toISOString());
@@ -34,7 +36,10 @@ async function voidOne(v: Invoice) {
   await voidInvoice(v, 'operator void');
   await load();
 }
-watch([tenantID, applicationID], load);
+watch([tenantID, applicationID], () => {
+  rows.value = [];
+  load();
+});
 onMounted(load);
 </script>
 

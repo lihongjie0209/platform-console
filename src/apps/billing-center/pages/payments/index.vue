@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { hasApplicationScope } from '@/platform/application-context';
+import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import type { PaymentAttempt, Refund } from '../../api';
 import { createPaymentAttempt, listPayments, listRefunds, recordRefund } from '../../api';
 import { canRefundPayment, validatePaymentInput, validateRefundInput } from '../../payment-form';
@@ -21,13 +21,16 @@ const refunds = ref<Refund[]>([]);
 const paymentDialogVisible = ref(false);
 const refundDialogVisible = ref(false);
 const selectedPayment = ref<PaymentAttempt>();
+const loadGuard = createLatestRequestGuard();
 const paymentForm = reactive({ invoiceID: '', provider: '', paymentMethodReference: '' });
 const refundForm = reactive({ providerRefundID: '', amountMinor: 0, reason: '', status: 'succeeded' });
 
 async function load() {
+  const request = loadGuard.begin();
   if (!scopeReady.value) {
     payments.value = [];
     refunds.value = [];
+    loading.value = false;
     return;
   }
   loading.value = true;
@@ -40,7 +43,7 @@ async function load() {
         page: 1,
         pageSize: 100
       });
-      payments.value = result.items || [];
+      if (loadGuard.isCurrent(request)) payments.value = result.items || [];
     } else {
       const result = await listRefunds({
         tenantID: tenantID.value,
@@ -49,10 +52,10 @@ async function load() {
         page: 1,
         pageSize: 100
       });
-      refunds.value = result.items || [];
+      if (loadGuard.isCurrent(request)) refunds.value = result.items || [];
     }
   } finally {
-    loading.value = false;
+    if (loadGuard.isCurrent(request)) loading.value = false;
   }
 }
 
@@ -113,6 +116,8 @@ async function submitRefund() {
 }
 
 watch([tenantID, applicationID], () => {
+  payments.value = [];
+  refunds.value = [];
   selectedPayment.value = undefined;
   paymentDialogVisible.value = false;
   refundDialogVisible.value = false;

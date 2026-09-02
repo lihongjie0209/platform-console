@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { hasApplicationScope } from '@/platform/application-context';
+import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import type { WebhookDelivery } from '../../api';
 import { listDeliveries, replayDelivery } from '../../api';
 defineOptions({ name: 'WebhookCenterDeliveries' });
@@ -14,21 +14,31 @@ const rows = ref<WebhookDelivery[]>([]);
 const status = ref('');
 const subscriptionID = ref('');
 const detail = ref<WebhookDelivery>();
+const loadGuard = createLatestRequestGuard();
 async function load() {
-  if (!scopeReady.value) return;
+  const request = loadGuard.begin();
+  if (!scopeReady.value) {
+    rows.value = [];
+    detail.value = undefined;
+    return;
+  }
   const v = await listDeliveries({
     tenantID: tenantID.value,
     applicationID: applicationID.value,
     subscriptionID: subscriptionID.value,
     status: status.value
   });
-  rows.value = v.items || [];
+  if (loadGuard.isCurrent(request)) rows.value = v.items || [];
 }
 async function replay(v: WebhookDelivery) {
   await replayDelivery(v);
   await load();
 }
-watch([tenantID, applicationID], load);
+watch([tenantID, applicationID], () => {
+  rows.value = [];
+  detail.value = undefined;
+  load();
+});
 onMounted(load);
 </script>
 

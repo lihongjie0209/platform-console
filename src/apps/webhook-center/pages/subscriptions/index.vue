@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { hasApplicationScope } from '@/platform/application-context';
+import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { parseJSONObject } from '@/apps/commerce/json';
 import type { WebhookSubscription } from '../../api';
 import { deleteSubscription, listSubscriptions, rotateSecret, saveSubscription, testSubscription } from '../../api';
@@ -18,6 +18,7 @@ const visible = ref(false);
 const editing = ref<WebhookSubscription>();
 const secret = ref('');
 const testPayload = ref('{}');
+const loadGuard = createLatestRequestGuard();
 const form = reactive({
   name: '',
   endpointURL: '',
@@ -28,14 +29,18 @@ const form = reactive({
   retryInitialSeconds: 5
 });
 async function load() {
-  if (!scopeReady.value) return;
+  const request = loadGuard.begin();
+  if (!scopeReady.value) {
+    rows.value = [];
+    return;
+  }
   const v = await listSubscriptions({
     tenantID: tenantID.value,
     applicationID: applicationID.value,
     status: status.value,
     search: search.value
   });
-  rows.value = v.items || [];
+  if (loadGuard.isCurrent(request)) rows.value = v.items || [];
 }
 function open(v?: WebhookSubscription) {
   editing.value = v;
@@ -94,7 +99,13 @@ async function test(v: WebhookSubscription) {
     window.$message?.error(e instanceof Error ? e.message : '测试失败');
   }
 }
-watch([tenantID, applicationID], load);
+watch([tenantID, applicationID], () => {
+  rows.value = [];
+  visible.value = false;
+  editing.value = undefined;
+  secret.value = '';
+  load();
+});
 onMounted(load);
 </script>
 

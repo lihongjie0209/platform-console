@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { hasApplicationScope } from '@/platform/application-context';
+import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import type { Subscription } from '../../api';
 import { cancelSubscription, createSubscription, listSubscriptions } from '../../api';
 defineOptions({ name: 'BillingCenterSubscriptions' });
@@ -14,7 +14,9 @@ const rows = ref<Subscription[]>([]);
 const status = ref('');
 const visible = ref(false);
 const form = reactive({ planID: '', startsAt: '', externalReference: '' });
+const loadGuard = createLatestRequestGuard();
 async function load() {
+  const request = loadGuard.begin();
   if (!scopeReady.value) {
     rows.value = [];
     return;
@@ -26,7 +28,7 @@ async function load() {
     page: 1,
     pageSize: 100
   });
-  rows.value = v.items || [];
+  if (loadGuard.isCurrent(request)) rows.value = v.items || [];
 }
 async function create() {
   if (!scopeReady.value) return;
@@ -44,7 +46,11 @@ async function cancel(v: Subscription) {
   await cancelSubscription(v, true);
   await load();
 }
-watch([tenantID, applicationID], load);
+watch([tenantID, applicationID], () => {
+  rows.value = [];
+  visible.value = false;
+  load();
+});
 onMounted(load);
 </script>
 
