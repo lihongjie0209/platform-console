@@ -5,7 +5,7 @@ import { createLatestRequestGuard, hasApplicationScope } from '@/platform/applic
 import { formatPlatformDateTime } from '@/platform/date-time';
 import { formatPlatformBytes } from '@/platform/display';
 import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
-import { useTaskPolling } from '@/platform/task-polling';
+import { shouldReportTaskLoadError, useTaskPolling } from '@/platform/task-polling';
 import type { ExportDataset, ExportDatasetDescriptor, ExportJob } from '../../api';
 import {
   cancelExport,
@@ -34,6 +34,7 @@ const applicationID = computed(() => store.selectedApplicationId);
 const applicationName = computed(() => store.selectedApplication?.name || '当前应用');
 const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const rows = ref<ExportJob[]>([]);
+const listLoading = ref(false);
 const status = ref('');
 const datasetCode = ref('');
 const page = ref(1);
@@ -76,29 +77,38 @@ function setQueryValue(key: string | undefined, value: unknown) {
   form.query[key] =
     typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? value : undefined;
 }
-async function load() {
+async function load(silent = false) {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
     rows.value = [];
     total.value = 0;
     return;
   }
-  const v = await listExports({
-    tenantID: tenantID.value,
-    applicationID: applicationID.value,
-    status: status.value,
-    datasetCode: datasetCode.value,
-    page: page.value,
-    pageSize: pageSize.value
-  });
-  if (loadGuard.isCurrent(request)) {
-    rows.value = v.items || [];
-    total.value = v.total || 0;
+  listLoading.value = true;
+  try {
+    const v = await listExports({
+      tenantID: tenantID.value,
+      applicationID: applicationID.value,
+      status: status.value,
+      datasetCode: datasetCode.value,
+      page: page.value,
+      pageSize: pageSize.value
+    });
+    if (loadGuard.isCurrent(request)) {
+      rows.value = v.items || [];
+      total.value = v.total || 0;
+    }
+  } catch (error) {
+    if (shouldReportTaskLoadError(loadGuard.isCurrent(request), silent)) {
+      window.$message?.error(error instanceof Error ? error.message : '读取导出任务失败');
+    }
+  } finally {
+    if (loadGuard.isCurrent(request)) listLoading.value = false;
   }
 }
 useTaskPolling(
   computed(() => scopeReady.value && hasActiveJobs.value),
-  load
+  () => load(true)
 );
 function search() {
   page.value = 1;
@@ -141,18 +151,24 @@ async function selectDataset() {
   descriptor.value = undefined;
   if (!selected) return;
   const request = descriptorGuard.begin();
-  const value = await describeExportDataset({
-    tenantID: tenantID.value,
-    applicationID: applicationID.value,
-    providerService: selected.provider_service,
-    datasetCode: selected.code
-  });
-  if (!descriptorGuard.isCurrent(request)) return;
-  descriptor.value = value;
-  const defaults = descriptorDefaults(value);
-  form.format = defaults.format;
-  form.columns = defaults.columns;
-  form.query = exportQueryDefaults(value);
+  try {
+    const value = await describeExportDataset({
+      tenantID: tenantID.value,
+      applicationID: applicationID.value,
+      providerService: selected.provider_service,
+      datasetCode: selected.code
+    });
+    if (!descriptorGuard.isCurrent(request)) return;
+    descriptor.value = value;
+    const defaults = descriptorDefaults(value);
+    form.format = defaults.format;
+    form.columns = defaults.columns;
+    form.query = exportQueryDefaults(value);
+  } catch (error) {
+    if (descriptorGuard.isCurrent(request)) {
+      window.$message?.error(error instanceof Error ? error.message : '读取导出数据集规范失败');
+    }
+  }
 }
 async function create() {
   if (!scopeReady.value) return;
@@ -212,6 +228,7 @@ async function action(job: ExportJob, type: 'cancel' | 'retry' | 'download') {
 watch([tenantID, applicationID], () => {
   visible.value = false;
   rows.value = [];
+  listLoading.value = false;
   page.value = 1;
   total.value = 0;
   datasets.value = [];
@@ -249,7 +266,7 @@ onMounted(load);
         <ElFormItem label="数据集"><ElInput v-model="datasetCode" /></ElFormItem>
         <ElButton @click="search">查询</ElButton>
       </ElForm>
-      <ElTable :data="rows" border>
+      <ElTable v-loading="listLoading" :data="rows" border>
         <ElTableColumn prop="filename" label="文件" />
         <ElTableColumn prop="dataset_code" label="数据集" />
         <ElTableColumn prop="format" label="格式" />
@@ -305,7 +322,7 @@ onMounted(load);
           :total="total"
           :page-sizes="[20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
-          @current-change="load"
+          @current-change="() => load()"
           @size-change="changePageSize"
         />
       </div>

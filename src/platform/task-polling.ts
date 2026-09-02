@@ -6,6 +6,10 @@ export function taskPollingEnabled(scopeReady: boolean, hasActiveTasks: boolean,
   return scopeReady && hasActiveTasks && visibility === 'visible';
 }
 
+export function shouldReportTaskLoadError(isCurrent: boolean, silent: boolean) {
+  return isCurrent && !silent;
+}
+
 export function useTaskPolling(enabled: ComputedRef<boolean>, refresh: () => Promise<void>, interval = 5000) {
   const visibility = useDocumentVisibility();
   const active = computed(() => taskPollingEnabled(enabled.value, true, visibility.value));
