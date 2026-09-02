@@ -35,7 +35,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.InvoiceBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -71,7 +83,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.GenerateInvoiceBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -107,7 +131,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.InvoiceDetailBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -143,7 +179,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.InvoicePageBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -179,7 +227,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.InvoiceDetailBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -215,7 +275,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.InvoiceBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -298,7 +370,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.ApplyPaymentResultBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -334,7 +418,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.CreatePaymentAttemptBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -362,7 +458,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.PaymentAttemptPageBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -390,7 +498,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.RefundPageBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -426,7 +546,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.RecordRefundBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -462,7 +594,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.PlanBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -498,7 +642,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.PlanDetailBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -534,7 +690,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.PlanPageBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -570,7 +738,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.PlanBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -642,7 +822,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.UsagePriceBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -678,7 +870,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.SubscriptionBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -714,7 +918,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.SubscriptionBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -750,7 +966,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.SubscriptionBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -786,7 +1014,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.SubscriptionDetailBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -822,7 +1062,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.SubscriptionPageBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -1028,11 +1280,452 @@
                     }
                 }
             },
+            "httptransport.ApplyPaymentResultBody": {
+                "type": "object",
+                "properties": {
+                    "duplicate": {
+                        "type": "boolean"
+                    },
+                    "invoice": {
+                        "$ref": "#/components/schemas/httptransport.InvoiceBody"
+                    },
+                    "payment_attempt": {
+                        "$ref": "#/components/schemas/httptransport.PaymentAttemptBody"
+                    }
+                }
+            },
+            "httptransport.CreatePaymentAttemptBody": {
+                "type": "object",
+                "properties": {
+                    "duplicate": {
+                        "type": "boolean"
+                    },
+                    "payment_attempt": {
+                        "$ref": "#/components/schemas/httptransport.PaymentAttemptBody"
+                    }
+                }
+            },
+            "httptransport.GenerateInvoiceBody": {
+                "type": "object",
+                "properties": {
+                    "duplicate": {
+                        "type": "boolean"
+                    },
+                    "invoice": {
+                        "$ref": "#/components/schemas/httptransport.InvoiceBody"
+                    },
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.InvoiceLineBody"
+                        }
+                    }
+                }
+            },
+            "httptransport.InvoiceBody": {
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "discount_minor": {
+                        "type": "integer"
+                    },
+                    "due_at": {
+                        "type": "string"
+                    },
+                    "finalized_at": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "number": {
+                        "type": "string"
+                    },
+                    "paid_at": {
+                        "type": "string"
+                    },
+                    "paid_minor": {
+                        "type": "integer"
+                    },
+                    "period_end": {
+                        "type": "string"
+                    },
+                    "period_start": {
+                        "type": "string"
+                    },
+                    "refunded_minor": {
+                        "type": "integer"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "subscription_id": {
+                        "type": "string"
+                    },
+                    "subtotal_minor": {
+                        "type": "integer"
+                    },
+                    "tax_minor": {
+                        "type": "integer"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    },
+                    "total_minor": {
+                        "type": "integer"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.InvoiceDetailBody": {
+                "type": "object",
+                "properties": {
+                    "invoice": {
+                        "$ref": "#/components/schemas/httptransport.InvoiceBody"
+                    },
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.InvoiceLineBody"
+                        }
+                    }
+                }
+            },
+            "httptransport.InvoiceLineBody": {
+                "type": "object",
+                "properties": {
+                    "amount_minor": {
+                        "type": "integer"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "invoice_id": {
+                        "type": "string"
+                    },
+                    "metadata_json": {
+                        "type": "object"
+                    },
+                    "meter_code": {
+                        "type": "string"
+                    },
+                    "quantity": {
+                        "type": "integer"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "unit_amount_minor": {
+                        "type": "integer"
+                    },
+                    "unit_quantity": {
+                        "type": "integer"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.InvoicePageBody": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.InvoiceBody"
+                        }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "total": {
+                        "type": "integer"
+                    }
+                }
+            },
             "httptransport.MeResponseBody": {
                 "type": "object",
                 "properties": {
                     "subject": {
                         "type": "string"
+                    }
+                }
+            },
+            "httptransport.PaymentAttemptBody": {
+                "type": "object",
+                "properties": {
+                    "amount_minor": {
+                        "type": "integer"
+                    },
+                    "application_id": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "failure_code": {
+                        "type": "string"
+                    },
+                    "failure_message": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "invoice_id": {
+                        "type": "string"
+                    },
+                    "processed_at": {
+                        "type": "string"
+                    },
+                    "provider": {
+                        "type": "string"
+                    },
+                    "provider_payment_id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.PaymentAttemptPageBody": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.PaymentAttemptBody"
+                        }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "total": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.PlanBody": {
+                "type": "object",
+                "properties": {
+                    "base_amount_minor": {
+                        "type": "integer"
+                    },
+                    "billing_interval": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "entitlements_json": {
+                        "type": "object"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "trial_days": {
+                        "type": "integer"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.PlanDetailBody": {
+                "type": "object",
+                "properties": {
+                    "plan": {
+                        "$ref": "#/components/schemas/httptransport.PlanBody"
+                    },
+                    "usage_prices": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.UsagePriceBody"
+                        }
+                    }
+                }
+            },
+            "httptransport.PlanPageBody": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.PlanBody"
+                        }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "total": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.RecordRefundBody": {
+                "type": "object",
+                "properties": {
+                    "duplicate": {
+                        "type": "boolean"
+                    },
+                    "invoice": {
+                        "$ref": "#/components/schemas/httptransport.InvoiceBody"
+                    },
+                    "refund": {
+                        "$ref": "#/components/schemas/httptransport.RefundBody"
+                    }
+                }
+            },
+            "httptransport.RefundBody": {
+                "type": "object",
+                "properties": {
+                    "amount_minor": {
+                        "type": "integer"
+                    },
+                    "application_id": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "invoice_id": {
+                        "type": "string"
+                    },
+                    "payment_attempt_id": {
+                        "type": "string"
+                    },
+                    "provider_refund_id": {
+                        "type": "string"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.RefundPageBody": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.RefundBody"
+                        }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "total": {
+                        "type": "integer"
                     }
                 }
             },
@@ -1048,6 +1741,140 @@
                     },
                     "request_id": {
                         "type": "string"
+                    }
+                }
+            },
+            "httptransport.SubscriptionBody": {
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
+                    "cancel_at_period_end": {
+                        "type": "boolean"
+                    },
+                    "canceled_at": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "current_period_end": {
+                        "type": "string"
+                    },
+                    "current_period_start": {
+                        "type": "string"
+                    },
+                    "external_reference": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "pending_change_at": {
+                        "type": "string"
+                    },
+                    "pending_plan_id": {
+                        "type": "string"
+                    },
+                    "plan_id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.SubscriptionDetailBody": {
+                "type": "object",
+                "properties": {
+                    "plan": {
+                        "$ref": "#/components/schemas/httptransport.PlanBody"
+                    },
+                    "subscription": {
+                        "$ref": "#/components/schemas/httptransport.SubscriptionBody"
+                    }
+                }
+            },
+            "httptransport.SubscriptionPageBody": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.SubscriptionBody"
+                        }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "total": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.UsagePriceBody": {
+                "type": "object",
+                "properties": {
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "included_quantity": {
+                        "type": "integer"
+                    },
+                    "meter_code": {
+                        "type": "string"
+                    },
+                    "plan_id": {
+                        "type": "string"
+                    },
+                    "pricing_model": {
+                        "type": "string"
+                    },
+                    "tiers_json": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    },
+                    "unit_amount_minor": {
+                        "type": "integer"
+                    },
+                    "unit_quantity": {
+                        "type": "integer"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
                     }
                 }
             },

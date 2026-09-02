@@ -34,7 +34,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.InvoiceBody"];
+                        };
                     };
                 };
             };
@@ -75,7 +77,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.GenerateInvoiceBody"];
+                        };
                     };
                 };
             };
@@ -116,7 +120,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.InvoiceDetailBody"];
+                        };
                     };
                 };
             };
@@ -157,7 +163,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.InvoicePageBody"];
+                        };
                     };
                 };
             };
@@ -198,7 +206,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.InvoiceDetailBody"];
+                        };
                     };
                 };
             };
@@ -239,7 +249,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.InvoiceBody"];
+                        };
                     };
                 };
             };
@@ -327,7 +339,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ApplyPaymentResultBody"];
+                        };
                     };
                 };
             };
@@ -368,7 +382,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.CreatePaymentAttemptBody"];
+                        };
                     };
                 };
             };
@@ -404,7 +420,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PaymentAttemptPageBody"];
+                        };
                     };
                 };
             };
@@ -440,7 +458,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RefundPageBody"];
+                        };
                     };
                 };
             };
@@ -481,7 +501,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RecordRefundBody"];
+                        };
                     };
                 };
             };
@@ -522,7 +544,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PlanBody"];
+                        };
                     };
                 };
             };
@@ -563,7 +587,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PlanDetailBody"];
+                        };
                     };
                 };
             };
@@ -604,7 +630,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PlanPageBody"];
+                        };
                     };
                 };
             };
@@ -645,7 +673,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PlanBody"];
+                        };
                     };
                 };
             };
@@ -727,7 +757,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.UsagePriceBody"];
+                        };
                     };
                 };
             };
@@ -768,7 +800,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.SubscriptionBody"];
+                        };
                     };
                 };
             };
@@ -809,7 +843,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.SubscriptionBody"];
+                        };
                     };
                 };
             };
@@ -850,7 +886,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.SubscriptionBody"];
+                        };
                     };
                 };
             };
@@ -891,7 +929,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.SubscriptionDetailBody"];
+                        };
                     };
                 };
             };
@@ -932,7 +972,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.SubscriptionPageBody"];
+                        };
                     };
                 };
             };
@@ -1089,14 +1131,203 @@ export interface components {
             };
             status?: string;
         };
+        "httptransport.ApplyPaymentResultBody": {
+            duplicate?: boolean;
+            invoice?: components["schemas"]["httptransport.InvoiceBody"];
+            payment_attempt?: components["schemas"]["httptransport.PaymentAttemptBody"];
+        };
+        "httptransport.CreatePaymentAttemptBody": {
+            duplicate?: boolean;
+            payment_attempt?: components["schemas"]["httptransport.PaymentAttemptBody"];
+        };
+        "httptransport.GenerateInvoiceBody": {
+            duplicate?: boolean;
+            invoice?: components["schemas"]["httptransport.InvoiceBody"];
+            lines?: components["schemas"]["httptransport.InvoiceLineBody"][];
+        };
+        "httptransport.InvoiceBody": {
+            application_id?: string;
+            created_at?: string;
+            created_by?: string;
+            currency?: string;
+            discount_minor?: number;
+            due_at?: string;
+            finalized_at?: string;
+            id?: string;
+            number?: string;
+            paid_at?: string;
+            paid_minor?: number;
+            period_end?: string;
+            period_start?: string;
+            refunded_minor?: number;
+            status?: string;
+            subscription_id?: string;
+            subtotal_minor?: number;
+            tax_minor?: number;
+            tenant_id?: string;
+            total_minor?: number;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
+        "httptransport.InvoiceDetailBody": {
+            invoice?: components["schemas"]["httptransport.InvoiceBody"];
+            lines?: components["schemas"]["httptransport.InvoiceLineBody"][];
+        };
+        "httptransport.InvoiceLineBody": {
+            amount_minor?: number;
+            created_at?: string;
+            created_by?: string;
+            description?: string;
+            id?: string;
+            invoice_id?: string;
+            metadata_json?: Record<string, never>;
+            meter_code?: string;
+            quantity?: number;
+            type?: string;
+            unit_amount_minor?: number;
+            unit_quantity?: number;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
+        "httptransport.InvoicePageBody": {
+            items?: components["schemas"]["httptransport.InvoiceBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
         "httptransport.MeResponseBody": {
             subject?: string;
+        };
+        "httptransport.PaymentAttemptBody": {
+            amount_minor?: number;
+            application_id?: string;
+            created_at?: string;
+            created_by?: string;
+            currency?: string;
+            failure_code?: string;
+            failure_message?: string;
+            id?: string;
+            invoice_id?: string;
+            processed_at?: string;
+            provider?: string;
+            provider_payment_id?: string;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
+        "httptransport.PaymentAttemptPageBody": {
+            items?: components["schemas"]["httptransport.PaymentAttemptBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
+        "httptransport.PlanBody": {
+            base_amount_minor?: number;
+            billing_interval?: string;
+            code?: string;
+            created_at?: string;
+            created_by?: string;
+            currency?: string;
+            description?: string;
+            entitlements_json?: Record<string, never>;
+            id?: string;
+            name?: string;
+            status?: string;
+            trial_days?: number;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
+        "httptransport.PlanDetailBody": {
+            plan?: components["schemas"]["httptransport.PlanBody"];
+            usage_prices?: components["schemas"]["httptransport.UsagePriceBody"][];
+        };
+        "httptransport.PlanPageBody": {
+            items?: components["schemas"]["httptransport.PlanBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
+        "httptransport.RecordRefundBody": {
+            duplicate?: boolean;
+            invoice?: components["schemas"]["httptransport.InvoiceBody"];
+            refund?: components["schemas"]["httptransport.RefundBody"];
+        };
+        "httptransport.RefundBody": {
+            amount_minor?: number;
+            application_id?: string;
+            created_at?: string;
+            created_by?: string;
+            id?: string;
+            invoice_id?: string;
+            payment_attempt_id?: string;
+            provider_refund_id?: string;
+            reason?: string;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
+        "httptransport.RefundPageBody": {
+            items?: components["schemas"]["httptransport.RefundBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
         };
         "httptransport.Response": {
             body?: unknown;
             code?: number;
             message?: string;
             request_id?: string;
+        };
+        "httptransport.SubscriptionBody": {
+            application_id?: string;
+            cancel_at_period_end?: boolean;
+            canceled_at?: string;
+            created_at?: string;
+            created_by?: string;
+            current_period_end?: string;
+            current_period_start?: string;
+            external_reference?: string;
+            id?: string;
+            pending_change_at?: string;
+            pending_plan_id?: string;
+            plan_id?: string;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
+        "httptransport.SubscriptionDetailBody": {
+            plan?: components["schemas"]["httptransport.PlanBody"];
+            subscription?: components["schemas"]["httptransport.SubscriptionBody"];
+        };
+        "httptransport.SubscriptionPageBody": {
+            items?: components["schemas"]["httptransport.SubscriptionBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
+        "httptransport.UsagePriceBody": {
+            created_at?: string;
+            created_by?: string;
+            id?: string;
+            included_quantity?: number;
+            meter_code?: string;
+            plan_id?: string;
+            pricing_model?: string;
+            tiers_json?: Record<string, never>[];
+            unit_amount_minor?: number;
+            unit_quantity?: number;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
         };
         "httptransport.applyPaymentRequest": {
             failure_code?: string;

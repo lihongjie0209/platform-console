@@ -1,6 +1,14 @@
+import type { components as BillingContract } from '@/service/contracts/generated/billing';
 import { platformRequest } from '@/service/request';
 import { applicationScope } from '@/platform/application-context';
-export interface Plan extends Record<string, unknown> {
+type PlanContract = BillingContract['schemas']['httptransport.PlanBody'];
+type UsagePriceContract = BillingContract['schemas']['httptransport.UsagePriceBody'];
+type SubscriptionContract = BillingContract['schemas']['httptransport.SubscriptionBody'];
+type InvoiceContract = BillingContract['schemas']['httptransport.InvoiceBody'];
+type PaymentAttemptContract = BillingContract['schemas']['httptransport.PaymentAttemptBody'];
+type RefundContract = BillingContract['schemas']['httptransport.RefundBody'];
+
+export interface Plan extends Omit<PlanContract, 'entitlements_json'>, Record<string, unknown> {
   id: string;
   code: string;
   name: string;
@@ -13,7 +21,7 @@ export interface Plan extends Record<string, unknown> {
   entitlements_json: Record<string, unknown>;
   version: number;
 }
-export interface UsagePrice extends Record<string, unknown> {
+export interface UsagePrice extends Omit<UsagePriceContract, 'tiers_json'>, Record<string, unknown> {
   id: string;
   plan_id: string;
   meter_code: string;
@@ -24,7 +32,7 @@ export interface UsagePrice extends Record<string, unknown> {
   tiers_json: Record<string, unknown>[];
   version: number;
 }
-export interface Subscription extends Record<string, unknown> {
+export interface Subscription extends SubscriptionContract, Record<string, unknown> {
   id: string;
   tenant_id: string;
   application_id: string;
@@ -35,7 +43,7 @@ export interface Subscription extends Record<string, unknown> {
   cancel_at_period_end: boolean;
   version: number;
 }
-export interface Invoice extends Record<string, unknown> {
+export interface Invoice extends InvoiceContract, Record<string, unknown> {
   id: string;
   number: string;
   tenant_id: string;
@@ -50,7 +58,7 @@ export interface Invoice extends Record<string, unknown> {
   period_end: string;
   version: number;
 }
-export interface PaymentAttempt extends Record<string, unknown> {
+export interface PaymentAttempt extends PaymentAttemptContract, Record<string, unknown> {
   id: string;
   invoice_id: string;
   tenant_id: string;
@@ -66,7 +74,7 @@ export interface PaymentAttempt extends Record<string, unknown> {
   version: number;
   created_at: string;
 }
-export interface Refund extends Record<string, unknown> {
+export interface Refund extends RefundContract, Record<string, unknown> {
   id: string;
   payment_attempt_id: string;
   invoice_id: string;
