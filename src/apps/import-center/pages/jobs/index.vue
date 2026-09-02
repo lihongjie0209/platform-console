@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { sha256Hex } from '@/platform/file';
+import { useTaskPolling } from '@/platform/task-polling';
 import type { ImportDataset, ImportDatasetDescriptor, ImportJob } from '../../api';
 import {
   cancelImport,
@@ -30,6 +31,9 @@ const datasetCode = ref('');
 const page = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
+const hasActiveJobs = computed(() =>
+  rows.value.some(job => ['uploading', 'queued', 'validating', 'applying'].includes(job.status))
+);
 const selectedDataset = ref('');
 const descriptor = ref<ImportDatasetDescriptor>();
 const format = ref('');
@@ -61,6 +65,10 @@ async function load() {
   rows.value = v.items || [];
   total.value = v.total || 0;
 }
+useTaskPolling(
+  computed(() => scopeReady.value && hasActiveJobs.value),
+  load
+);
 async function searchDatasets(keyword: string) {
   if (!scopeReady.value) {
     datasets.value = [];

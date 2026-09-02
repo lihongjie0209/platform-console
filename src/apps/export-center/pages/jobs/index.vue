@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { useTaskPolling } from '@/platform/task-polling';
 import type { ExportDataset, ExportDatasetDescriptor, ExportJob } from '../../api';
 import {
   cancelExport,
@@ -26,6 +27,7 @@ const datasetCode = ref('');
 const page = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
+const hasActiveJobs = computed(() => rows.value.some(job => ['queued', 'running'].includes(job.status)));
 const visible = ref(false);
 const datasets = ref<ExportDataset[]>([]);
 const descriptor = ref<ExportDatasetDescriptor>();
@@ -77,6 +79,10 @@ async function load() {
     total.value = v.total || 0;
   }
 }
+useTaskPolling(
+  computed(() => scopeReady.value && hasActiveJobs.value),
+  load
+);
 function search() {
   page.value = 1;
   load();
