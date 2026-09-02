@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
 import { webcrypto } from 'node:crypto';
-import { formatFileSize, sha256Hex } from './checksum';
+import test from 'node:test';
+import { formatFileSize, sha256Hex } from './file';
 
 Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true });
 

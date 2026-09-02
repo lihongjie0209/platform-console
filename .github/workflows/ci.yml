@@ -26,6 +26,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm check:application-boundaries
       - run: pnpm check:application-scope
       - run: pnpm check:product-surface
       - run: pnpm check:contracts

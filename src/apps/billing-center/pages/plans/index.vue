@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
+import { parseJSONArray, parseJSONObject } from '@/platform/json';
 import type { Plan, UsagePrice } from '../../api';
 import { deleteUsagePrice, getPlan, listPlans, savePlan, upsertUsagePrice } from '../../api';
-import { parseJSONArray, parseJSONObject } from '../../../commerce/json';
 defineOptions({ name: 'BillingCenterPlans' });
 const rows = ref<Plan[]>([]);
 const total = ref(0);

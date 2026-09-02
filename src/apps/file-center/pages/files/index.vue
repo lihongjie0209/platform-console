@@ -4,6 +4,7 @@ import type { UploadFile, UploadUserFile } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { BizCopyText } from '@/components/business';
+import { formatFileSize, sha256Hex } from '@/platform/file';
 import type { FileMetadata } from '../../api';
 import {
   abortMultipartUpload,
@@ -18,7 +19,6 @@ import {
   putAuthorizedFile,
   putAuthorizedPart
 } from '../../api';
-import { formatFileSize, sha256Hex } from '../../checksum';
 import { multipartBuckets, multipartRanges } from '../../multipart-upload';
 
 defineOptions({ name: 'FileCenterFiles' });

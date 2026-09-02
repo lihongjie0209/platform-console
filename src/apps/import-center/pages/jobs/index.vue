@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
-import { sha256Hex } from '@/apps/file-center/checksum';
+import { sha256Hex } from '@/platform/file';
 import type { ImportDataset, ImportJob } from '../../api';
 import {
   cancelImport,

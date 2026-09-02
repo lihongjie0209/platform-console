@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { parseJSONObject } from '@/platform/json';
 import type { RuleSet, RuleVersion } from '../../api';
 import {
   createRuleVersion,
@@ -12,7 +13,6 @@ import {
   saveRuleSet,
   validateRule
 } from '../../api';
-import { parseJSONObject } from '../../../commerce/json';
 defineOptions({ name: 'RuleCenterRules' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);

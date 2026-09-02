@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
-import { parseJSONObject } from '@/apps/commerce/json';
+import { parseJSONObject } from '@/platform/json';
 import type { ExportJob } from '../../api';
 import { cancelExport, createExport, downloadExport, listExports, retryExport } from '../../api';
 defineOptions({ name: 'ExportCenterJobs' });

@@ -2,9 +2,9 @@
 import { computed, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { parseJSONObject } from '@/platform/json';
 import type { UsagePoint } from '../../api';
 import { queryUsage } from '../../api';
-import { parseJSONObject } from '../../../commerce/json';
 defineOptions({ name: 'MeteringCenterUsage' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
