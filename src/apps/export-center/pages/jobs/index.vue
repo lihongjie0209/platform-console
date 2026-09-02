@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformDateTime } from '@/platform/date-time';
+import { formatPlatformBytes } from '@/platform/display';
 import { useTaskPolling } from '@/platform/task-polling';
 import type { ExportDataset, ExportDatasetDescriptor, ExportJob } from '../../api';
 import {
@@ -10,6 +11,7 @@ import {
   createExport,
   describeExportDataset,
   downloadExport,
+  getExport,
   listExportDatasets,
   listExports,
   retryExport
@@ -38,6 +40,9 @@ const pageSize = ref(20);
 const total = ref(0);
 const hasActiveJobs = computed(() => rows.value.some(job => ['queued', 'running'].includes(job.status)));
 const visible = ref(false);
+const detailVisible = ref(false);
+const detailLoading = ref(false);
+const detail = ref<ExportJob>();
 const datasets = ref<ExportDataset[]>([]);
 const descriptor = ref<ExportDatasetDescriptor>();
 const catalogLoading = ref(false);
@@ -51,6 +56,7 @@ const form = reactive({
 const loadGuard = createLatestRequestGuard();
 const catalogGuard = createLatestRequestGuard();
 const descriptorGuard = createLatestRequestGuard();
+const detailGuard = createLatestRequestGuard();
 function queryString(key?: string) {
   const value = key ? form.query[key] : undefined;
   return typeof value === 'string' ? value : '';
@@ -167,6 +173,23 @@ async function create() {
     window.$message?.error(e instanceof Error ? e.message : '创建失败');
   }
 }
+async function openDetail(job: ExportJob) {
+  detailVisible.value = true;
+  detail.value = undefined;
+  detailLoading.value = true;
+  const request = detailGuard.begin();
+  try {
+    const value = await getExport(job);
+    if (detailGuard.isCurrent(request)) detail.value = value;
+  } catch (error) {
+    if (detailGuard.isCurrent(request)) {
+      detailVisible.value = false;
+      window.$message?.error(error instanceof Error ? error.message : '读取导出详情失败');
+    }
+  } finally {
+    if (detailGuard.isCurrent(request)) detailLoading.value = false;
+  }
+}
 async function action(job: ExportJob, type: 'cancel' | 'retry' | 'download') {
   if (type === 'cancel') await cancelExport(job);
   if (type === 'retry') await retryExport(job);
@@ -186,6 +209,9 @@ watch([tenantID, applicationID], () => {
   descriptor.value = undefined;
   catalogGuard.invalidate();
   descriptorGuard.invalidate();
+  detailGuard.invalidate();
+  detailVisible.value = false;
+  detail.value = undefined;
   load();
 });
 onMounted(load);
@@ -228,8 +254,9 @@ onMounted(load);
         <ElTableColumn label="更新时间" width="170">
           <template #default="{ row }">{{ formatPlatformDateTime(row.updated_at) }}</template>
         </ElTableColumn>
-        <ElTableColumn label="操作">
+        <ElTableColumn label="操作" width="220">
           <template #default="{ row }">
+            <ElButton link @click="openDetail(row)">详情</ElButton>
             <ElButton v-if="row.status === 'succeeded'" link @click="action(row, 'download')">下载</ElButton>
             <ElButton
               v-if="['queued', 'running'].includes(row.status)"
@@ -258,6 +285,32 @@ onMounted(load);
       </div>
     </template>
   </ElCard>
+  <ElDrawer v-model="detailVisible" title="导出任务详情" size="620px">
+    <div v-loading="detailLoading">
+      <ElDescriptions v-if="detail" :column="2" border>
+        <ElDescriptionsItem label="任务 ID" :span="2">{{ detail.id }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="文件名">{{ detail.filename || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="状态">{{ exportStatusLabel(detail.status) }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="数据集">{{ detail.dataset_code }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="提供方">{{ detail.provider_service }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="格式">{{ detail.format || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="进度">{{ detail.progress_percent || 0 }}%</ElDescriptionsItem>
+        <ElDescriptionsItem label="导出行数">{{ detail.rows_exported ?? 0 }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="文件大小">{{ formatPlatformBytes(detail.bytes_written) }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="校验和" :span="2">{{ detail.checksum || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="错误码">{{ detail.error_code || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="版本">{{ detail.version }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="失败原因" :span="2">{{ detail.error_message || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="创建时间">{{ formatPlatformDateTime(detail.created_at) }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="开始时间">{{ formatPlatformDateTime(detail.started_at) }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="完成时间">{{ formatPlatformDateTime(detail.completed_at) }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="过期时间">{{ formatPlatformDateTime(detail.expires_at) }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="更新时间" :span="2">
+          {{ formatPlatformDateTime(detail.updated_at) }}
+        </ElDescriptionsItem>
+      </ElDescriptions>
+    </div>
+  </ElDrawer>
   <ElDialog v-model="visible" title="创建导出">
     <ElForm label-width="110px">
       <ElFormItem label="数据集">

@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformDateTime } from '@/platform/date-time';
+import { formatPlatformBytes } from '@/platform/display';
 import { sha256Hex } from '@/platform/file';
 import { useTaskPolling } from '@/platform/task-polling';
 import type { ImportDataset, ImportDatasetDescriptor, ImportJob } from '../../api';
@@ -13,6 +14,7 @@ import {
   createImport,
   describeDataset,
   errorReport,
+  getImport,
   listDatasets,
   listImports,
   putImportFile,
@@ -39,6 +41,9 @@ const datasetCode = ref('');
 const page = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
+const detailVisible = ref(false);
+const detailLoading = ref(false);
+const detail = ref<ImportJob>();
 const hasActiveJobs = computed(() =>
   rows.value.some(job => ['uploading', 'queued', 'validating', 'applying'].includes(job.status))
 );
@@ -53,6 +58,7 @@ let loadVersion = 0;
 const uploadGuard = createLatestRequestGuard();
 const descriptorGuard = createLatestRequestGuard();
 const catalogGuard = createLatestRequestGuard();
+const detailGuard = createLatestRequestGuard();
 async function load() {
   loadVersion += 1;
   const version = loadVersion;
@@ -166,6 +172,23 @@ function downloadTemplate() {
   anchor.click();
   URL.revokeObjectURL(url);
 }
+async function openDetail(job: ImportJob) {
+  detailVisible.value = true;
+  detail.value = undefined;
+  detailLoading.value = true;
+  const request = detailGuard.begin();
+  try {
+    const value = await getImport(job);
+    if (detailGuard.isCurrent(request)) detail.value = value;
+  } catch (error) {
+    if (detailGuard.isCurrent(request)) {
+      detailVisible.value = false;
+      window.$message?.error(error instanceof Error ? error.message : '读取导入详情失败');
+    }
+  } finally {
+    if (detailGuard.isCurrent(request)) detailLoading.value = false;
+  }
+}
 async function action(job: ImportJob, type: 'confirm' | 'cancel' | 'retry' | 'report') {
   if (type === 'confirm') await confirmImport(job);
   if (type === 'cancel') await cancelImport(job);
@@ -189,6 +212,9 @@ watch([tenantID, applicationID], () => {
   uploadGuard.invalidate();
   descriptorGuard.invalidate();
   catalogGuard.invalidate();
+  detailGuard.invalidate();
+  detailVisible.value = false;
+  detail.value = undefined;
   loadVersion += 1;
   rows.value = [];
   page.value = 1;
@@ -304,6 +330,7 @@ onMounted(() => {
         </ElTableColumn>
         <ElTableColumn label="操作" width="220">
           <template #default="{ row }">
+            <ElButton link @click="openDetail(row)">详情</ElButton>
             <ElButton v-if="row.status === 'ready'" link @click="action(row, 'confirm')">确认导入</ElButton>
             <ElButton
               v-if="['uploading', 'queued', 'validating', 'ready'].includes(row.status)"
@@ -337,4 +364,33 @@ onMounted(() => {
       </div>
     </template>
   </ElCard>
+  <ElDrawer v-model="detailVisible" title="导入任务详情" size="620px">
+    <div v-loading="detailLoading">
+      <ElDescriptions v-if="detail" :column="2" border>
+        <ElDescriptionsItem label="任务 ID" :span="2">{{ detail.id }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="文件名">{{ detail.filename || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="状态">{{ importStatusLabel(detail.status) }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="数据集">{{ detail.dataset_code }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="提供方">{{ detail.provider_service }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="格式">{{ detail.format || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="源文件大小">{{ formatPlatformBytes(detail.source_bytes) }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="进度">{{ detail.progress_percent || 0 }}%</ElDescriptionsItem>
+        <ElDescriptionsItem label="总行数">{{ detail.total_rows ?? 0 }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="有效 / 无效">
+          {{ detail.valid_rows ?? 0 }} / {{ detail.invalid_rows ?? 0 }}
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="已应用行数">{{ detail.applied_rows ?? 0 }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="版本">{{ detail.version }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="校验和" :span="2">{{ detail.source_checksum || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="错误码">{{ detail.error_code || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="失败原因">{{ detail.error_message || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="上传过期">{{ formatPlatformDateTime(detail.upload_expires_at) }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="开始时间">{{ formatPlatformDateTime(detail.started_at) }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="完成时间">{{ formatPlatformDateTime(detail.completed_at) }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="结果过期">{{ formatPlatformDateTime(detail.result_expires_at) }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="创建时间">{{ formatPlatformDateTime(detail.created_at) }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="更新时间">{{ formatPlatformDateTime(detail.updated_at) }}</ElDescriptionsItem>
+      </ElDescriptions>
+    </div>
+  </ElDrawer>
 </template>

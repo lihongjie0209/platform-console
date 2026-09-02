@@ -35,6 +35,12 @@ export interface ImportJob extends Record<string, unknown> {
   applied_rows: number;
   progress_percent: number;
   error_message: string;
+  error_code?: string;
+  source_checksum?: string;
+  upload_expires_at?: string;
+  started_at?: string;
+  completed_at?: string;
+  result_expires_at?: string;
   created_at: string;
   updated_at: string;
   version: number;
@@ -101,6 +107,14 @@ export const listImports = (input: {
         dataset_code: input.datasetCode,
         ...paginationRequest(input.page, input.pageSize)
       }
+    })
+  );
+export const getImport = (job: Pick<ImportJob, 'tenant_id' | 'application_id' | 'id'>) =>
+  unwrap<ImportJob>(
+    request({
+      url: '/api/v1/imports/get',
+      method: 'post',
+      data: { ...applicationScope(job.tenant_id, job.application_id), id: job.id }
     })
   );
 export const createImport = (input: {

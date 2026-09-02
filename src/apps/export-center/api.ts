@@ -72,6 +72,14 @@ export const listExports = (input: {
       }
     })
   );
+export const getExport = (job: Pick<ExportJob, 'tenant_id' | 'application_id' | 'id'>) =>
+  unwrap<ExportJob>(
+    request({
+      url: '/api/v1/exports/get',
+      method: 'post',
+      data: { ...applicationScope(job.tenant_id, job.application_id), id: job.id }
+    })
+  );
 export const listExportDatasets = (tenantID: string, applicationID: string, search = '') =>
   unwrap<Page<ExportDataset>>(
     request({
