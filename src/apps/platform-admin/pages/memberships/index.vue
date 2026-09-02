@@ -5,6 +5,7 @@ import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business'
 import type { BizCrudAdapter, BizCrudConfig, BizFieldOption } from '@/components/business';
 import { createLatestRequestGuard } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { remoteSearchPage } from '@/platform/remote-search';
 import type { Membership, MembershipForm, OrganizationUnit, UserIdentity } from '../../api';
 import {
   addMembership,
@@ -151,7 +152,7 @@ function organizationLabel(id: string) {
 }
 async function searchUsers(keyword: string) {
   const request = userSearchGuard.begin();
-  const result = await listUsers({ page: 1, pageSize: 50, keyword: keyword.trim(), status: 'active' });
+  const result = await listUsers({ ...remoteSearchPage(), keyword: keyword.trim(), status: 'active' });
   if (userSearchGuard.isCurrent(request)) users.value = mergeUserDirectory(users.value, result.items);
 }
 async function loadOrganizations() {

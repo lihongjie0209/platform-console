@@ -5,6 +5,7 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { BizCopyText } from '@/components/business';
 import { createLatestRequestGuard } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { remoteSearchPage } from '@/platform/remote-search';
 import type { TenantDirectoryItem, UserIdentity, UserSession } from '../../api';
 import { listSessions, listTenantDirectory, listUsers, revokeSession } from '../../api';
 import { sessionUserLabel as formatSessionUserLabel } from '../../session-display';
@@ -72,7 +73,7 @@ async function searchUsers(keyword: string) {
   const request = usersGuard.begin();
   usersLoading.value = true;
   try {
-    const result = await listUsers({ page: 1, pageSize: 50, keyword: keyword.trim(), status: '' });
+    const result = await listUsers({ ...remoteSearchPage(), keyword: keyword.trim(), status: '' });
     if (usersGuard.isCurrent(request)) users.value = result.items;
   } finally {
     if (usersGuard.isCurrent(request)) usersLoading.value = false;
@@ -83,7 +84,11 @@ async function searchTenants(keyword: string) {
   const request = tenantsGuard.begin();
   tenantsLoading.value = true;
   try {
-    const result = await listTenantDirectory({ page: 1, pageSize: 50, keyword: keyword.trim(), status: 'active' });
+    const result = await listTenantDirectory({
+      ...remoteSearchPage(),
+      keyword: keyword.trim(),
+      status: 'active'
+    });
     if (tenantsGuard.isCurrent(request)) tenants.value = result.items;
   } finally {
     if (tenantsGuard.isCurrent(request)) tenantsLoading.value = false;

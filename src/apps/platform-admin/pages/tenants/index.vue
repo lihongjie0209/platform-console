@@ -4,6 +4,7 @@ import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business'
 import type { BizCrudAdapter, BizCrudConfig, BizFieldOption } from '@/components/business';
 import { createLatestRequestGuard } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { remoteSearchPage } from '@/platform/remote-search';
 import type { TenantDirectoryItem, TenantForm, UserIdentity } from '../../api';
 import { createTenant, getTenant, listTenantDirectory, listUsers, updateTenant } from '../../api';
 
@@ -102,7 +103,7 @@ function userLabel(user: UserIdentity) {
 }
 async function searchOwners(keyword: string) {
   const request = ownerSearchGuard.begin();
-  const result = await listUsers({ page: 1, pageSize: 50, keyword: keyword.trim(), status: 'active' });
+  const result = await listUsers({ ...remoteSearchPage(), keyword: keyword.trim(), status: 'active' });
   if (!ownerSearchGuard.isCurrent(request)) return;
   ownerOptions.value = result.items
     .filter(item => item.status === 'active')
