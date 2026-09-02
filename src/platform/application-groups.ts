@@ -8,6 +8,11 @@ export interface ApplicationGroup {
   applications: PlatformApplication[];
 }
 
+export interface ApplicationCategoryDetails {
+  category: ApplicationCategory;
+  label: string;
+}
+
 const categories: readonly { category: ApplicationCategory; label: string }[] = [
   { category: 'platform', label: '平台治理' },
   { category: 'operations', label: '平台运维' },
@@ -33,11 +38,16 @@ function configuredCategory(application: PlatformApplication): ApplicationCatego
   }
 }
 
+export function applicationCategoryDetails(application: PlatformApplication): ApplicationCategoryDetails {
+  const category = configuredCategory(application) ?? applicationModuleFor(application.code)?.category ?? 'business';
+  return categories.find(item => item.category === category) ?? { category: 'business', label: '业务应用' };
+}
+
 /** Groups the granted application catalog by product boundary, not by backend service dependency. */
 export function groupApplications(applications: PlatformApplication[]): ApplicationGroup[] {
   const grouped = new Map<ApplicationCategory, PlatformApplication[]>();
   for (const application of applications) {
-    const category = configuredCategory(application) ?? applicationModuleFor(application.code)?.category ?? 'business';
+    const { category } = applicationCategoryDetails(application);
     const items = grouped.get(category) ?? [];
     items.push(application);
     grouped.set(category, items);

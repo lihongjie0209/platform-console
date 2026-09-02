@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { PlatformApplication } from '@/service/api';
-import { groupApplications } from './application-groups';
+import { applicationCategoryDetails, groupApplications } from './application-groups';
 
 function application(code: string, name = code): PlatformApplication {
   return {
@@ -62,4 +62,12 @@ test('uses a valid server-managed category and safely ignores malformed metadata
       ['business', ['future-platform', 'legacy']]
     ]
   );
+});
+
+test('exposes the same category details used by workspace context', () => {
+  const applicationItem = application('platform-admin');
+  assert.deepEqual(applicationCategoryDetails(applicationItem), { category: 'platform', label: '平台治理' });
+
+  applicationItem.metadata_json = JSON.stringify({ category: 'integration' });
+  assert.deepEqual(applicationCategoryDetails(applicationItem), { category: 'integration', label: '集成能力' });
 });

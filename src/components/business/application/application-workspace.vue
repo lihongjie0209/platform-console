@@ -2,7 +2,8 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePlatformStore } from '@/store/modules/platform';
-import { applicationMenuEntries } from '@/platform/navigation';
+import { applicationMenuEntries, applicationNavigationCompatibility } from '@/platform/navigation';
+import { applicationCategoryDetails } from '@/platform/application-groups';
 import { BizEmptyState, BizPageContainer } from '@/components/business';
 
 defineOptions({ name: 'ApplicationWorkspace' });
@@ -15,6 +16,13 @@ const navigation = computed(() =>
 );
 const application = computed(() => navigation.value?.application || platformStore.selectedApplication);
 const entries = computed(() => (navigation.value ? applicationMenuEntries(navigation.value) : []));
+const category = computed(() => (application.value ? applicationCategoryDetails(application.value) : undefined));
+const compatibility = computed(() =>
+  navigation.value
+    ? applicationNavigationCompatibility(navigation.value)
+    : { supportedPages: 0, unsupportedPages: 0, externalPages: 0, usable: false }
+);
+const availableEntryCount = computed(() => compatibility.value.supportedPages + compatibility.value.externalPages);
 
 async function openEntry(entry: (typeof entries.value)[number]) {
   if (entry.externalURL) {
@@ -33,6 +41,20 @@ async function openEntry(entry: (typeof entries.value)[number]) {
     <template #actions>
       <ElTag v-if="application?.code" effect="plain">{{ application.code }}</ElTag>
     </template>
+
+    <ElDescriptions class="mb-20px" :column="4" border>
+      <ElDescriptionsItem label="当前租户">
+        {{ platformStore.selectedTenant?.name || platformStore.selectedTenantId || '-' }}
+      </ElDescriptionsItem>
+      <ElDescriptionsItem label="应用分类">{{ category?.label || '业务应用' }}</ElDescriptionsItem>
+      <ElDescriptionsItem label="可用功能">{{ availableEntryCount }}</ElDescriptionsItem>
+      <ElDescriptionsItem label="控制台兼容性">
+        <ElTag v-if="compatibility.unsupportedPages" type="warning" effect="plain">
+          {{ compatibility.unsupportedPages }} 个页面待安装
+        </ElTag>
+        <ElTag v-else type="success" effect="plain">已兼容</ElTag>
+      </ElDescriptionsItem>
+    </ElDescriptions>
 
     <BizEmptyState
       v-if="!entries.length"
