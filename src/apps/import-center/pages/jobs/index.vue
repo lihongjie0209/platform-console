@@ -15,6 +15,7 @@ import {
   putImportFile,
   retryImport
 } from '../../api';
+import { importDatasetKey, selectedImportDataset, supportedImportFormat } from '../../import-form';
 defineOptions({ name: 'ImportCenterJobs' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
@@ -26,7 +27,7 @@ const datasets = ref<ImportDataset[]>([]);
 const status = ref('');
 const datasetCode = ref('');
 const selectedDataset = ref('');
-const format = ref('csv');
+const format = ref('');
 const source = ref<File>();
 const uploading = ref(false);
 const fileInputKey = ref(0);
@@ -62,8 +63,8 @@ async function create() {
   const selectedFile = source.value;
   const tenant = tenantID.value;
   const application = applicationID.value;
-  const dataset = datasets.value.find(v => `${v.provider_service}:${v.code}` === selectedDataset.value);
-  if (!dataset) return;
+  const dataset = selectedImportDataset(datasets.value, selectedDataset.value);
+  if (!dataset || !dataset.formats.includes(format.value)) return;
   uploading.value = true;
   try {
     const auth = await createImport({
@@ -82,6 +83,9 @@ async function create() {
   } finally {
     if (uploadGuard.isCurrent(request)) uploading.value = false;
   }
+}
+function changeDataset() {
+  format.value = supportedImportFormat(selectedImportDataset(datasets.value, selectedDataset.value), format.value);
 }
 async function action(job: ImportJob, type: 'confirm' | 'cancel' | 'retry' | 'report') {
   if (type === 'confirm') await confirmImport(job);
@@ -108,6 +112,7 @@ watch([tenantID, applicationID], () => {
   rows.value = [];
   datasets.value = [];
   selectedDataset.value = '';
+  format.value = '';
   source.value = undefined;
   fileInputKey.value += 1;
   uploading.value = false;
@@ -130,22 +135,34 @@ onMounted(load);
     <template v-else>
       <ElForm inline>
         <ElFormItem label="数据集">
-          <ElSelect v-model="selectedDataset" class="w-260px">
+          <ElSelect v-model="selectedDataset" class="w-260px" @change="changeDataset">
             <ElOption
               v-for="v in datasets"
-              :key="`${v.provider_service}:${v.code}`"
+              :key="importDatasetKey(v)"
               :label="`${v.title} (${v.provider_service})`"
-              :value="`${v.provider_service}:${v.code}`"
+              :value="importDatasetKey(v)"
             />
           </ElSelect>
         </ElFormItem>
         <ElFormItem label="格式">
           <ElSelect v-model="format" class="w-110px">
-            <ElOption v-for="v in ['csv', 'jsonl', 'xlsx']" :key="v" :label="v" :value="v" />
+            <ElOption
+              v-for="v in selectedImportDataset(datasets, selectedDataset)?.formats || []"
+              :key="v"
+              :label="v"
+              :value="v"
+            />
           </ElSelect>
         </ElFormItem>
         <ElFormItem><input :key="fileInputKey" type="file" @change="chooseFile" /></ElFormItem>
-        <ElButton type="primary" :loading="uploading" :disabled="!scopeReady" @click="create">上传并校验</ElButton>
+        <ElButton
+          type="primary"
+          :loading="uploading"
+          :disabled="!scopeReady || !selectedDataset || !format || !source"
+          @click="create"
+        >
+          上传并校验
+        </ElButton>
       </ElForm>
       <ElForm inline>
         <ElFormItem label="状态"><ElInput v-model="status" /></ElFormItem>
