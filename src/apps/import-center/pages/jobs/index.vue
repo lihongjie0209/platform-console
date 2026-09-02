@@ -6,6 +6,7 @@ import { formatPlatformDateTime } from '@/platform/date-time';
 import { formatPlatformBytes } from '@/platform/display';
 import { sha256Hex } from '@/platform/file';
 import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
+import { collectAllPages } from '@/platform/pagination';
 import { shouldReportTaskLoadError, useTaskPolling } from '@/platform/task-polling';
 import type { ImportDataset, ImportDatasetDescriptor, ImportJob } from '../../api';
 import {
@@ -117,8 +118,16 @@ async function searchDatasets(keyword: string) {
   const request = catalogGuard.begin();
   catalogLoading.value = true;
   try {
-    const value = await listDatasets(tenantID.value, applicationID.value, keyword);
-    if (catalogGuard.isCurrent(request)) datasets.value = value.items || [];
+    const value = await collectAllPages((catalogPage, catalogPageSize) =>
+      listDatasets({
+        tenantID: tenantID.value,
+        applicationID: applicationID.value,
+        search: keyword,
+        page: catalogPage,
+        pageSize: catalogPageSize
+      })
+    );
+    if (catalogGuard.isCurrent(request)) datasets.value = value;
   } catch (error) {
     if (catalogGuard.isCurrent(request)) {
       datasets.value = [];

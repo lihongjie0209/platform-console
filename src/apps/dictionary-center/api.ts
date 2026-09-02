@@ -164,21 +164,24 @@ export function publishDefinition(value: DictionaryDefinition, comment: string) 
     })
   );
 }
-export function queryDictionary(
-  scope: { tenantID: string; applicationID: string },
-  dictionaryCode: string,
-  keyword: string
-) {
+export function queryDictionary(input: {
+  tenantID: string;
+  applicationID: string;
+  dictionaryCode: string;
+  keyword: string;
+  page: number;
+  pageSize: number;
+}) {
   return unwrap<Page<DictionaryItem> & { has_more: boolean }>(
     request({
       url: '/api/v1/dictionaries/query',
       method: 'post',
       data: {
-        ...applicationScope(scope.tenantID, scope.applicationID),
-        dictionary_code: dictionaryCode,
-        keyword,
-        page: 1,
-        page_size: 100,
+        ...applicationScope(input.tenantID, input.applicationID),
+        dictionary_code: input.dictionaryCode,
+        keyword: input.keyword,
+        page: input.page,
+        page_size: input.pageSize,
         filters: {}
       }
     })

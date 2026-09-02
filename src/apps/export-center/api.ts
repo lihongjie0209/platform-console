@@ -80,12 +80,22 @@ export const getExport = (job: Pick<ExportJob, 'tenant_id' | 'application_id' | 
       data: { ...applicationScope(job.tenant_id, job.application_id), id: job.id }
     })
   );
-export const listExportDatasets = (tenantID: string, applicationID: string, search = '') =>
+export const listExportDatasets = (input: {
+  tenantID: string;
+  applicationID: string;
+  search: string;
+  page: number;
+  pageSize: number;
+}) =>
   unwrap<Page<ExportDataset>>(
     request({
       url: '/api/v1/exports/datasets/list',
       method: 'post',
-      data: { ...applicationScope(tenantID, applicationID), search: catalogSearch(search), page: 1, page_size: 100 }
+      data: {
+        ...applicationScope(input.tenantID, input.applicationID),
+        search: catalogSearch(input.search),
+        ...paginationRequest(input.page, input.pageSize)
+      }
     })
   );
 export const describeExportDataset = (input: {

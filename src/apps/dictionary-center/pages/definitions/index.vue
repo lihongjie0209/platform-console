@@ -52,6 +52,9 @@ const itemForm = reactive({
 const previewVisible = ref(false);
 const previewKeyword = ref('');
 const previewItems = ref<DictionaryItem[]>([]);
+const previewTotal = ref(0);
+const previewPage = ref(1);
+const previewPageSize = ref(20);
 const loadGuard = createLatestRequestGuard();
 const itemsGuard = createLatestRequestGuard();
 const previewGuard = createLatestRequestGuard();
@@ -231,17 +234,34 @@ async function publish(row: DictionaryDefinition) {
   window.$message?.success('字典版本已发布');
   await loadData();
 }
-async function preview(row: DictionaryDefinition) {
+async function loadPreview(row: DictionaryDefinition) {
   if (!canQuery.value || !scopeReady.value) return;
   const request = previewGuard.begin();
   selected.value = row;
   previewVisible.value = true;
-  const result = await queryDictionary(
-    { tenantID: tenantID.value, applicationID: applicationID.value },
-    row.code,
-    previewKeyword.value
-  );
-  if (previewGuard.isCurrent(request) && selected.value?.id === row.id) previewItems.value = result.items || [];
+  const result = await queryDictionary({
+    tenantID: tenantID.value,
+    applicationID: applicationID.value,
+    dictionaryCode: row.code,
+    keyword: previewKeyword.value,
+    page: previewPage.value,
+    pageSize: previewPageSize.value
+  });
+  if (previewGuard.isCurrent(request) && selected.value?.id === row.id) {
+    previewItems.value = result.items || [];
+    previewTotal.value = result.total || 0;
+  }
+}
+function preview(row: DictionaryDefinition) {
+  previewPage.value = 1;
+  loadPreview(row);
+}
+function reloadPreview() {
+  if (selected.value) loadPreview(selected.value);
+}
+function resizePreview() {
+  previewPage.value = 1;
+  reloadPreview();
 }
 watch([tenantID, applicationID], () => {
   itemsGuard.invalidate();
@@ -255,6 +275,8 @@ watch([tenantID, applicationID], () => {
   selected.value = undefined;
   items.value = [];
   previewItems.value = [];
+  previewTotal.value = 0;
+  previewPage.value = 1;
   search();
 });
 onMounted(loadData);
@@ -391,5 +413,16 @@ onMounted(loadData);
       <ElTableColumn prop="parent_code" label="父编码" />
       <ElTableColumn prop="disabled" label="禁用" width="80" />
     </ElTable>
+    <div class="mt-16px flex justify-end">
+      <ElPagination
+        v-model:current-page="previewPage"
+        v-model:page-size="previewPageSize"
+        :total="previewTotal"
+        :page-sizes="[20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        @current-change="reloadPreview"
+        @size-change="resizePreview"
+      />
+    </div>
   </ElDrawer>
 </template>

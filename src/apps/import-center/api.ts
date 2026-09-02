@@ -58,12 +58,22 @@ async function unwrap<T>(value: PromiseLike<{ data: T | null; error: unknown }>)
   if (data === null) throw new Error('import service returned an empty response');
   return data;
 }
-export const listDatasets = (tenantID: string, applicationID: string, search: string) =>
+export const listDatasets = (input: {
+  tenantID: string;
+  applicationID: string;
+  search: string;
+  page: number;
+  pageSize: number;
+}) =>
   unwrap<Page<ImportDataset>>(
     request({
       url: '/api/v1/imports/datasets/list',
       method: 'post',
-      data: { ...applicationScope(tenantID, applicationID), search: catalogSearch(search), page: 1, page_size: 100 }
+      data: {
+        ...applicationScope(input.tenantID, input.applicationID),
+        search: catalogSearch(input.search),
+        ...paginationRequest(input.page, input.pageSize)
+      }
     })
   );
 export const describeDataset = (input: {
