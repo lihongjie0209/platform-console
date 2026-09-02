@@ -8,7 +8,7 @@ import {
   fetchTenantApplications,
   fetchUserTenants
 } from '@/service/api';
-import { sessionStg } from '@/utils/storage';
+import { localStg, sessionStg } from '@/utils/storage';
 import { SetupStoreId } from '@/enum';
 import { chunkValues, collectAllPages } from '@/platform/pagination';
 import {
@@ -27,6 +27,11 @@ import {
   retainRunnableApplicationID
 } from '@/platform/navigation';
 import type { MenuPermissionScope, PermissionRequirement } from '@/platform/navigation';
+import {
+  normalizeRecentApplicationScopes,
+  recentApplicationIDs,
+  recordRecentApplication
+} from '@/platform/application-recents';
 
 async function fetchAllowedNavigationPermissionCodes(tenantId: string, navigations: PublishedNavigation[]) {
   const permissionCodes = navigationPermissionCodes(navigations);
@@ -92,11 +97,15 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
   const applications = ref<PlatformApplication[]>([]);
   const navigations = ref<PublishedNavigation[]>([]);
   const allowedPermissionCodes = ref<Record<MenuPermissionScope, string[]>>({ tenant: [], platform: [] });
+  const recentApplicationScopes = ref(normalizeRecentApplicationScopes(localStg.get('recentApplicationScopes')));
   let requestRevision = 0;
   const enqueueTenantSelection = createSerialTaskQueue();
 
   const selectedTenant = computed(() => tenants.value.find(item => item.id === selectedTenantId.value));
   const selectedApplication = computed(() => applications.value.find(item => item.id === selectedApplicationId.value));
+  const recentApplicationIds = computed(() =>
+    recentApplicationIDs(recentApplicationScopes.value, initializedSubject.value, selectedTenantId.value)
+  );
 
   async function initialize(subject: string, options: { force?: boolean } = {}) {
     if (
@@ -220,6 +229,12 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
     }
     selectedApplicationId.value = applicationId;
     sessionStg.set('selectedApplicationId', applicationId);
+    recentApplicationScopes.value = recordRecentApplication(recentApplicationScopes.value, {
+      subject: initializedSubject.value,
+      tenantId: selectedTenantId.value,
+      applicationId
+    });
+    localStg.set('recentApplicationScopes', recentApplicationScopes.value);
   }
 
   function clearTenantSelection() {
@@ -253,6 +268,7 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
     selectedApplicationId,
     selectedTenant,
     selectedApplication,
+    recentApplicationIds,
     applications,
     navigations,
     allowedPermissionCodes,

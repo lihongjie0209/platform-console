@@ -18,6 +18,8 @@ declare namespace StorageType {
   }
 
   interface Local {
+    /** Recently opened applications, isolated by user and tenant. */
+    recentApplicationScopes: import('@/platform/application-recents').RecentApplicationScope[];
     /** The i18n language */
     lang: App.I18n.LangType;
     /** The token */

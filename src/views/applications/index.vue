@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import type { PlatformApplication } from '@/service/api/platform-navigation';
 import { useAuthStore } from '@/store/modules/auth';
 import { usePlatformStore } from '@/store/modules/platform';
 import { useRouteStore } from '@/store/modules/route';
@@ -39,6 +40,16 @@ const compatibilityByApplication = computed(() => {
       applicationNavigationCompatibility(navigation)
     ])
   );
+});
+const recentApplications = computed(() => {
+  if (keyword.value) return [];
+  const byId = new Map(platformStore.applications.map(application => [application.id, application]));
+  return platformStore.recentApplicationIds
+    .map(id => byId.get(id))
+    .filter((application): application is PlatformApplication => {
+      if (!application) return false;
+      return applicationEntryState(application.id).status === 'ready';
+    });
 });
 
 function applicationEntryState(applicationId: string) {
@@ -129,6 +140,23 @@ async function openApplication(applicationId: string) {
       :description="keyword ? '没有匹配的应用' : '当前租户尚未获得任何应用授权'"
     />
     <div v-else class="flex flex-col gap-24px">
+      <section v-if="recentApplications.length">
+        <div class="mb-12px flex items-center gap-8px">
+          <h2 class="m-0 text-15px font-semibold">最近访问</h2>
+          <ElTag size="small" effect="plain">{{ recentApplications.length }}</ElTag>
+        </div>
+        <div class="flex flex-wrap gap-10px">
+          <ElButton
+            v-for="application in recentApplications"
+            :key="application.id"
+            plain
+            @click="openApplication(application.id)"
+          >
+            <SvgIcon :icon="application.icon || 'mdi:application-outline'" class="mr-6px text-17px" />
+            {{ application.name }}
+          </ElButton>
+        </div>
+      </section>
       <section v-for="group in applicationGroups" :key="group.category">
         <div class="mb-12px flex items-center gap-8px">
           <h2 class="m-0 text-15px font-semibold">{{ group.label }}</h2>
