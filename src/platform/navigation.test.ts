@@ -360,18 +360,18 @@ test('activeApplicationRoutes mounts only a runnable selected application worksp
   const routes = activeApplicationRoutes(navigations, 'app-b');
   assert.deepEqual(
     routes.map(route => route.path),
-    ['/applications', '/apps/billing-center']
+    ['/applications', '/user-center', '/apps/billing-center']
   );
   assert.equal(JSON.stringify(routes).includes('/apps/platform-admin'), false);
   assert.deepEqual(
     activeApplicationRoutes(navigations, '').map(route => route.path),
-    ['/applications']
+    ['/applications', '/user-center']
   );
   assert.deepEqual(
     activeApplicationRoutes([navigation('future-id', 'billing-center', 'billing-center.future')], 'future-id').map(
       route => route.path
     ),
-    ['/applications']
+    ['/applications', '/user-center']
   );
 });
 

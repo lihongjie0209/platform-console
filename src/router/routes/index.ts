@@ -1,4 +1,5 @@
 import type { CustomRoute, ElegantConstRoute, ElegantRoute } from '@elegant-router/types';
+import { shellRouteDisposition } from '@/platform/route-policy';
 import { generatedRoutes } from '../elegant/routes';
 import { layouts, views } from '../elegant/imports';
 import { transformElegantRoutesToVueRoutes } from '../elegant/transform';
@@ -199,9 +200,10 @@ export function createStaticRoutes() {
   const authRoutes: ElegantRoute[] = [];
 
   [...customRoutes, ...generatedRoutes].forEach(item => {
-    if (item.meta?.constant) {
+    const disposition = shellRouteDisposition(item.name, Boolean(item.meta?.constant));
+    if (disposition === 'constant') {
       constantRoutes.push(item);
-    } else {
+    } else if (disposition === 'authenticated') {
       authRoutes.push(item);
     }
   });

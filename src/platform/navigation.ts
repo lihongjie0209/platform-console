@@ -263,6 +263,15 @@ export function applicationSelectionRoute(): ElegantConstRoute {
   } as ElegantConstRoute;
 }
 
+export function userCenterRoute(): ElegantConstRoute {
+  return {
+    name: 'user-center',
+    path: '/user-center',
+    component: 'layout.base$view.user-center',
+    meta: { title: '个人中心', hideInMenu: true }
+  } as ElegantConstRoute;
+}
+
 /**
  * Builds the authenticated route set for the application shell. The launcher is
  * always available, while business routes are mounted for exactly one selected
@@ -270,7 +279,7 @@ export function applicationSelectionRoute(): ElegantConstRoute {
  * workspaces.
  */
 export function activeApplicationRoutes(navigations: PublishedNavigation[], applicationId: string) {
-  const routes = [applicationSelectionRoute()];
+  const routes = [applicationSelectionRoute(), userCenterRoute()];
   if (!applicationId) return routes;
 
   const navigation = navigations.find(item => item.application.id === applicationId);
