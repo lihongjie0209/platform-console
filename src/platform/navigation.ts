@@ -1,5 +1,6 @@
 import type { ElegantConstRoute } from '@elegant-router/types';
 import type { ApplicationMenu, PlatformApplication, PublishedNavigation } from '@/service/api/platform-navigation';
+import { pageBelongsToApplication } from '@/apps/registry';
 
 const FALLBACK_ICON = 'mdi:application-outline';
 
@@ -153,6 +154,13 @@ export interface ApplicationMenuEntry {
   externalURL: string;
 }
 
+export interface ApplicationNavigationCompatibility {
+  supportedPages: number;
+  unsupportedPages: number;
+  externalPages: number;
+  usable: boolean;
+}
+
 export function safeExternalURL(raw: string) {
   try {
     const parsed = new URL(raw);
@@ -163,6 +171,30 @@ export function safeExternalURL(raw: string) {
     // Legacy or malformed catalog data fails closed and is not rendered as a link.
   }
   return '';
+}
+
+/** Reports whether the current console release can execute an application's published navigation. */
+export function applicationNavigationCompatibility(
+  navigation: PublishedNavigation
+): ApplicationNavigationCompatibility {
+  const result: ApplicationNavigationCompatibility = {
+    supportedPages: 0,
+    unsupportedPages: 0,
+    externalPages: 0,
+    usable: false
+  };
+  for (const menu of navigation.menus) {
+    if (menu.status === 'active' && menu.visible) {
+      if (menu.type === 'external' && safeExternalURL(menu.external_url)) {
+        result.externalPages += 1;
+      } else if (menu.type === 'page') {
+        if (pageBelongsToApplication(menu.component, navigation.application.code)) result.supportedPages += 1;
+        else result.unsupportedPages += 1;
+      }
+    }
+  }
+  result.usable = result.supportedPages > 0 || result.externalPages > 0;
+  return result;
 }
 
 /** Flattens published page menus into safe workspace shortcuts. */

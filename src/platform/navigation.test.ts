@@ -1,15 +1,40 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import type { ApplicationMenu } from '@/service/api/platform-navigation';
 import {
   activeApplicationRoutes,
   applicationEntryPath,
   applicationMenuEntries,
+  applicationNavigationCompatibility,
   filterNavigationsByPermissions,
   navigationPermissionCodes,
   navigationToRoutes,
   normalizeMenuPermissionScope,
   safeExternalURL
 } from './navigation';
+
+function applicationMenu(overrides: Pick<ApplicationMenu, 'id'> & Partial<ApplicationMenu>): ApplicationMenu {
+  const { id, ...values } = overrides;
+  return {
+    id,
+    application_id: 'billing-id',
+    parent_id: '',
+    code: overrides.id,
+    type: 'page',
+    name: overrides.id,
+    i18n_key: '',
+    route: overrides.id,
+    component: '',
+    icon: '',
+    external_url: '',
+    permission_code: '',
+    permission_scope: 'tenant',
+    sort_order: 1,
+    visible: true,
+    status: 'active',
+    ...values
+  };
+}
 
 test('menu permission scope keeps platform explicit and defaults legacy values to tenant', () => {
   assert.equal(normalizeMenuPermissionScope('platform'), 'platform');
@@ -331,5 +356,42 @@ test('activeApplicationRoutes mounts only the selected application workspace', (
   assert.deepEqual(
     activeApplicationRoutes(navigations, '').map(route => route.path),
     ['/applications']
+  );
+});
+
+test('application compatibility distinguishes installed, external and unavailable pages', () => {
+  const navigation = {
+    application: {
+      id: 'billing-id',
+      code: 'billing-center',
+      name: 'Billing',
+      description: '',
+      icon: '',
+      default_route: '',
+      status: 'active',
+      sort_order: 1,
+      version: 1
+    },
+    release_version: 1,
+    menus: [
+      applicationMenu({ id: 'installed', code: 'plans', component: 'billing-center.plans' }),
+      applicationMenu({ id: 'future', code: 'future', component: 'billing-center.future' }),
+      applicationMenu({ id: 'external', code: 'docs', type: 'external', external_url: 'https://example.com/docs' }),
+      applicationMenu({ id: 'hidden', code: 'hidden', component: 'billing-center.hidden', visible: false })
+    ]
+  } as Parameters<typeof applicationNavigationCompatibility>[0];
+
+  assert.deepEqual(applicationNavigationCompatibility(navigation), {
+    supportedPages: 1,
+    unsupportedPages: 1,
+    externalPages: 1,
+    usable: true
+  });
+  assert.equal(
+    applicationNavigationCompatibility({
+      ...navigation,
+      menus: [applicationMenu({ id: 'future', code: 'future', component: 'billing-center.future' })]
+    }).usable,
+    false
   );
 });

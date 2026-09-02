@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/store/modules/auth';
 import { usePlatformStore } from '@/store/modules/platform';
 import { useRouteStore } from '@/store/modules/route';
-import { applicationEntryPath } from '@/platform/navigation';
+import { applicationEntryPath, applicationNavigationCompatibility } from '@/platform/navigation';
 import { filterApplications } from '@/platform/application-context';
 import { BizEmptyState, BizPageContainer } from '@/components/business';
 
@@ -20,6 +20,18 @@ const tenantId = ref(platformStore.selectedTenantId);
 const filteredApplications = computed(() => {
   return filterApplications(platformStore.applications, keyword.value);
 });
+const compatibilityByApplication = computed(() => {
+  return new Map(
+    platformStore.navigations.map(navigation => [
+      navigation.application.id,
+      applicationNavigationCompatibility(navigation)
+    ])
+  );
+});
+
+function applicationCompatibility(applicationId: string) {
+  return compatibilityByApplication.value.get(applicationId);
+}
 
 watch(
   () => platformStore.selectedTenantId,
@@ -51,6 +63,12 @@ async function openApplication(applicationId: string) {
   const navigation = platformStore.navigations.find(item => item.application.id === applicationId);
   if (!navigation) {
     window.$message?.warning('该应用尚未发布可用菜单');
+    return;
+  }
+
+  const compatibility = applicationNavigationCompatibility(navigation);
+  if (!compatibility.usable) {
+    window.$message?.warning('当前控制台版本尚未安装该应用的可执行页面，请升级控制台或联系管理员');
     return;
   }
 
@@ -103,6 +121,7 @@ async function openApplication(applicationId: string) {
       <ElCol v-for="application in filteredApplications" :key="application.id" :xs="24" :sm="12" :lg="8" :xl="6">
         <button
           class="mb-16px w-full cursor-pointer border-0 bg-transparent p-0 text-left"
+          :class="{ 'cursor-not-allowed opacity-65': applicationCompatibility(application.id)?.usable === false }"
           type="button"
           @click="openApplication(application.id)"
         >
@@ -118,8 +137,16 @@ async function openApplication(applicationId: string) {
                 <div class="truncate text-16px font-semibold">
                   {{ application.name }}
                 </div>
-                <div class="mt-3px truncate text-12px text-gray-400">
-                  {{ application.code }}
+                <div class="mt-3px flex items-center gap-8px text-12px text-gray-400">
+                  <span class="truncate">{{ application.code }}</span>
+                  <ElTag
+                    v-if="applicationCompatibility(application.id)?.usable === false"
+                    size="small"
+                    type="warning"
+                    effect="plain"
+                  >
+                    待安装
+                  </ElTag>
                 </div>
                 <p class="mb-0 mt-12px min-h-40px text-13px text-gray-500 leading-20px">
                   {{ application.description || '暂无应用说明' }}
