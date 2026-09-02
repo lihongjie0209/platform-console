@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   applicationModules,
+  applicationPageOptionsFor,
   isApplicationPageKey,
   pageBelongsToApplication,
+  pageUsesApplicationNamespace,
   resolveApplicationPage
 } from '../apps/registry';
 
@@ -80,4 +82,17 @@ test('an application cannot mount a page owned by another application', () => {
   assert.equal(pageBelongsToApplication('billing-center.invoices', 'platform-admin'), false);
   assert.equal(resolveApplicationPage('billing-center.invoices', 'platform-admin'), undefined);
   assert.equal(resolveApplicationPage('billing-center.invoices'), undefined);
+});
+
+test('menu page options are limited to the selected application namespace', () => {
+  assert.deepEqual(
+    applicationPageOptionsFor('billing-center').map(option => option.value),
+    ['billing-center.plans', 'billing-center.subscriptions', 'billing-center.invoices', 'billing-center.payments']
+  );
+  assert.deepEqual(applicationPageOptionsFor('billing-center', 'billing-center.future').at(-1), {
+    value: 'billing-center.future',
+    label: 'billing-center.future（当前版本未安装）'
+  });
+  assert.equal(pageUsesApplicationNamespace('platform-admin.users', 'billing-center'), false);
+  assert.equal(applicationPageOptionsFor('', 'billing-center.future').length, 0);
 });

@@ -47,12 +47,28 @@ export type ApplicationPageKey = string;
 
 export const applicationPageOptions = Object.freeze(Array.from(pageLoaders.keys(), value => ({ value, label: value })));
 
+export function applicationPageOptionsFor(applicationCode: string, currentPageKey = '') {
+  const prefix = `${applicationCode.trim()}.`;
+  if (prefix === '.') return [];
+  const options = applicationPageOptions.filter(option => option.value.startsWith(prefix));
+  const current = currentPageKey.trim();
+  if (current.startsWith(prefix) && !pageLoaders.has(current)) {
+    return [...options, { value: current, label: `${current}（当前版本未安装）` }];
+  }
+  return options;
+}
+
+export function pageUsesApplicationNamespace(pageKey: string, applicationCode: string) {
+  const prefix = `${applicationCode.trim()}.`;
+  return prefix !== '.' && pageKey.trim().startsWith(prefix);
+}
+
 export const applicationModules = registry.modules;
 
 const pageComponents = new Map<string, Component>();
 
 export function pageBelongsToApplication(pageKey: string, applicationCode: string) {
-  return pageLoaders.has(pageKey) && pageKey.startsWith(`${applicationCode}.`);
+  return pageLoaders.has(pageKey) && pageUsesApplicationNamespace(pageKey, applicationCode);
 }
 
 export function resolveApplicationPage(pageKey?: string, applicationCode?: string): Component | undefined {

@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
-import { applicationPageOptions } from '@/apps/registry';
+import { applicationPageOptionsFor, pageUsesApplicationNamespace } from '@/apps/registry';
 import { type PermissionCatalogOption, buildPermissionCatalogOptions } from '@/platform/permission-catalog';
 import { type MenuPermissionScope, normalizeMenuPermissionScope } from '@/platform/navigation';
 import type { Application, ApplicationMenu } from '../../api';
@@ -54,6 +54,9 @@ const formRef = ref<FormInstance>();
 const form = reactive<MenuForm>(emptyMenu());
 const tree = computed(() => buildMenuTree(menus.value));
 const selectedApplication = computed(() => applications.value.find(item => item.id === applicationID.value));
+const applicationPageOptions = computed(() =>
+  applicationPageOptionsFor(String(selectedApplication.value?.code || ''), form.component)
+);
 const selectedTenantID = computed(() => platformStore.selectedTenantId);
 const forbiddenParentIDs = computed(() => (form.id ? descendantMenuIDs(menus.value, form.id) : new Set<string>()));
 
@@ -174,6 +177,13 @@ async function saveMenu() {
   if (!(await formRef.value?.validate())) return;
   if (form.type === 'page' && (!form.route || !form.component)) {
     window.$message?.warning('页面菜单必须配置路由和已注册页面键');
+    return;
+  }
+  if (
+    form.type === 'page' &&
+    !pageUsesApplicationNamespace(form.component, String(selectedApplication.value?.code || ''))
+  ) {
+    window.$message?.warning('页面键必须属于当前应用命名空间');
     return;
   }
   if (form.type === 'external' && !form.external_url) {
