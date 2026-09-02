@@ -25,6 +25,8 @@ const detail = ref<WorkflowInstance>();
 const detailVisible = ref(false);
 const form = reactive({ definitionKey: '', businessKey: '', title: '', variables: '{}' });
 const loadGuard = createLatestRequestGuard();
+const canStart = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.instance.start' }));
+const canCancel = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.instance.cancel' }));
 async function loadData() {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
@@ -57,11 +59,12 @@ function search() {
   loadData();
 }
 function openStart() {
+  if (!canStart.value) return;
   Object.assign(form, { definitionKey: '', businessKey: '', title: '', variables: '{}' });
   visible.value = true;
 }
 async function start() {
-  if (!scopeReady.value) return;
+  if (!canStart.value || !scopeReady.value) return;
   let variables: Record<string, unknown>;
   try {
     variables = parseJSONObject(form.variables, '流程变量');
@@ -81,6 +84,7 @@ async function start() {
   await loadData();
 }
 async function cancel(row: WorkflowInstance) {
+  if (!canCancel.value) return;
   const result = await ElMessageBox.prompt('请输入取消原因', '取消流程');
   await cancelInstance(row, result.value);
   await loadData();
@@ -108,7 +112,7 @@ onMounted(loadData);
           <h2 class="m-0 text-18px font-semibold">流程实例</h2>
           <p class="mb-0 mt-6px text-13px text-#999">{{ applicationName }} · 启动、跟踪和取消持久工作流实例。</p>
         </div>
-        <ElButton type="primary" :disabled="!scopeReady" @click="openStart">启动流程</ElButton>
+        <ElButton v-if="canStart" type="primary" :disabled="!scopeReady" @click="openStart">启动流程</ElButton>
       </div>
     </template>
     <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" show-icon :closable="false" />
@@ -129,7 +133,9 @@ onMounted(loadData);
         <ElTableColumn label="操作" width="130">
           <template #default="{ row }">
             <ElButton link type="primary" @click="show(row)">详情</ElButton>
-            <ElButton v-if="row.status === 'running'" link type="danger" @click="cancel(row)">取消</ElButton>
+            <ElButton v-if="canCancel && row.status === 'running'" link type="danger" @click="cancel(row)">
+              取消
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>
@@ -159,7 +165,7 @@ onMounted(loadData);
     </ElForm>
     <template #footer>
       <ElButton @click="visible = false">取消</ElButton>
-      <ElButton type="primary" @click="start">启动</ElButton>
+      <ElButton v-if="canStart" type="primary" @click="start">启动</ElButton>
     </template>
   </ElDialog>
   <ElDrawer v-model="detailVisible" title="实例详情" size="700px">

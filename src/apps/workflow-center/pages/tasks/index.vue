@@ -26,6 +26,9 @@ const delegateVisible = ref(false);
 const form = reactive({ decision: 'approved', comment: '', output: '{}' });
 const delegation = reactive({ userID: '', reason: '' });
 const loadGuard = createLatestRequestGuard();
+const canClaim = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.task.claim' }));
+const canComplete = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.task.complete' }));
+const canDelegate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.task.delegate' }));
 async function loadData() {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
@@ -58,16 +61,18 @@ function search() {
   loadData();
 }
 async function claim(row: WorkflowTask) {
+  if (!canClaim.value) return;
   await claimTask(row);
   await loadData();
 }
 function openComplete(row: WorkflowTask) {
+  if (!canComplete.value) return;
   selected.value = row;
   Object.assign(form, { decision: 'approved', comment: '', output: '{}' });
   completeVisible.value = true;
 }
 async function complete() {
-  if (!selected.value) return;
+  if (!canComplete.value || !selected.value) return;
   let output: Record<string, unknown>;
   try {
     output = parseJSONObject(form.output, '任务输出');
@@ -80,12 +85,13 @@ async function complete() {
   await loadData();
 }
 function openDelegate(row: WorkflowTask) {
+  if (!canDelegate.value) return;
   selected.value = row;
   Object.assign(delegation, { userID: '', reason: '' });
   delegateVisible.value = true;
 }
 async function delegate() {
-  if (!selected.value) return;
+  if (!canDelegate.value || !selected.value) return;
   await delegateTask(selected.value, delegation.userID, delegation.reason);
   delegateVisible.value = false;
   await loadData();
@@ -137,11 +143,23 @@ onMounted(loadData);
         <ElTableColumn prop="due_at" label="截止时间" min-width="180" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn label="操作" width="190">
           <template #default="{ row }">
-            <ElButton v-if="row.status === 'pending'" link type="primary" @click="claim(row)">领取</ElButton>
-            <ElButton v-if="['pending', 'claimed'].includes(row.status)" link type="primary" @click="openComplete(row)">
+            <ElButton v-if="canClaim && row.status === 'pending'" link type="primary" @click="claim(row)">
+              领取
+            </ElButton>
+            <ElButton
+              v-if="canComplete && ['pending', 'claimed'].includes(row.status)"
+              link
+              type="primary"
+              @click="openComplete(row)"
+            >
               处理
             </ElButton>
-            <ElButton v-if="['pending', 'claimed'].includes(row.status)" link type="primary" @click="openDelegate(row)">
+            <ElButton
+              v-if="canDelegate && ['pending', 'claimed'].includes(row.status)"
+              link
+              type="primary"
+              @click="openDelegate(row)"
+            >
               转交
             </ElButton>
           </template>
@@ -177,7 +195,7 @@ onMounted(loadData);
     </ElForm>
     <template #footer>
       <ElButton @click="completeVisible = false">取消</ElButton>
-      <ElButton type="primary" @click="complete">提交</ElButton>
+      <ElButton v-if="canComplete" type="primary" @click="complete">提交</ElButton>
     </template>
   </ElDialog>
   <ElDialog v-model="delegateVisible" title="转交任务" width="560px">
@@ -187,7 +205,7 @@ onMounted(loadData);
     </ElForm>
     <template #footer>
       <ElButton @click="delegateVisible = false">取消</ElButton>
-      <ElButton type="primary" @click="delegate">转交</ElButton>
+      <ElButton v-if="canDelegate" type="primary" @click="delegate">转交</ElButton>
     </template>
   </ElDialog>
 </template>

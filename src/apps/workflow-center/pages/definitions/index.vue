@@ -23,6 +23,10 @@ const saving = ref(false);
 const editing = ref<WorkflowDefinition>();
 const form = reactive({ key: '', name: '', description: '', nodes: '[]', edges: '[]' });
 const loadGuard = createLatestRequestGuard();
+const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.definition.create' }));
+const canUpdate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.definition.update' }));
+const canPublish = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.definition.publish' }));
+const canDisable = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.definition.disable' }));
 async function loadData() {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
@@ -54,6 +58,7 @@ function search() {
   loadData();
 }
 function openCreate() {
+  if (!canCreate.value) return;
   editing.value = undefined;
   Object.assign(form, {
     key: '',
@@ -65,6 +70,7 @@ function openCreate() {
   visible.value = true;
 }
 function openEdit(row: WorkflowDefinition) {
+  if (!canUpdate.value) return;
   editing.value = row;
   Object.assign(form, {
     key: row.key,
@@ -76,7 +82,7 @@ function openEdit(row: WorkflowDefinition) {
   visible.value = true;
 }
 async function save() {
-  if (!scopeReady.value) return;
+  if ((editing.value && !canUpdate.value) || (!editing.value && !canCreate.value) || !scopeReady.value) return;
   let nodes: WorkflowNode[];
   let edges: WorkflowEdge[];
   try {
@@ -104,6 +110,7 @@ async function save() {
   }
 }
 async function changeStatus(row: WorkflowDefinition, action: 'publish' | 'disable') {
+  if ((action === 'publish' && !canPublish.value) || (action === 'disable' && !canDisable.value)) return;
   await changeDefinitionStatus(row, action);
   window.$message?.success(action === 'publish' ? '工作流已发布' : '工作流已停用');
   await loadData();
@@ -128,7 +135,7 @@ onMounted(loadData);
             维护流程草稿、节点连线及不可变发布版本；服务任务通过动态 gRPC 执行。
           </p>
         </div>
-        <ElButton type="primary" :disabled="!scopeReady" @click="openCreate">新建流程</ElButton>
+        <ElButton v-if="canCreate" type="primary" :disabled="!scopeReady" @click="openCreate">新建流程</ElButton>
       </div>
     </template>
     <ElAlert v-if="!tenantID" title="请先选择租户" type="warning" show-icon :closable="false" />
@@ -160,11 +167,21 @@ onMounted(loadData);
         </ElTableColumn>
         <ElTableColumn label="操作" width="190">
           <template #default="{ row }">
-            <ElButton link type="primary" @click="openEdit(row)">编辑</ElButton>
-            <ElButton v-if="row.status === 'draft'" link type="primary" @click="changeStatus(row, 'publish')">
+            <ElButton v-if="canUpdate" link type="primary" @click="openEdit(row)">编辑</ElButton>
+            <ElButton
+              v-if="canPublish && row.status === 'draft'"
+              link
+              type="primary"
+              @click="changeStatus(row, 'publish')"
+            >
               发布
             </ElButton>
-            <ElButton v-if="row.status === 'published'" link type="danger" @click="changeStatus(row, 'disable')">
+            <ElButton
+              v-if="canDisable && row.status === 'published'"
+              link
+              type="danger"
+              @click="changeStatus(row, 'disable')"
+            >
               停用
             </ElButton>
           </template>
@@ -204,7 +221,7 @@ onMounted(loadData);
     </ElForm>
     <template #footer>
       <ElButton @click="visible = false">取消</ElButton>
-      <ElButton type="primary" :loading="saving" @click="save">保存</ElButton>
+      <ElButton v-if="editing ? canUpdate : canCreate" type="primary" :loading="saving" @click="save">保存</ElButton>
     </template>
   </ElDialog>
 </template>
