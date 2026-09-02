@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 const projectRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const applicationsRoot = path.join(projectRoot, 'src', 'apps');
 const sourceExtensions = new Set(['.ts', '.tsx', '.vue']);
+const packageJSON = JSON.parse(await readFile(path.join(projectRoot, 'package.json'), 'utf8'));
+const testCommand = packageJSON.scripts?.test || '';
 const applicationNames = new Set(
   (await readdir(applicationsRoot, { withFileTypes: true }))
     .filter(entry => entry.isDirectory())
@@ -82,4 +84,18 @@ assert.deepEqual(
     ...violations,
     ...shellViolations
   ].join('\n')}`
+);
+
+const testDirectories = new Set(
+  (await sourceFiles(applicationsRoot))
+    .filter(sourceFile => sourceFile.endsWith('.test.ts') || sourceFile.endsWith('.test.tsx'))
+    .map(sourceFile => path.relative(projectRoot, path.dirname(sourceFile)).split(path.sep).join('/'))
+);
+const uncoveredTestDirectories = Array.from(testDirectories).filter(
+  directory => !testCommand.split(/\s+/).includes(`${directory}/*.test.ts`)
+);
+assert.deepEqual(
+  uncoveredTestDirectories,
+  [],
+  `every application-owned test directory must be included in pnpm test:\n${uncoveredTestDirectories.join('\n')}`
 );
