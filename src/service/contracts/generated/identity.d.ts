@@ -771,7 +771,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.IdentityPageResponseBody"];
+                        };
                     };
                 };
             };
@@ -1477,12 +1479,22 @@ export interface components {
             disabled?: boolean;
             revoked_sessions?: number;
         };
+        "httptransport.IdentityPageResponseBody": {
+            items?: components["schemas"]["httptransport.IdentityResponseBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
         "httptransport.IdentityResponseBody": {
+            created_at?: string;
+            created_by?: string;
             display_name?: string;
             email?: string;
             id?: string;
             phone?: string;
             status?: string;
+            updated_at?: string;
+            updated_by?: string;
             username?: string;
             version?: number;
         };

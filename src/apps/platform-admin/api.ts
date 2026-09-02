@@ -24,6 +24,7 @@ export type Binding = AuthorizationContract['schemas']['httptransport.BindingBod
 export type ServiceAccountContract = IdentityContract['schemas']['httptransport.ServiceAccountResponseBody'];
 export type CreateServiceAccountResult = IdentityContract['schemas']['httptransport.CreateServiceAccountResponseBody'];
 export type SessionContract = IdentityContract['schemas']['httptransport.SessionResponseBody'];
+type IdentityResponseContract = IdentityContract['schemas']['httptransport.IdentityResponseBody'];
 
 export interface Role extends RoleContract, Record<string, unknown> {
   id: string;
@@ -73,7 +74,7 @@ export interface RolePermission extends RolePermissionContract, Record<string, u
   version: number;
 }
 
-export interface UserIdentity extends Record<string, unknown> {
+export interface UserIdentity extends IdentityResponseContract, Record<string, unknown> {
   id: string;
   username: string;
   display_name: string;
