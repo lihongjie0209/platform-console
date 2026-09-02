@@ -33,6 +33,12 @@ const editorVisible = ref(false);
 const valueMode = ref<'json' | 'secret'>('json');
 const form = reactive({ id: '', key: '', jsonValue: '{}', secretRef: '', rolloutPercentage: 100, version: 0 });
 const loadGuard = createLatestRequestGuard();
+const canUpdate = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'config.entry.update' }));
+const canSubmit = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'config.entry.submit' }));
+const canApprove = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'config.entry.approve' }));
+const canReject = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'config.entry.reject' }));
+const canPublish = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'config.entry.publish' }));
+const canRollback = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'config.entry.rollback' }));
 
 const scopeReady = computed(
   () =>
@@ -74,12 +80,14 @@ function search() {
 }
 
 function openCreate() {
+  if (!canUpdate.value) return;
   Object.assign(form, { id: '', key: '', jsonValue: '{}', secretRef: '', rolloutPercentage: 100, version: 0 });
   valueMode.value = 'json';
   editorVisible.value = true;
 }
 
 function openEdit(entry: ConfigEntry) {
+  if (!canUpdate.value) return;
   Object.assign(form, {
     id: entry.id,
     key: entry.key,
@@ -93,7 +101,7 @@ function openEdit(entry: ConfigEntry) {
 }
 
 async function saveDraft() {
-  if (!scopeReady.value || !form.key.trim()) return;
+  if (!canUpdate.value || !scopeReady.value || !form.key.trim()) return;
   let value: unknown;
   if (valueMode.value === 'json') {
     try {
@@ -135,13 +143,15 @@ async function saveDraft() {
   }
 }
 
-async function runAction(action: () => Promise<ConfigEntry>, message: string) {
+async function runAction(allowed: boolean, action: () => Promise<ConfigEntry>, message: string) {
+  if (!allowed) return;
   await action();
   window.$message?.success(message);
   await loadData();
 }
 
 async function review(entry: ConfigEntry, approve: boolean) {
+  if ((approve && !canApprove.value) || (!approve && !canReject.value)) return;
   try {
     const result = await ElMessageBox.prompt(
       approve ? '填写审批意见（可选）' : '填写驳回原因',
@@ -151,6 +161,7 @@ async function review(entry: ConfigEntry, approve: boolean) {
       }
     );
     await runAction(
+      approve ? canApprove.value : canReject.value,
       () => (approve ? approveConfig(entry, result.value || '') : rejectConfig(entry, result.value || '')),
       approve ? '审批通过' : '已驳回'
     );
@@ -160,12 +171,13 @@ async function review(entry: ConfigEntry, approve: boolean) {
 }
 
 async function rollback(entry: ConfigEntry) {
+  if (!canRollback.value) return;
   try {
     const result = await ElMessageBox.prompt('输入需要恢复的历史修订号', '回滚配置', {
       inputPattern: /^[1-9]\d*$/,
       inputErrorMessage: '请输入正整数修订号'
     });
-    await runAction(() => rollbackConfig(entry, Number(result.value)), '配置已回滚');
+    await runAction(canRollback.value, () => rollbackConfig(entry, Number(result.value)), '配置已回滚');
   } catch {
     // User cancelled the prompt.
   }
@@ -197,7 +209,7 @@ onMounted(loadData);
             管理 {{ applicationName }} 的配置覆盖，支持审批、发布、灰度与回滚。
           </p>
         </div>
-        <ElButton type="primary" :disabled="!scopeReady" @click="openCreate">新建配置</ElButton>
+        <ElButton v-if="canUpdate" type="primary" :disabled="!scopeReady" @click="openCreate">新建配置</ElButton>
       </div>
     </template>
 
@@ -244,27 +256,27 @@ onMounted(loadData);
         <ElTableColumn prop="updated_at" label="更新时间" min-width="180" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn label="操作" width="310" fixed="right">
           <template #default="{ row }">
-            <ElButton link type="primary" @click="openEdit(row)">编辑</ElButton>
+            <ElButton v-if="canUpdate" link type="primary" @click="openEdit(row)">编辑</ElButton>
             <ElButton
-              v-if="['draft', 'rejected'].includes(row.status)"
+              v-if="canSubmit && ['draft', 'rejected'].includes(row.status)"
               link
-              @click="runAction(() => submitConfig(row), '已提交审批')"
+              @click="runAction(canSubmit, () => submitConfig(row), '已提交审批')"
             >
               提交
             </ElButton>
             <template v-if="row.status === 'pending_approval'">
-              <ElButton link type="success" @click="review(row, true)">通过</ElButton>
-              <ElButton link type="danger" @click="review(row, false)">驳回</ElButton>
+              <ElButton v-if="canApprove" link type="success" @click="review(row, true)">通过</ElButton>
+              <ElButton v-if="canReject" link type="danger" @click="review(row, false)">驳回</ElButton>
             </template>
             <ElButton
-              v-if="row.status === 'approved'"
+              v-if="canPublish && row.status === 'approved'"
               link
               type="success"
-              @click="runAction(() => publishConfig(row), '已发布')"
+              @click="runAction(canPublish, () => publishConfig(row), '已发布')"
             >
               发布
             </ElButton>
-            <ElButton v-if="row.published_revision > 0" link @click="rollback(row)">回滚</ElButton>
+            <ElButton v-if="canRollback && row.published_revision > 0" link @click="rollback(row)">回滚</ElButton>
           </template>
         </ElTableColumn>
       </ElTable>
@@ -315,7 +327,7 @@ onMounted(loadData);
     </ElForm>
     <template #footer>
       <ElButton @click="editorVisible = false">取消</ElButton>
-      <ElButton type="primary" :loading="saving" @click="saveDraft">保存草稿</ElButton>
+      <ElButton v-if="canUpdate" type="primary" :loading="saving" @click="saveDraft">保存草稿</ElButton>
     </template>
   </ElDialog>
 </template>
