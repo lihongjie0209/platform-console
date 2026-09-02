@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { ServiceInstance, ServiceSummary } from '../../api';
 import { listInstances, listServices } from '../../api';
 
@@ -86,7 +87,12 @@ onMounted(loadServices);
       <ElTableColumn prop="status" label="状态" width="120" />
       <ElTableColumn prop="weight" label="权重" width="80" />
       <ElTableColumn prop="version" label="版本" width="120" />
-      <ElTableColumn prop="lease_expires_at" label="租约到期" min-width="190" />
+      <ElTableColumn
+        prop="lease_expires_at"
+        label="租约到期"
+        min-width="190"
+        :formatter="formatPlatformTableDateTime"
+      />
       <ElTableColumn label="操作" width="80">
         <template #default="{ row }"><ElButton link type="primary" @click="showDetail(row)">详情</ElButton></template>
       </ElTableColumn>

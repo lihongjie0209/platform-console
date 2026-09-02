@@ -17,3 +17,9 @@ export function formatPlatformDateTime(value: string | number | Date | undefined
   const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
   return `${values.year}-${values.month}-${values.day} ${values.hour}:${values.minute}:${values.second}`;
 }
+
+export function formatPlatformTableDateTime(_row: unknown, _column: unknown, value: unknown) {
+  return formatPlatformDateTime(
+    value instanceof Date || ['string', 'number'].includes(typeof value) ? (value as string | number | Date) : undefined
+  );
+}

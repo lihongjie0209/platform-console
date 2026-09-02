@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
+import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { Invitation, InvitationForm } from '../../api';
 import { createInvitation, listInvitations, revokeInvitation } from '../../api';
 
@@ -116,7 +117,7 @@ onMounted(loadData);
             <ElTag :type="statusType(row.status)" effect="plain">{{ row.status }}</ElTag>
           </template>
         </ElTableColumn>
-        <ElTableColumn prop="expires_at" label="过期时间" min-width="190" />
+        <ElTableColumn prop="expires_at" label="过期时间" min-width="190" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn prop="accepted_by_user_id" label="接受用户" min-width="180">
           <template #default="{ row }">{{ row.accepted_by_user_id || '-' }}</template>
         </ElTableColumn>

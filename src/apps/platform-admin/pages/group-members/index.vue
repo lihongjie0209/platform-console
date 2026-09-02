@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { Group, GroupMember, Membership, UserIdentity } from '../../api';
 import { addGroupMember, listGroupMembers, listGroups, listMemberships, listUsers, removeGroupMember } from '../../api';
 
@@ -133,7 +134,7 @@ onMounted(loadCatalogs);
         <ElTableColumn prop="primary_organization_unit_id" label="主组织 ID" min-width="190">
           <template #default="{ row }">{{ row.primary_organization_unit_id || '-' }}</template>
         </ElTableColumn>
-        <ElTableColumn prop="joined_at" label="加入租户时间" min-width="190" />
+        <ElTableColumn prop="joined_at" label="加入租户时间" min-width="190" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn label="组内状态" width="130" fixed="right">
           <template #default="{ row }">
             <ElSwitch

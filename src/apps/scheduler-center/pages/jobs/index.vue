@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard } from '@/platform/application-context';
+import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { JobExecution, JobInput, ScheduledJob } from '../../api';
 import { createJob, deleteJob, listExecutions, listJobs, triggerJob, updateJob } from '../../api';
 import { normalizeRequestJSON } from '../../request-json';
@@ -280,7 +281,7 @@ onMounted(loadData);
 
   <ElDrawer v-model="executionsVisible" :title="`${selectedJob?.name || ''} · 执行记录`" size="820px">
     <ElTable v-loading="executionLoading" :data="executionRows" border>
-      <ElTableColumn prop="started_at" label="开始时间" min-width="180" />
+      <ElTableColumn prop="started_at" label="开始时间" min-width="180" :formatter="formatPlatformTableDateTime" />
       <ElTableColumn prop="trigger_type" label="触发" width="100" />
       <ElTableColumn prop="status" label="状态" width="110" />
       <ElTableColumn prop="duration_milliseconds" label="耗时(ms)" width="110" />

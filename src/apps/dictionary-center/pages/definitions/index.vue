@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { DictionaryDefinition, DictionaryItem } from '../../api';
 import {
   createDefinition,
@@ -266,7 +267,7 @@ onMounted(loadData);
         <ElTableColumn prop="kind" label="类型" width="100" />
         <ElTableColumn prop="status" label="状态" width="100" />
         <ElTableColumn prop="published_version" label="发布版本" width="110" />
-        <ElTableColumn prop="updated_at" label="更新时间" min-width="180" />
+        <ElTableColumn prop="updated_at" label="更新时间" min-width="180" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn label="操作" width="270" fixed="right">
           <template #default="{ row }">
             <ElButton link type="primary" @click="openEdit(row)">编辑</ElButton>

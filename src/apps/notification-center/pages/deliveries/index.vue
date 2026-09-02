@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { NotificationDelivery } from '../../api';
 import { listDeliveries, sendNotification } from '../../api';
 import { parseNotificationVariables } from '../../variables';
@@ -149,7 +150,7 @@ onMounted(loadData);
         <ElFormItem><ElButton type="primary" @click="search">查询</ElButton></ElFormItem>
       </ElForm>
       <ElTable v-loading="loading" :data="rows" border stripe>
-        <ElTableColumn prop="created_at" label="创建时间" min-width="180" />
+        <ElTableColumn prop="created_at" label="创建时间" min-width="180" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn prop="template_code" label="模板" min-width="160" />
         <ElTableColumn prop="channel" label="渠道" width="100" />
         <ElTableColumn prop="recipient" label="接收方" min-width="200" />

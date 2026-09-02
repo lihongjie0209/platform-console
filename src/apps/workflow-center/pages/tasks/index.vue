@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { WorkflowTask } from '../../api';
 import { claimTask, completeTask, delegateTask, listTasks } from '../../api';
 import { parseJSONObject } from '../../json';
@@ -128,12 +129,12 @@ onMounted(loadData);
         <ElFormItem><ElButton type="primary" @click="search">查询</ElButton></ElFormItem>
       </ElForm>
       <ElTable v-loading="loading" :data="rows" border>
-        <ElTableColumn prop="created_at" label="创建时间" min-width="180" />
+        <ElTableColumn prop="created_at" label="创建时间" min-width="180" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn prop="name" label="任务" min-width="180" />
         <ElTableColumn prop="assignee" label="候选人/角色" min-width="150" />
         <ElTableColumn prop="claimed_by" label="领取人" min-width="150" />
         <ElTableColumn prop="status" label="状态" width="110" />
-        <ElTableColumn prop="due_at" label="截止时间" min-width="180" />
+        <ElTableColumn prop="due_at" label="截止时间" min-width="180" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn label="操作" width="190">
           <template #default="{ row }">
             <ElButton v-if="row.status === 'pending'" link type="primary" @click="claim(row)">领取</ElButton>

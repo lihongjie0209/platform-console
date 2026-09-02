@@ -34,7 +34,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ImportJobBody"];
+                        };
                     };
                 };
             };
@@ -118,7 +120,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ImportMutationBody"];
+                        };
                     };
                 };
             };
@@ -288,7 +292,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ErrorReportBody"];
+                        };
                     };
                 };
             };
@@ -415,7 +421,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ImportUploadBody"];
+                        };
                     };
                 };
             };
@@ -602,6 +610,12 @@ export interface components {
             provider_service?: string;
             tenant_id?: string;
         };
+        "httptransport.ErrorReportBody": {
+            content_type?: string;
+            expires_at?: string;
+            filename?: string;
+            url?: string;
+        };
         "httptransport.ErrorReportRequest": {
             application_id?: string;
             id?: string;
@@ -667,6 +681,10 @@ export interface components {
             upload_expires_at?: string;
             valid_rows?: number;
             version?: number;
+        };
+        "httptransport.ImportMutationBody": {
+            duplicate?: boolean;
+            job?: components["schemas"]["httptransport.ImportJobBody"];
         };
         "httptransport.ImportPageBody": {
             items?: components["schemas"]["httptransport.ImportJobBody"][];

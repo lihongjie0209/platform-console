@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
 import { BizCopyText } from '@/components/business';
+import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { TenantDirectoryItem, UserIdentity, UserSession } from '../../api';
 import { listSessions, listTenantDirectory, listUsers, revokeSession } from '../../api';
 
@@ -198,8 +199,8 @@ onMounted(() => Promise.all([loadCatalogs(), loadData()]));
           <ElTag :type="statusType(row.status)" effect="plain">{{ row.status }}</ElTag>
         </template>
       </ElTableColumn>
-      <ElTableColumn prop="last_used_at" label="最后使用" min-width="190" />
-      <ElTableColumn prop="expires_at" label="过期时间" min-width="190" />
+      <ElTableColumn prop="last_used_at" label="最后使用" min-width="190" :formatter="formatPlatformTableDateTime" />
+      <ElTableColumn prop="expires_at" label="过期时间" min-width="190" :formatter="formatPlatformTableDateTime" />
       <ElTableColumn prop="revoke_reason" label="撤销原因" min-width="180">
         <template #default="{ row }">{{ row.revoke_reason || '-' }}</template>
       </ElTableColumn>

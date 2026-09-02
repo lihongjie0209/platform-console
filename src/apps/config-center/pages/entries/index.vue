@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { ConfigDraftInput, ConfigEntry } from '../../api';
 import {
   approveConfig,
@@ -240,7 +241,7 @@ onMounted(loadData);
         <ElTableColumn prop="published_revision" label="已发布" width="90" />
         <ElTableColumn prop="rollout_percentage" label="灰度 %" width="90" />
         <ElTableColumn prop="updated_by" label="更新人" min-width="140" />
-        <ElTableColumn prop="updated_at" label="更新时间" min-width="180" />
+        <ElTableColumn prop="updated_at" label="更新时间" min-width="180" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn label="操作" width="310" fixed="right">
           <template #default="{ row }">
             <ElButton link type="primary" @click="openEdit(row)">编辑</ElButton>

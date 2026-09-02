@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { DictionaryProvider } from '../../api';
 import { listProviders } from '../../api';
 
@@ -58,7 +59,12 @@ onMounted(loadData);
       <ElTableColumn prop="service_name" label="服务" min-width="180" />
       <ElTableColumn prop="target" label="gRPC Target" min-width="220" />
       <ElTableColumn prop="status" label="状态" width="110" />
-      <ElTableColumn prop="lease_expires_at" label="租约到期" min-width="190" />
+      <ElTableColumn
+        prop="lease_expires_at"
+        label="租约到期"
+        min-width="190"
+        :formatter="formatPlatformTableDateTime"
+      />
       <ElTableColumn prop="cache_ttl_seconds" label="缓存 TTL(s)" width="120" />
       <ElTableColumn prop="timeout_milliseconds" label="超时(ms)" width="110" />
       <ElTableColumn label="操作" width="80">

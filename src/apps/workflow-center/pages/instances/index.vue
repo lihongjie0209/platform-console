@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { WorkflowInstance } from '../../api';
 import { cancelInstance, listInstances, startInstance } from '../../api';
 import { parseJSONObject } from '../../json';
@@ -119,7 +120,7 @@ onMounted(loadData);
         <ElFormItem><ElButton type="primary" @click="search">查询</ElButton></ElFormItem>
       </ElForm>
       <ElTable v-loading="loading" :data="rows" border>
-        <ElTableColumn prop="started_at" label="开始时间" min-width="180" />
+        <ElTableColumn prop="started_at" label="开始时间" min-width="180" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn prop="title" label="标题" min-width="180" />
         <ElTableColumn prop="business_key" label="业务键" min-width="160" />
         <ElTableColumn prop="status" label="状态" width="110" />

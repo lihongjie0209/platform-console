@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { UploadFile, UploadUserFile } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { formatPlatformDateTime, formatPlatformTableDateTime } from '@/platform/date-time';
 import { BizCopyText } from '@/components/business';
 import { formatFileSize, sha256Hex } from '@/platform/file';
 import type { FileMetadata } from '../../api';
@@ -268,7 +269,7 @@ onMounted(loadData);
       </ElForm>
 
       <ElTable v-loading="loading" :data="rows" border stripe>
-        <ElTableColumn prop="created_at" label="创建时间" min-width="190" />
+        <ElTableColumn prop="created_at" label="创建时间" min-width="190" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn prop="filename" label="文件名" min-width="220" show-overflow-tooltip />
         <ElTableColumn prop="content_type" label="Content-Type" min-width="180" />
         <ElTableColumn label="大小" width="110">
@@ -346,7 +347,7 @@ onMounted(loadData);
       <ElDescriptionsItem label="状态">{{ detail.status }} / {{ detail.scan_status }}</ElDescriptionsItem>
       <ElDescriptionsItem label="上传模式">{{ detail.upload_mode }}</ElDescriptionsItem>
       <ElDescriptionsItem label="审计">{{ detail.created_by }} / {{ detail.updated_by }}</ElDescriptionsItem>
-      <ElDescriptionsItem label="更新时间">{{ detail.updated_at }}</ElDescriptionsItem>
+      <ElDescriptionsItem label="更新时间">{{ formatPlatformDateTime(detail.updated_at) }}</ElDescriptionsItem>
     </ElDescriptions>
   </ElDrawer>
 </template>

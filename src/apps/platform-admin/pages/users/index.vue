@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { BizCopyText, BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
+import { formatPlatformDateTime } from '@/platform/date-time';
 import { passwordPolicyError } from '@/platform/password-policy';
 import { buildPasswordResetURL } from '@/platform/password-reset';
 import type { UserForm, UserIdentity } from '../../api';
@@ -232,7 +233,7 @@ async function resetMFA(row: UserIdentity) {
     <ElDescriptions :column="1" border>
       <ElDescriptionsItem label="重置令牌"><BizCopyText :value="passwordResetToken" /></ElDescriptionsItem>
       <ElDescriptionsItem label="重置链接"><BizCopyText :value="passwordResetURL" /></ElDescriptionsItem>
-      <ElDescriptionsItem label="有效期至">{{ passwordResetExpiresAt }}</ElDescriptionsItem>
+      <ElDescriptionsItem label="有效期至">{{ formatPlatformDateTime(passwordResetExpiresAt) }}</ElDescriptionsItem>
     </ElDescriptions>
     <template #footer>
       <ElButton type="primary" @click="closePasswordResetIssue">我已安全交付</ElButton>

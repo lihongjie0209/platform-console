@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { PaymentAttempt, Refund } from '../../api';
 import { createPaymentAttempt, listPayments, listRefunds, recordRefund } from '../../api';
 import { canRefundPayment, validatePaymentInput, validateRefundInput } from '../../payment-form';
@@ -165,7 +166,7 @@ onMounted(load);
         <ElTableColumn prop="status" label="状态" width="130" />
         <ElTableColumn prop="currency" label="币种" width="90" />
         <ElTableColumn prop="amount_minor" label="金额(分)" width="120" />
-        <ElTableColumn prop="created_at" label="创建时间" min-width="180" />
+        <ElTableColumn prop="created_at" label="创建时间" min-width="180" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn label="操作" width="100" fixed="right">
           <template #default="{ row }">
             <ElButton v-if="canRefundPayment(row.status)" link type="danger" @click="openRefundDialog(row)">
@@ -182,7 +183,7 @@ onMounted(load);
         <ElTableColumn prop="status" label="状态" width="130" />
         <ElTableColumn prop="amount_minor" label="金额(分)" width="120" />
         <ElTableColumn prop="reason" label="原因" min-width="180" show-overflow-tooltip />
-        <ElTableColumn prop="created_at" label="创建时间" min-width="180" />
+        <ElTableColumn prop="created_at" label="创建时间" min-width="180" :formatter="formatPlatformTableDateTime" />
       </ElTable>
     </template>
   </ElCard>

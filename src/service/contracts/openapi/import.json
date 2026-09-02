@@ -38,7 +38,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.ImportJobBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -128,7 +140,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.ImportMutationBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -320,7 +344,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.ErrorReportBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -461,7 +497,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.ImportUploadBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -740,6 +788,23 @@
                     }
                 }
             },
+            "httptransport.ErrorReportBody": {
+                "type": "object",
+                "properties": {
+                    "content_type": {
+                        "type": "string"
+                    },
+                    "expires_at": {
+                        "type": "string"
+                    },
+                    "filename": {
+                        "type": "string"
+                    },
+                    "url": {
+                        "type": "string"
+                    }
+                }
+            },
             "httptransport.ErrorReportRequest": {
                 "type": "object",
                 "properties": {
@@ -941,6 +1006,17 @@
                     },
                     "version": {
                         "type": "integer"
+                    }
+                }
+            },
+            "httptransport.ImportMutationBody": {
+                "type": "object",
+                "properties": {
+                    "duplicate": {
+                        "type": "boolean"
+                    },
+                    "job": {
+                        "$ref": "#/components/schemas/httptransport.ImportJobBody"
                     }
                 }
             },

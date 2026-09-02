@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { BizCopyText } from '@/components/business';
 import { createLatestRequestGuard } from '@/platform/application-context';
+import { formatPlatformDateTime } from '@/platform/date-time';
 import type { AuditQuery, AuditRecord } from '../../api';
 import { exportAuditRecords, listAuditRecords } from '../../api';
 
@@ -215,7 +216,9 @@ onMounted(loadData);
       </ElForm>
 
       <ElTable v-loading="loading" :data="rows" border stripe>
-        <ElTableColumn prop="occurred_at" label="发生时间" min-width="190" />
+        <ElTableColumn label="发生时间" min-width="190">
+          <template #default="{ row }">{{ formatPlatformDateTime(row.occurred_at) }}</template>
+        </ElTableColumn>
         <ElTableColumn prop="action" label="动作" min-width="190" />
         <ElTableColumn prop="source_service" label="来源服务" min-width="170" />
         <ElTableColumn label="操作者" min-width="190">
@@ -256,8 +259,8 @@ onMounted(loadData);
         <ElDescriptionsItem label="资源">{{ selected.resource_type }} / {{ selected.resource_id }}</ElDescriptionsItem>
         <ElDescriptionsItem label="Request ID"><BizCopyText :value="selected.request_id" /></ElDescriptionsItem>
         <ElDescriptionsItem label="Trace ID"><BizCopyText :value="selected.trace_id" /></ElDescriptionsItem>
-        <ElDescriptionsItem label="发生时间">{{ selected.occurred_at }}</ElDescriptionsItem>
-        <ElDescriptionsItem label="记录时间">{{ selected.created_at }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="发生时间">{{ formatPlatformDateTime(selected.occurred_at) }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="记录时间">{{ formatPlatformDateTime(selected.created_at) }}</ElDescriptionsItem>
       </ElDescriptions>
       <h3 class="mb-8px mt-20px text-15px">变更前摘要</h3>
       <pre class="overflow-auto rounded bg-#f5f7fa p-12px text-12px dark:bg-#1f1f1f">{{
