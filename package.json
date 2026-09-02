@@ -34,6 +34,7 @@
     "build": "vite build --mode prod",
     "build:test": "vite build --mode test",
     "check:application-boundaries": "node scripts/check-application-boundaries.mjs",
+    "check:application-chunks": "node scripts/check-application-chunks.mjs",
     "check:application-scope": "node scripts/check-application-scope.mjs",
     "check:contracts": "node scripts/check-contract-types.mjs",
     "check:product-surface": "node scripts/check-product-surface.mjs",

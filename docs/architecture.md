@@ -6,6 +6,8 @@ Feature pages are split by application namespace (`platform-admin`, `audit-cente
 
 Application modules cannot import another application's implementation, and shell code cannot reach into a concrete application. Cross-application utilities must move to the platform or shared component layer only after they are genuinely reused. `pnpm check:application-boundaries` enforces both dependency directions in CI; `src/apps` root files are the explicit composition layer that may aggregate manifests and common application types.
 
+Each manifest registers its pages with dynamic imports. The production build emits a Vite manifest, and `pnpm check:application-chunks` verifies every application page is a dynamic entry and is not statically reachable from the main entry. Selecting one application therefore loads that application's page chunks on demand without preloading every other application's implementation.
+
 The shell view surface is intentionally small: login, error pages, the application launcher, personal center, and the generic application host. Scaffold demonstrations are not shipped as hidden routes or dormant chunks. CI checks this allowlist and prevents demo-only dependencies from returning during upstream scaffold updates.
 
 ## Trust boundary
