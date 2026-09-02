@@ -99,6 +99,15 @@ export interface UserForm extends Record<string, unknown> {
   version: number;
 }
 
+export interface UpdateUserProfileInput {
+  id: string;
+  displayName: string;
+  email: string;
+  phone: string;
+  reason: string;
+  version: number;
+}
+
 export interface AdminMFAStatus {
   available: boolean;
   enabled: boolean;
@@ -454,6 +463,23 @@ export async function updateUserStatus(id: string, form: UserForm) {
       url: '/api/v1/identities/update-status',
       method: 'post',
       data: { id, status: form.status, reason: form.reason, version: form.version }
+    })
+  );
+}
+
+export function updateUserProfile(input: UpdateUserProfileInput) {
+  return unwrap<UserIdentity>(
+    identityRequest({
+      url: '/api/v1/identities/update-profile',
+      method: 'post',
+      data: {
+        id: input.id,
+        display_name: input.displayName,
+        email: input.email,
+        phone: input.phone,
+        reason: input.reason,
+        version: input.version
+      }
     })
   );
 }

@@ -1036,6 +1036,54 @@
                 }
             }
         },
+        "/api/v1/identities/update-profile": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "identities"
+                ],
+                "summary": "Update user profile with optimistic locking",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.UpdateIdentityProfileRequest"
+                            }
+                        }
+                    },
+                    "description": "Profile, audit reason, and version",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.IdentityResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/identities/update-status": {
             "post": {
                 "security": [
@@ -2425,6 +2473,36 @@
                 "properties": {
                     "current_password": {
                         "type": "string"
+                    }
+                }
+            },
+            "httptransport.UpdateIdentityProfileRequest": {
+                "type": "object",
+                "required": [
+                    "display_name",
+                    "email",
+                    "id",
+                    "reason",
+                    "version"
+                ],
+                "properties": {
+                    "display_name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "phone": {
+                        "type": "string"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
                     }
                 }
             },

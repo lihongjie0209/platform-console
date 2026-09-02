@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
+import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
-import { BizCopyText, BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
+import { BizCopyText, BizCrudPage, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
 import { formatPlatformDateTime } from '@/platform/date-time';
 import { passwordPolicyError } from '@/platform/password-policy';
 import { buildPasswordResetURL } from '@/platform/password-reset';
 import { promptUserInput } from '@/platform/user-action';
+import { createUserProfileForm, normalizeUserProfileForm } from '../../user-profile';
+import type { UserProfileForm } from '../../user-profile';
 import type { UserForm, UserIdentity } from '../../api';
 import {
   createUser,
@@ -14,6 +17,7 @@ import {
   issueUserPasswordReset,
   listUsers,
   resetUserMFA,
+  updateUserProfile,
   updateUserStatus
 } from '../../api';
 
@@ -42,6 +46,9 @@ const canResetPassword = computed(() =>
 const canResetMFA = computed(() =>
   platformStore.hasPermission({ scope: 'platform', codes: 'identity.user.mfa-reset' })
 );
+const canUpdateProfile = computed(() =>
+  platformStore.hasPermission({ scope: 'platform', codes: 'identity.user.update-profile' })
+);
 const config: BizCrudConfig<UserIdentity, Query, UserForm, string> = {
   title: '用户管理',
   rowKey: 'id',
@@ -68,7 +75,7 @@ const config: BizCrudConfig<UserIdentity, Query, UserForm, string> = {
     { prop: 'phone', label: '手机', minWidth: 150 },
     { prop: 'status', label: '状态', width: 110, slot: 'status' },
     { prop: 'version', label: '版本', width: 90 },
-    { prop: 'id', label: '操作', width: 270, fixed: 'right', slot: 'actions' }
+    { prop: 'id', label: '操作', width: 360, fixed: 'right', slot: 'actions' }
   ],
   form: {
     mode: 'drawer',
@@ -153,6 +160,19 @@ const passwordResetUserID = ref('');
 const passwordResetToken = ref('');
 const passwordResetExpiresAt = ref('');
 const passwordResetVisible = ref(false);
+const profileVisible = ref(false);
+const profileSaving = ref(false);
+const profileFormRef = ref<FormInstance>();
+const profileRow = ref<UserIdentity>();
+const profileForm = reactive<UserProfileForm>(createUserProfileForm({}));
+const profileRules: FormRules<UserProfileForm> = {
+  display_name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '请输入有效邮箱', trigger: 'blur' }
+  ],
+  reason: [{ required: true, message: '请输入资料变更原因', trigger: 'blur' }]
+};
 
 const passwordResetURL = computed(() => {
   if (!passwordResetToken.value) return '';
@@ -163,6 +183,36 @@ function closePasswordResetIssue() {
   passwordResetVisible.value = false;
   passwordResetToken.value = '';
   passwordResetExpiresAt.value = '';
+}
+
+function openProfile(row: UserIdentity) {
+  if (!canUpdateProfile.value || profileSaving.value) return;
+  profileRow.value = row;
+  Object.assign(profileForm, createUserProfileForm(row));
+  profileVisible.value = true;
+  profileFormRef.value?.clearValidate();
+}
+
+async function saveProfile() {
+  const row = profileRow.value;
+  if (!row || !canUpdateProfile.value || profileSaving.value || !(await profileFormRef.value?.validate())) return;
+  profileSaving.value = true;
+  try {
+    const normalized = normalizeUserProfileForm(profileForm);
+    const updated = await updateUserProfile({
+      id: row.id,
+      displayName: normalized.display_name,
+      email: normalized.email,
+      phone: normalized.phone,
+      reason: normalized.reason,
+      version: row.version
+    });
+    Object.assign(row, updated);
+    profileVisible.value = false;
+    window.$message?.success('用户资料已更新');
+  } finally {
+    profileSaving.value = false;
+  }
 }
 
 async function issuePasswordReset(row: UserIdentity) {
@@ -237,7 +287,8 @@ async function resetMFA(row: UserIdentity) {
       />
     </template>
     <template #cell-actions="{ row, edit, canEdit }">
-      <BizRowActions :can-edit="canEdit" :can-delete="false" @edit="edit(row)" />
+      <ElButton v-if="canUpdateProfile" link type="primary" @click="openProfile(row)">编辑资料</ElButton>
+      <ElButton v-if="canEdit" link @click="edit(row)">变更状态</ElButton>
       <ElButton v-if="canResetPassword" link :loading="passwordResetUserID === row.id" @click="issuePasswordReset(row)">
         重置密码
       </ElButton>
@@ -246,6 +297,27 @@ async function resetMFA(row: UserIdentity) {
       </ElButton>
     </template>
   </BizCrudPage>
+
+  <ElDialog v-model="profileVisible" title="编辑用户资料" width="560px" :close-on-click-modal="false">
+    <ElForm ref="profileFormRef" :model="profileForm" :rules="profileRules" label-width="100px">
+      <ElFormItem label="姓名" prop="display_name">
+        <ElInput v-model="profileForm.display_name" />
+      </ElFormItem>
+      <ElFormItem label="邮箱" prop="email">
+        <ElInput v-model="profileForm.email" />
+      </ElFormItem>
+      <ElFormItem label="手机" prop="phone">
+        <ElInput v-model="profileForm.phone" />
+      </ElFormItem>
+      <ElFormItem label="变更原因" prop="reason">
+        <ElInput v-model="profileForm.reason" type="textarea" :rows="3" />
+      </ElFormItem>
+    </ElForm>
+    <template #footer>
+      <ElButton :disabled="profileSaving" @click="profileVisible = false">取消</ElButton>
+      <ElButton type="primary" :loading="profileSaving" @click="saveProfile">保存</ElButton>
+    </template>
+  </ElDialog>
 
   <ElDialog v-model="passwordResetVisible" title="一次性密码重置令牌" width="680px" :close-on-click-modal="false">
     <ElAlert
