@@ -1,6 +1,7 @@
 import type { MaybeRefOrGetter, VNodeChild } from 'vue';
 import type { RouteLocationRaw } from 'vue-router';
 import type { FormItemRule } from 'element-plus';
+import type { PermissionRequirement } from '@/platform/navigation';
 
 export type BizCrudKey = string | number;
 
@@ -93,6 +94,11 @@ export interface BizCrudConfig<
     pageKey?: Extract<keyof Query, string>;
     pageSizeKey?: Extract<keyof Query, string>;
     pageSizes?: number[];
+  };
+  permissions?: {
+    create?: PermissionRequirement;
+    update?: PermissionRequirement;
+    remove?: PermissionRequirement;
   };
   mapRowToForm?: (row: Row) => Partial<Form>;
   deleteConfirm?: string | (() => string);

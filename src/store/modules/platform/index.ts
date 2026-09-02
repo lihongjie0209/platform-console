@@ -22,9 +22,11 @@ import {
 import {
   applicationEntryDecision,
   filterNavigationsByPermissions,
+  hasAllowedPermission,
   navigationPermissionCodes,
   retainRunnableApplicationID
 } from '@/platform/navigation';
+import type { MenuPermissionScope, PermissionRequirement } from '@/platform/navigation';
 
 async function fetchAllowedNavigationPermissionCodes(tenantId: string, navigations: PublishedNavigation[]) {
   const permissionCodes = navigationPermissionCodes(navigations);
@@ -89,6 +91,7 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
   const selectedApplicationId = ref(sessionStg.get('selectedApplicationId') || '');
   const applications = ref<PlatformApplication[]>([]);
   const navigations = ref<PublishedNavigation[]>([]);
+  const allowedPermissionCodes = ref<Record<MenuPermissionScope, string[]>>({ tenant: [], platform: [] });
   let requestRevision = 0;
   const enqueueTenantSelection = createSerialTaskQueue();
 
@@ -151,6 +154,7 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
       scopeExchanged = true;
       selectedTenantId.value = tenantId;
       sessionStg.set('selectedTenantId', tenantId);
+      allowedPermissionCodes.value = { tenant: [], platform: [] };
 
       const tenantApplications = await fetchAllTenantApplications(tenantId);
       const applicationIDs = tenantApplications.map(item => item.id);
@@ -167,6 +171,7 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
       const activeNavigations = retainActiveNavigations(applications.value, navigationItems);
       const allowedCodes = await fetchAllowedNavigationPermissionCodes(tenantId, activeNavigations);
       if (revision !== requestRevision) return;
+      allowedPermissionCodes.value = allowedCodes;
       navigations.value = filterNavigationsByPermissions(activeNavigations, allowedCodes);
 
       const retainedApplicationID = retainRunnableApplicationID(
@@ -195,6 +200,7 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
         if (failure.clearResources) {
           applications.value = [];
           navigations.value = [];
+          allowedPermissionCodes.value = { tenant: [], platform: [] };
         }
         errorMessage.value = error instanceof Error ? error.message : '切换租户失败';
       }
@@ -222,9 +228,14 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
     selectedApplicationId.value = '';
     applications.value = [];
     navigations.value = [];
+    allowedPermissionCodes.value = { tenant: [], platform: [] };
     sessionStg.remove('selectedTenantId');
     sessionStg.remove('selectedApplicationId');
     loading.value = false;
+  }
+
+  function hasPermission(requirement?: PermissionRequirement) {
+    return hasAllowedPermission(allowedPermissionCodes.value, requirement);
   }
 
   function resetContext() {
@@ -244,6 +255,8 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
     selectedApplication,
     applications,
     navigations,
+    allowedPermissionCodes,
+    hasPermission,
     initialize,
     selectTenant,
     selectApplication,

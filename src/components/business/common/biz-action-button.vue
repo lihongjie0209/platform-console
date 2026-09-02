@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { ButtonProps } from 'element-plus';
-import { useAuth } from '@/hooks/business/auth';
+import { usePlatformStore } from '@/store/modules/platform';
+import type { PermissionRequirement } from '@/platform/navigation';
 import { useAsyncAction } from './use-async-action';
 
 defineOptions({ name: 'BizActionButton' });
@@ -14,8 +15,7 @@ interface Props {
   plain?: boolean;
   disabled?: boolean;
   confirm?: string;
-  auth?: string | string[];
-  authStrategy?: 'any' | 'all';
+  permission?: PermissionRequirement;
   unauthorized?: 'hide' | 'disable';
   successMessage?: string;
 }
@@ -27,21 +27,16 @@ const props = withDefaults(defineProps<Props>(), {
   plain: false,
   disabled: false,
   confirm: '',
-  auth: undefined,
-  authStrategy: 'any',
+  permission: undefined,
   unauthorized: 'hide',
   successMessage: ''
 });
 
 const emit = defineEmits<{ success: [result: unknown]; error: [error: unknown] }>();
-const { hasAuth } = useAuth();
+const platformStore = usePlatformStore();
 const { loading, run } = useAsyncAction<unknown>();
 
-const allowed = computed(() => {
-  if (!props.auth) return true;
-  if (typeof props.auth === 'string') return hasAuth(props.auth);
-  return props.authStrategy === 'all' ? props.auth.every(code => hasAuth(code)) : hasAuth(props.auth);
-});
+const allowed = computed(() => platformStore.hasPermission(props.permission));
 const visible = computed(() => allowed.value || props.unauthorized !== 'hide');
 const buttonDisabled = computed(() => props.disabled || !allowed.value);
 

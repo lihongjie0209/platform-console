@@ -11,6 +11,7 @@
 import { computed, nextTick, reactive, ref, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import { jsonClone } from '@sa/utils';
+import { usePlatformStore } from '@/store/modules/platform';
 import { $t } from '@/locales';
 import { BizBatchActionBar } from '../common';
 import BizCrudForm from './biz-crud-form.vue';
@@ -31,6 +32,7 @@ interface Props {
 
 const props = defineProps<Props>();
 const router = useRouter();
+const platformStore = usePlatformStore();
 
 const query = reactive<Query>(jsonClone(props.config.createQuery()));
 const mutableQuery = query as Record<string, any>;
@@ -59,9 +61,15 @@ const formTitle = computed(() =>
   resolveBizText(operateType.value === 'add' ? props.config.form.createTitle : props.config.form.editTitle)
 );
 const selectedKeys = computed(() => selectedRows.value.map(row => row[props.config.rowKey] as Key));
-const canCreate = computed(() => Boolean(props.adapter.create));
-const canUpdate = computed(() => Boolean(props.adapter.update));
-const canRemove = computed(() => Boolean(props.adapter.remove));
+const canCreate = computed(
+  () => Boolean(props.adapter.create) && platformStore.hasPermission(props.config.permissions?.create)
+);
+const canUpdate = computed(
+  () => Boolean(props.adapter.update) && platformStore.hasPermission(props.config.permissions?.update)
+);
+const canRemove = computed(
+  () => Boolean(props.adapter.remove) && platformStore.hasPermission(props.config.permissions?.remove)
+);
 
 function getColumnKey(column: BizCrudColumn<Row>) {
   if (column.type === 'selection') return '__selection__';
@@ -123,6 +131,7 @@ function changePageSize(size: number) {
 }
 
 async function openCreate() {
+  if (!canCreate.value) return;
   if (props.config.form.mode === 'page') {
     const route = props.config.form.toCreateRoute?.();
     if (route) await router.push(route);
@@ -138,6 +147,7 @@ async function openCreate() {
 }
 
 async function openEdit(row: Row) {
+  if (!canUpdate.value) return;
   const key = row[props.config.rowKey] as Key;
   if (props.config.form.mode === 'page') {
     const route = props.config.form.toEditRoute?.(key, row);
@@ -166,6 +176,7 @@ async function openEdit(row: Row) {
 
 async function submitForm() {
   if (submitting.value || !(await formRef.value?.validate())) return;
+  if ((operateType.value === 'add' && !canCreate.value) || (operateType.value === 'edit' && !canUpdate.value)) return;
 
   submitting.value = true;
   try {
@@ -183,7 +194,7 @@ async function submitForm() {
 }
 
 async function removeRows(keys: Key[]) {
-  if (!keys.length || !props.adapter.remove) return;
+  if (!keys.length || !props.adapter.remove || !canRemove.value) return;
 
   await props.adapter.remove(keys);
   selectedRows.value = [];

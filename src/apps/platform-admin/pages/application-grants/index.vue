@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
+import { usePlatformStore } from '@/store/modules/platform';
 import type { Application, ApplicationGrant, ApplicationGrantForm, TenantDirectoryItem } from '../../api';
 import {
   grantApplication,
@@ -28,6 +29,9 @@ const dialogVisible = ref(false);
 const editingApplication = ref<GrantRow>();
 const formRef = ref<FormInstance>();
 const form = reactive<ApplicationGrantForm>(emptyForm());
+const platformStore = usePlatformStore();
+const canGrant = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'application.grant.grant' }));
+const canRevoke = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'application.grant.revoke' }));
 
 const rows = computed<GrantRow[]>(() => {
   const grantByApplication = new Map(grants.value.map(item => [String(item.application_id), item]));
@@ -89,6 +93,7 @@ async function loadGrants() {
 }
 
 function openGrant(row: GrantRow) {
+  if (!canGrant.value) return;
   editingApplication.value = row;
   Object.assign(form, {
     ...emptyForm(),
@@ -105,7 +110,7 @@ function openGrant(row: GrantRow) {
 }
 
 async function submitGrant() {
-  if (!(await formRef.value?.validate()) || !editingApplication.value?.id) return;
+  if (!canGrant.value || !(await formRef.value?.validate()) || !editingApplication.value?.id) return;
   if (form.valid_from && form.valid_until && new Date(form.valid_until) <= new Date(form.valid_from)) {
     window.$message?.warning('授权结束时间必须晚于开始时间');
     return;
@@ -127,7 +132,7 @@ async function submitGrant() {
 }
 
 async function revoke(row: GrantRow) {
-  if (!row.id || !row.grant?.version) return;
+  if (!canRevoke.value || !row.id || !row.grant?.version) return;
   await revokeApplicationGrant(tenantID.value, String(row.id), Number(row.grant.version));
   window.$message?.success('应用授权已撤销');
   await loadGrants();
@@ -186,8 +191,14 @@ onMounted(loadCatalogs);
       </ElTableColumn>
       <ElTableColumn label="操作" width="180" fixed="right">
         <template #default="{ row }">
-          <ElButton link type="primary" @click="openGrant(row)">{{ row.grant ? '编辑' : '授权' }}</ElButton>
-          <ElPopconfirm v-if="row.grant?.status === 'active'" title="确认撤销该租户的应用授权？" @confirm="revoke(row)">
+          <ElButton v-if="canGrant" link type="primary" @click="openGrant(row)">
+            {{ row.grant ? '编辑' : '授权' }}
+          </ElButton>
+          <ElPopconfirm
+            v-if="canRevoke && row.grant?.status === 'active'"
+            title="确认撤销该租户的应用授权？"
+            @confirm="revoke(row)"
+          >
             <template #reference><ElButton link type="danger">撤销</ElButton></template>
           </ElPopconfirm>
         </template>
@@ -224,7 +235,7 @@ onMounted(loadCatalogs);
     </ElForm>
     <template #footer>
       <ElButton @click="dialogVisible = false">取消</ElButton>
-      <ElButton type="primary" :loading="submitting" @click="submitGrant">保存</ElButton>
+      <ElButton v-if="canGrant" type="primary" :loading="submitting" @click="submitGrant">保存</ElButton>
     </template>
   </ElDialog>
 </template>

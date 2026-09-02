@@ -302,8 +302,29 @@ export function activeApplicationRoutes(navigations: PublishedNavigation[], appl
 
 export type MenuPermissionScope = 'tenant' | 'platform';
 
+export interface PermissionRequirement {
+  scope: MenuPermissionScope;
+  codes: string | string[];
+  strategy?: 'any' | 'all';
+}
+
 export function normalizeMenuPermissionScope(value: unknown): MenuPermissionScope {
   return value === 'platform' ? 'platform' : 'tenant';
+}
+
+export function hasAllowedPermission(
+  allowedCodes: Record<MenuPermissionScope, string[]>,
+  requirement?: PermissionRequirement
+) {
+  if (!requirement) return true;
+  const expected = (typeof requirement.codes === 'string' ? [requirement.codes] : requirement.codes)
+    .map(code => code.trim().toLowerCase())
+    .filter(Boolean);
+  if (!expected.length) return false;
+  const allowed = new Set(allowedCodes[requirement.scope].map(code => code.trim().toLowerCase()).filter(Boolean));
+  return requirement.strategy === 'all'
+    ? expected.every(code => allowed.has(code))
+    : expected.some(code => allowed.has(code));
 }
 
 function menuPermissionScope(menu: ApplicationMenu): MenuPermissionScope {

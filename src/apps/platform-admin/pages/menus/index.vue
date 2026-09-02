@@ -74,6 +74,15 @@ const defaultRouteValid = computed(() =>
     menus.value
   )
 );
+const canUpdateMenus = computed(() =>
+  platformStore.hasPermission({ scope: 'platform', codes: 'application.menu.update' })
+);
+const canDeleteMenus = computed(() =>
+  platformStore.hasPermission({ scope: 'platform', codes: 'application.menu.delete' })
+);
+const canPublishMenus = computed(() =>
+  platformStore.hasPermission({ scope: 'platform', codes: 'application.menu.publish' })
+);
 
 const rules: FormRules<MenuForm> = {
   code: [{ required: true, message: '请输入菜单编码', trigger: 'blur' }],
@@ -141,12 +150,14 @@ async function loadMenus() {
 }
 
 function openCreate(parentID = '') {
+  if (!canUpdateMenus.value) return;
   resetForm(emptyMenu(parentID));
   editorVisible.value = true;
   loadPermissionOptions();
 }
 
 function openEdit(menu: ApplicationMenu) {
+  if (!canUpdateMenus.value) return;
   resetForm({
     ...emptyMenu(),
     id: String(menu.id || ''),
@@ -266,13 +277,14 @@ async function saveMenu() {
 }
 
 async function removeMenu(menu: ApplicationMenu) {
+  if (!canDeleteMenus.value) return;
   await deleteMenu(String(menu.id), Number(menu.version));
   window.$message?.success('菜单已删除');
   await loadMenus();
 }
 
 async function publish() {
-  if (!applicationID.value) return;
+  if (!applicationID.value || !canPublishMenus.value) return;
   if (!defaultRouteValid.value) {
     window.$message?.warning('应用默认路由必须指向当前草稿中的启用叶子菜单或应用概览');
     return;
@@ -314,8 +326,11 @@ onMounted(async () => {
             />
           </ElSelect>
           <ElButton :loading="loading" @click="loadMenus">刷新</ElButton>
-          <ElButton type="primary" :disabled="!applicationID" @click="openCreate()">新增根菜单</ElButton>
+          <ElButton v-if="canUpdateMenus" type="primary" :disabled="!applicationID" @click="openCreate()">
+            新增根菜单
+          </ElButton>
           <ElButton
+            v-if="canPublishMenus"
             type="success"
             :disabled="loading || !menus.length || !defaultRouteValid"
             @click="publishVisible = true"
@@ -362,9 +377,9 @@ onMounted(async () => {
             </ElTag>
           </div>
           <div class="flex-y-center gap-6px" @click.stop>
-            <ElButton link type="primary" @click="openCreate(String(data.id))">新增子项</ElButton>
-            <ElButton link type="primary" @click="openEdit(data)">编辑</ElButton>
-            <ElPopconfirm title="只能删除没有子项的菜单，确认继续？" @confirm="removeMenu(data)">
+            <ElButton v-if="canUpdateMenus" link type="primary" @click="openCreate(String(data.id))">新增子项</ElButton>
+            <ElButton v-if="canUpdateMenus" link type="primary" @click="openEdit(data)">编辑</ElButton>
+            <ElPopconfirm v-if="canDeleteMenus" title="只能删除没有子项的菜单，确认继续？" @confirm="removeMenu(data)">
               <template #reference><ElButton link type="danger">删除</ElButton></template>
             </ElPopconfirm>
           </div>
@@ -456,7 +471,7 @@ onMounted(async () => {
     </ElForm>
     <template #footer>
       <ElButton @click="editorVisible = false">取消</ElButton>
-      <ElButton type="primary" :loading="saving" @click="saveMenu">保存</ElButton>
+      <ElButton v-if="canUpdateMenus" type="primary" :loading="saving" @click="saveMenu">保存</ElButton>
     </template>
   </ElDrawer>
 
@@ -471,7 +486,7 @@ onMounted(async () => {
     <ElInput v-model="publishComment" type="textarea" :rows="4" placeholder="请输入发布说明" />
     <template #footer>
       <ElButton @click="publishVisible = false">取消</ElButton>
-      <ElButton type="primary" :loading="publishing" @click="publish">确认发布</ElButton>
+      <ElButton v-if="canPublishMenus" type="primary" :loading="publishing" @click="publish">确认发布</ElButton>
     </template>
   </ElDialog>
 </template>

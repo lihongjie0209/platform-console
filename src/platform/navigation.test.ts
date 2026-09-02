@@ -9,6 +9,7 @@ import {
   applicationMenuEntries,
   applicationNavigationCompatibility,
   filterNavigationsByPermissions,
+  hasAllowedPermission,
   navigationPermissionCodes,
   navigationToRoutes,
   normalizeMenuPermissionScope,
@@ -45,6 +46,25 @@ test('menu permission scope keeps platform explicit and defaults legacy values t
   assert.equal(normalizeMenuPermissionScope('tenant'), 'tenant');
   assert.equal(normalizeMenuPermissionScope(undefined), 'tenant');
   assert.equal(normalizeMenuPermissionScope('unknown'), 'tenant');
+});
+
+test('button permission checks keep tenant and platform scopes separate', () => {
+  const allowed = {
+    tenant: ['billing.invoice.read'],
+    platform: [' Application.Catalog.Read ', 'application.catalog.update']
+  };
+  assert.equal(hasAllowedPermission(allowed), true);
+  assert.equal(hasAllowedPermission(allowed, { scope: 'platform', codes: 'application.catalog.read' }), true);
+  assert.equal(
+    hasAllowedPermission(allowed, {
+      scope: 'platform',
+      codes: ['application.catalog.read', 'application.catalog.update'],
+      strategy: 'all'
+    }),
+    true
+  );
+  assert.equal(hasAllowedPermission(allowed, { scope: 'tenant', codes: 'application.catalog.read' }), false);
+  assert.equal(hasAllowedPermission(allowed, { scope: 'tenant', codes: [] }), false);
 });
 
 test('navigationToRoutes scopes routes and never evaluates backend component names', () => {

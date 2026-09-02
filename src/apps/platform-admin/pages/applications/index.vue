@@ -115,6 +115,14 @@ const config: BizCrudConfig<Application, ApplicationQuery, ApplicationForm, stri
       }
     ]
   },
+  permissions: {
+    create: { scope: 'platform', codes: 'application.catalog.create' },
+    update: {
+      scope: 'platform',
+      codes: ['application.catalog.read', 'application.catalog.update'],
+      strategy: 'all'
+    }
+  },
   mapRowToForm: row => ({
     ...emptyForm(),
     ...row,

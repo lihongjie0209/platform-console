@@ -1,23 +1,19 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useAuth } from '@/hooks/business/auth';
+import { usePlatformStore } from '@/store/modules/platform';
+import type { PermissionRequirement } from '@/platform/navigation';
 
 defineOptions({ name: 'BizPermissionAction' });
 
 interface Props {
-  auth?: string | string[];
-  strategy?: 'any' | 'all';
+  permission?: PermissionRequirement;
   unauthorized?: 'hide' | 'disable';
 }
 
-const props = withDefaults(defineProps<Props>(), { auth: undefined, strategy: 'any', unauthorized: 'hide' });
-const { hasAuth } = useAuth();
+const props = withDefaults(defineProps<Props>(), { permission: undefined, unauthorized: 'hide' });
+const platformStore = usePlatformStore();
 
-const allowed = computed(() => {
-  if (!props.auth) return true;
-  if (typeof props.auth === 'string') return hasAuth(props.auth);
-  return props.strategy === 'all' ? props.auth.every(code => hasAuth(code)) : hasAuth(props.auth);
-});
+const allowed = computed(() => platformStore.hasPermission(props.permission));
 </script>
 
 <template>
