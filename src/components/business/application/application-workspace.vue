@@ -25,6 +25,7 @@ const compatibility = computed(() =>
 const availableEntryCount = computed(() => compatibility.value.supportedPages + compatibility.value.externalPages);
 
 async function openEntry(entry: (typeof entries.value)[number]) {
+  if (!entry.available) return;
   if (entry.externalURL) {
     window.open(entry.externalURL, '_blank', 'noopener,noreferrer');
     return;
@@ -65,7 +66,9 @@ async function openEntry(entry: (typeof entries.value)[number]) {
       <ElCol v-for="entry in entries" :key="entry.id" :xs="24" :sm="12" :lg="8" :xl="6">
         <button
           class="mb-16px w-full cursor-pointer border-0 bg-transparent p-0 text-left"
+          :class="{ 'cursor-not-allowed opacity-65': !entry.available }"
           type="button"
+          :disabled="!entry.available"
           @click="openEntry(entry)"
         >
           <ElCard class="h-full hover:shadow-md" shadow="hover">
@@ -75,10 +78,13 @@ async function openEntry(entry: (typeof entries.value)[number]) {
               </div>
               <div class="min-w-0 flex-1">
                 <div class="truncate text-15px font-medium">{{ entry.name }}</div>
-                <div class="mt-4px truncate text-12px text-gray-400">{{ entry.code }}</div>
+                <div class="mt-4px flex items-center gap-6px text-12px text-gray-400">
+                  <span class="truncate">{{ entry.code }}</span>
+                  <ElTag v-if="!entry.available" size="small" type="warning" effect="plain">待安装</ElTag>
+                </div>
               </div>
               <SvgIcon
-                :icon="entry.externalURL ? 'mdi:open-in-new' : 'mdi:chevron-right'"
+                :icon="entry.available && entry.externalURL ? 'mdi:open-in-new' : 'mdi:chevron-right'"
                 class="text-18px text-gray-400"
               />
             </div>

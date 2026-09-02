@@ -27,10 +27,6 @@ function routePath(application: PlatformApplication, menu: ApplicationMenu) {
   return `${scope}/${configured.replace(/^\/+/, '')}`;
 }
 
-function leafRoutePaths(routes: ElegantConstRoute[]): string[] {
-  return routes.flatMap(route => (route.children?.length ? leafRoutePaths(route.children) : [route.path]));
-}
-
 function menuRoute(
   application: PlatformApplication,
   menu: ApplicationMenu,
@@ -132,17 +128,22 @@ export function navigationToRoutes(navigation: PublishedNavigation): ElegantCons
 
 export function applicationEntryPath(navigation: PublishedNavigation) {
   const [applicationRoute] = navigationToRoutes(navigation);
-  const paths = leafRoutePaths(applicationRoute.children || []);
-  if (!paths.length) return '';
+  const workspacePath = `${applicationRoute.path}/overview`;
+  const executablePaths = new Set([
+    workspacePath,
+    ...applicationMenuEntries(navigation)
+      .filter(entry => entry.available)
+      .map(entry => entry.path)
+  ]);
 
   const configured = navigation.application.default_route.trim();
   if (configured) {
     const scope = applicationRoute.path;
     const candidate = configured.startsWith(`${scope}/`) ? configured : `${scope}/${configured.replace(/^\/+/, '')}`;
-    if (paths.includes(candidate)) return candidate;
+    if (executablePaths.has(candidate)) return candidate;
   }
 
-  return paths[0];
+  return workspacePath;
 }
 
 export interface ApplicationMenuEntry {
@@ -152,6 +153,7 @@ export interface ApplicationMenuEntry {
   icon: string;
   path: string;
   externalURL: string;
+  available: boolean;
 }
 
 export interface ApplicationNavigationCompatibility {
@@ -244,8 +246,14 @@ export function retainRunnableApplicationID(
 export function runnableApplicationIDForPath(navigations: PublishedNavigation[], path: string) {
   const runnableNavigations = navigations.filter(navigation => applicationEntryDecision(navigation).status === 'ready');
   for (const navigation of runnableNavigations) {
-    const routePaths = navigationToRoutes(navigation).flatMap(route => leafRoutePaths(route.children || [route]));
-    if (routePaths.includes(path)) return navigation.application.id;
+    const scope = `/apps/${routeSegment(navigation.application.code)}`;
+    const executablePaths = new Set([
+      `${scope}/overview`,
+      ...applicationMenuEntries(navigation)
+        .filter(entry => entry.available)
+        .map(entry => entry.path)
+    ]);
+    if (executablePaths.has(path)) return navigation.application.id;
   }
 
   return '';
@@ -261,14 +269,20 @@ export function applicationMenuEntries(navigation: PublishedNavigation): Applica
         (menu.type === 'page' || (menu.type === 'external' && Boolean(safeExternalURL(menu.external_url))))
     )
     .sort((left, right) => left.sort_order - right.sort_order)
-    .map(menu => ({
-      id: menu.id,
-      code: menu.code,
-      name: menu.name,
-      icon: menu.icon || FALLBACK_ICON,
-      path: routePath(navigation.application, menu),
-      externalURL: safeExternalURL(menu.external_url)
-    }));
+    .map(menu => {
+      const externalURL = safeExternalURL(menu.external_url);
+      return {
+        id: menu.id,
+        code: menu.code,
+        name: menu.name,
+        icon: menu.icon || FALLBACK_ICON,
+        path: routePath(navigation.application, menu),
+        externalURL,
+        available:
+          (menu.type === 'external' && Boolean(externalURL)) ||
+          (menu.type === 'page' && pageBelongsToApplication(menu.component, navigation.application.code))
+      };
+    });
 }
 
 export function applicationSelectionRoute(): ElegantConstRoute {

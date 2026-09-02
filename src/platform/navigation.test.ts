@@ -229,15 +229,15 @@ test('navigationToRoutes excludes action permission nodes', () => {
   assert.equal(JSON.stringify(routes).includes('users.create'), false);
 });
 
-test('applicationEntryPath uses a valid configured default and falls back to the first page', () => {
+test('applicationEntryPath uses only an installed configured default and otherwise opens the workspace', () => {
   const navigation = {
     application: {
       id: 'app-1',
-      code: 'orders',
-      name: 'Orders',
+      code: 'billing-center',
+      name: 'Billing',
       description: '',
       icon: '',
-      default_route: 'reports',
+      default_route: 'payments',
       status: 'active'
     },
     menus: [
@@ -250,7 +250,7 @@ test('applicationEntryPath uses a valid configured default and falls back to the
         name: '订单',
         i18n_key: '',
         route: 'list',
-        component: 'platform.page',
+        component: 'billing-center.plans',
         icon: '',
         external_url: '',
         permission_code: '',
@@ -262,12 +262,12 @@ test('applicationEntryPath uses a valid configured default and falls back to the
         id: 'menu-2',
         application_id: 'app-1',
         parent_id: '',
-        code: 'reports',
+        code: 'payments',
         type: 'page',
         name: '报表',
         i18n_key: '',
-        route: 'reports',
-        component: 'platform.page',
+        route: 'payments',
+        component: 'billing-center.payments',
         icon: '',
         external_url: '',
         permission_code: '',
@@ -278,9 +278,11 @@ test('applicationEntryPath uses a valid configured default and falls back to the
     ]
   };
 
-  assert.equal(applicationEntryPath(navigation), '/apps/orders/reports');
+  assert.equal(applicationEntryPath(navigation), '/apps/billing-center/payments');
+  navigation.menus[1]!.component = 'billing-center.future';
+  assert.equal(applicationEntryPath(navigation), '/apps/billing-center/overview');
   navigation.application.default_route = 'missing';
-  assert.equal(applicationEntryPath(navigation), '/apps/orders/overview');
+  assert.equal(applicationEntryPath(navigation), '/apps/billing-center/overview');
 });
 
 test('every application has a workspace and exposes only visible page shortcuts', () => {
@@ -337,6 +339,7 @@ test('every application has a workspace and exposes only visible page shortcuts'
     applicationMenuEntries(navigation).map(item => item.path),
     ['/apps/orders/list']
   );
+  assert.equal(applicationMenuEntries(navigation)[0]?.available, false);
 });
 
 test('activeApplicationRoutes mounts only a runnable selected application workspace', () => {
@@ -444,6 +447,21 @@ test('deep links resolve only an exact route from a runnable application', () =>
   assert.equal(runnableApplicationIDForPath([navigation], '/apps/billing-center/overview'), 'billing-id');
   assert.equal(runnableApplicationIDForPath([navigation], '/apps/billing-center/unknown'), '');
   assert.equal(runnableApplicationIDForPath([navigation], '/apps/billing-center'), '');
+  assert.equal(
+    runnableApplicationIDForPath(
+      [
+        {
+          ...navigation,
+          menus: [
+            ...navigation.menus,
+            applicationMenu({ id: 'future', route: 'future', component: 'billing-center.future' })
+          ]
+        }
+      ],
+      '/apps/billing-center/future'
+    ),
+    ''
+  );
   assert.equal(
     runnableApplicationIDForPath(
       [
