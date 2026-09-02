@@ -52,7 +52,7 @@ async function changeTenant(value: string) {
 
 async function reloadApplications() {
   try {
-    await platformStore.initialize(authStore.userInfo.subject);
+    await platformStore.initialize(authStore.userInfo.subject, { force: true });
     routeStore.refreshPlatformRoutes();
   } catch {
     // The store keeps the user-facing error for the empty state.

@@ -14,7 +14,8 @@ import {
   createSerialTaskQueue,
   failedTenantSelectionContext,
   retainActiveNavigations,
-  selectActiveTenant
+  selectActiveTenant,
+  shouldReusePlatformContext
 } from '@/platform/application-context';
 import {
   applicationEntryDecision,
@@ -60,8 +61,16 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
   const selectedTenant = computed(() => tenants.value.find(item => item.id === selectedTenantId.value));
   const selectedApplication = computed(() => applications.value.find(item => item.id === selectedApplicationId.value));
 
-  async function initialize(subject: string) {
-    if (initializedSubject.value === subject && tenants.value.length) return;
+  async function initialize(subject: string, options: { force?: boolean } = {}) {
+    if (
+      shouldReusePlatformContext({
+        initializedSubject: initializedSubject.value,
+        requestedSubject: subject,
+        tenantCount: tenants.value.length,
+        force: Boolean(options.force)
+      })
+    )
+      return;
 
     loading.value = true;
     errorMessage.value = '';

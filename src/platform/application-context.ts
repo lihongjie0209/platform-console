@@ -37,6 +37,17 @@ export function applicationFilterScope(tenantId: string, applicationId: string) 
   return { tenant_id: scope.tenant_id, application_ids: [scope.application_id] };
 }
 
+interface PlatformContextReuseInput {
+  initializedSubject: string;
+  requestedSubject: string;
+  tenantCount: number;
+  force: boolean;
+}
+
+export function shouldReusePlatformContext(input: PlatformContextReuseInput) {
+  return !input.force && input.initializedSubject === input.requestedSubject && input.tenantCount > 0;
+}
+
 /** Serializes scope-changing operations so the access token and server-side session end in the same tenant. */
 export function createSerialTaskQueue() {
   let tail: Promise<unknown> = Promise.resolve();

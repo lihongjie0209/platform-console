@@ -9,7 +9,8 @@ import {
   filterApplications,
   hasApplicationScope,
   retainActiveNavigations,
-  selectActiveTenant
+  selectActiveTenant,
+  shouldReusePlatformContext
 } from './application-context';
 
 const tenants: TenantSummary[] = [
@@ -121,4 +122,12 @@ test('failed tenant selection clears stale resources only after server scope exc
     }),
     { tenantId: 'tenant-b', applicationId: '', clearResources: true }
   );
+});
+
+test('platform context cache can be bypassed by an explicit retry', () => {
+  const cached = { initializedSubject: 'user-a', requestedSubject: 'user-a', tenantCount: 2, force: false };
+  assert.equal(shouldReusePlatformContext(cached), true);
+  assert.equal(shouldReusePlatformContext({ ...cached, force: true }), false);
+  assert.equal(shouldReusePlatformContext({ ...cached, requestedSubject: 'user-b' }), false);
+  assert.equal(shouldReusePlatformContext({ ...cached, tenantCount: 0 }), false);
 });
