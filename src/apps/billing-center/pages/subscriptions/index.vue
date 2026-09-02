@@ -15,6 +15,8 @@ const status = ref('');
 const visible = ref(false);
 const form = reactive({ planID: '', startsAt: '', externalReference: '' });
 const loadGuard = createLatestRequestGuard();
+const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.subscription.create' }));
+const canCancel = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.subscription.cancel' }));
 async function load() {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
@@ -31,7 +33,7 @@ async function load() {
   if (loadGuard.isCurrent(request)) rows.value = v.items || [];
 }
 async function create() {
-  if (!scopeReady.value) return;
+  if (!canCreate.value || !scopeReady.value) return;
   await createSubscription({
     tenantID: tenantID.value,
     applicationID: applicationID.value,
@@ -43,6 +45,7 @@ async function create() {
   await load();
 }
 async function cancel(v: Subscription) {
+  if (!canCancel.value) return;
   await cancelSubscription(v, true);
   await load();
 }
@@ -62,7 +65,7 @@ onMounted(load);
           <h2 class="m-0">应用订阅</h2>
           <p class="mb-0 text-#999">{{ applicationName }} · 套餐订阅、变更与周期末取消均由计费服务维护。</p>
         </div>
-        <ElButton type="primary" :disabled="!scopeReady" @click="visible = true">创建订阅</ElButton>
+        <ElButton v-if="canCreate" type="primary" :disabled="!scopeReady" @click="visible = true">创建订阅</ElButton>
       </div>
     </template>
     <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" show-icon :closable="false" />
@@ -79,7 +82,9 @@ onMounted(load);
         <ElTableColumn prop="current_period_end" label="周期结束" />
         <ElTableColumn label="操作">
           <template #default="{ row }">
-            <ElButton v-if="row.status === 'active'" link type="danger" @click="cancel(row)">周期末取消</ElButton>
+            <ElButton v-if="canCancel && row.status === 'active'" link type="danger" @click="cancel(row)">
+              周期末取消
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>
@@ -95,7 +100,7 @@ onMounted(load);
     </ElForm>
     <template #footer>
       <ElButton @click="visible = false">取消</ElButton>
-      <ElButton type="primary" @click="create">创建</ElButton>
+      <ElButton v-if="canCreate" type="primary" @click="create">创建</ElButton>
     </template>
   </ElDialog>
 </template>

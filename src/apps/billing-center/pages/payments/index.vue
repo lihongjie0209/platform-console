@@ -23,6 +23,8 @@ const paymentDialogVisible = ref(false);
 const refundDialogVisible = ref(false);
 const selectedPayment = ref<PaymentAttempt>();
 const loadGuard = createLatestRequestGuard();
+const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.payment.create' }));
+const canRefund = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.payment.refund' }));
 const paymentForm = reactive({ invoiceID: '', provider: '', paymentMethodReference: '' });
 const refundForm = reactive({ providerRefundID: '', amountMinor: 0, reason: '', status: 'succeeded' });
 
@@ -61,6 +63,7 @@ async function load() {
 }
 
 function openPaymentDialog() {
+  if (!canCreate.value) return;
   paymentForm.invoiceID = '';
   paymentForm.provider = '';
   paymentForm.paymentMethodReference = '';
@@ -68,7 +71,7 @@ function openPaymentDialog() {
 }
 
 async function submitPayment() {
-  if (!scopeReady.value) return;
+  if (!canCreate.value || !scopeReady.value) return;
   const validationError = validatePaymentInput(paymentForm);
   if (validationError) {
     window.$message?.warning(validationError);
@@ -88,6 +91,7 @@ async function submitPayment() {
 }
 
 function openRefundDialog(payment: PaymentAttempt) {
+  if (!canRefund.value) return;
   selectedPayment.value = payment;
   refundForm.providerRefundID = '';
   refundForm.amountMinor = payment.amount_minor;
@@ -97,7 +101,7 @@ function openRefundDialog(payment: PaymentAttempt) {
 }
 
 async function submitRefund() {
-  if (!selectedPayment.value) return;
+  if (!canRefund.value || !selectedPayment.value) return;
   const validationError = validateRefundInput(refundForm);
   if (validationError) {
     window.$message?.warning(validationError);
@@ -141,7 +145,7 @@ onMounted(load);
             {{ applicationName }} · 查询支付尝试和退款记录，并通过幂等请求发起收款或退款。
           </p>
         </div>
-        <ElButton type="primary" :disabled="!scopeReady" @click="openPaymentDialog">发起支付</ElButton>
+        <ElButton v-if="canCreate" type="primary" :disabled="!scopeReady" @click="openPaymentDialog">发起支付</ElButton>
       </div>
     </template>
 
@@ -169,7 +173,12 @@ onMounted(load);
         <ElTableColumn prop="created_at" label="创建时间" min-width="180" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn label="操作" width="100" fixed="right">
           <template #default="{ row }">
-            <ElButton v-if="canRefundPayment(row.status)" link type="danger" @click="openRefundDialog(row)">
+            <ElButton
+              v-if="canRefund && canRefundPayment(row.status)"
+              link
+              type="danger"
+              @click="openRefundDialog(row)"
+            >
               退款
             </ElButton>
           </template>
@@ -207,7 +216,7 @@ onMounted(load);
     </ElForm>
     <template #footer>
       <ElButton @click="paymentDialogVisible = false">取消</ElButton>
-      <ElButton type="primary" @click="submitPayment">提交</ElButton>
+      <ElButton v-if="canCreate" type="primary" @click="submitPayment">提交</ElButton>
     </template>
   </ElDialog>
 
@@ -228,7 +237,7 @@ onMounted(load);
     </ElForm>
     <template #footer>
       <ElButton @click="refundDialogVisible = false">取消</ElButton>
-      <ElButton type="danger" @click="submitRefund">确认退款</ElButton>
+      <ElButton v-if="canRefund" type="danger" @click="submitRefund">确认退款</ElButton>
     </template>
   </ElDialog>
 </template>

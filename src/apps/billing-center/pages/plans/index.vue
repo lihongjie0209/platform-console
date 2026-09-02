@@ -1,9 +1,15 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
+import { usePlatformStore } from '@/store/modules/platform';
 import { parseJSONArray, parseJSONObject } from '@/platform/json';
 import type { Plan, UsagePrice } from '../../api';
 import { deleteUsagePrice, getPlan, listPlans, savePlan, upsertUsagePrice } from '../../api';
 defineOptions({ name: 'BillingCenterPlans' });
+const platformStore = usePlatformStore();
+const canCreate = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'billing.plan.create' }));
+const canUpdate = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'billing.plan.update' }));
+const canRead = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'billing.plan.read' }));
+const canDelete = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'billing.plan.delete' }));
 const rows = ref<Plan[]>([]);
 const total = ref(0);
 const status = ref('');
@@ -45,6 +51,7 @@ async function load() {
   total.value = v.total || 0;
 }
 function open(v?: Plan) {
+  if ((v && !canUpdate.value) || (!v && !canCreate.value)) return;
   editing.value = v;
   Object.assign(
     form,
@@ -65,6 +72,7 @@ function open(v?: Plan) {
   visible.value = true;
 }
 async function save() {
+  if ((editing.value && !canUpdate.value) || (!editing.value && !canCreate.value)) return;
   try {
     await savePlan(editing.value, {
       ...form,
@@ -77,12 +85,14 @@ async function save() {
   }
 }
 async function manage(v: Plan) {
+  if (!canRead.value) return;
   selected.value = v;
   const detail = await getPlan(v.id);
   prices.value = detail.usage_prices || [];
   priceVisible.value = true;
 }
 function editPrice(v?: UsagePrice) {
+  if (!canUpdate.value) return;
   Object.assign(
     price,
     v
@@ -100,7 +110,7 @@ function editPrice(v?: UsagePrice) {
   );
 }
 async function savePrice() {
-  if (!selected.value) return;
+  if (!canUpdate.value || !selected.value) return;
   await upsertUsagePrice({
     ...price,
     plan_id: selected.value.id,
@@ -109,6 +119,7 @@ async function savePrice() {
   await manage(selected.value);
 }
 async function removePrice(v: UsagePrice) {
+  if (!canDelete.value) return;
   await deleteUsagePrice(v);
   if (selected.value) await manage(selected.value);
 }
@@ -123,7 +134,7 @@ onMounted(load);
           <h2 class="m-0">平台套餐与价格目录</h2>
           <p class="mb-0 text-#999">平台统一定义可供各应用订阅的套餐；金额使用最小货币单位，避免浮点误差。</p>
         </div>
-        <ElButton type="primary" @click="open()">新建套餐</ElButton>
+        <ElButton v-if="canCreate" type="primary" @click="open()">新建套餐</ElButton>
       </div>
     </template>
     <ElForm inline>
@@ -140,8 +151,8 @@ onMounted(load);
       <ElTableColumn prop="status" label="状态" />
       <ElTableColumn label="操作" width="160">
         <template #default="{ row }">
-          <ElButton link @click="open(row)">编辑</ElButton>
-          <ElButton link @click="manage(row)">用量价格</ElButton>
+          <ElButton v-if="canUpdate" link @click="open(row)">编辑</ElButton>
+          <ElButton v-if="canRead" link @click="manage(row)">用量价格</ElButton>
         </template>
       </ElTableColumn>
     </ElTable>
@@ -164,7 +175,7 @@ onMounted(load);
     </ElForm>
     <template #footer>
       <ElButton @click="visible = false">取消</ElButton>
-      <ElButton type="primary" @click="save">保存</ElButton>
+      <ElButton v-if="editing ? canUpdate : canCreate" type="primary" @click="save">保存</ElButton>
     </template>
   </ElDialog>
   <ElDrawer v-model="priceVisible" title="用量价格" size="700px">
@@ -175,7 +186,7 @@ onMounted(load);
       <ElFormItem label="单位金额(分)"><ElInputNumber v-model="price.unit_amount_minor" /></ElFormItem>
       <ElFormItem label="模型"><ElInput v-model="price.pricing_model" /></ElFormItem>
       <ElFormItem label="阶梯 JSON"><ElInput v-model="price.tiers" /></ElFormItem>
-      <ElButton type="primary" @click="savePrice">保存价格</ElButton>
+      <ElButton v-if="canUpdate" type="primary" @click="savePrice">保存价格</ElButton>
     </ElForm>
     <ElTable :data="prices" border>
       <ElTableColumn prop="meter_code" label="计量项" />
@@ -183,8 +194,8 @@ onMounted(load);
       <ElTableColumn prop="unit_amount_minor" label="单位金额" />
       <ElTableColumn label="操作">
         <template #default="{ row }">
-          <ElButton link @click="editPrice(row)">编辑</ElButton>
-          <ElButton link type="danger" @click="removePrice(row)">删除</ElButton>
+          <ElButton v-if="canUpdate" link @click="editPrice(row)">编辑</ElButton>
+          <ElButton v-if="canDelete" link type="danger" @click="removePrice(row)">删除</ElButton>
         </template>
       </ElTableColumn>
     </ElTable>

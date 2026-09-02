@@ -13,6 +13,8 @@ const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicatio
 const rows = ref<Invoice[]>([]);
 const status = ref('');
 const loadGuard = createLatestRequestGuard();
+const canFinalize = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.invoice.finalize' }));
+const canVoid = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.invoice.void' }));
 async function load() {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
@@ -29,10 +31,12 @@ async function load() {
   if (loadGuard.isCurrent(request)) rows.value = v.items || [];
 }
 async function finalize(v: Invoice) {
+  if (!canFinalize.value) return;
   await finalizeInvoice(v, new Date(Date.now() + 7 * 86400000).toISOString());
   await load();
 }
 async function voidOne(v: Invoice) {
+  if (!canVoid.value) return;
   await voidInvoice(v, 'operator void');
   await load();
 }
@@ -66,8 +70,8 @@ onMounted(load);
         <ElTableColumn prop="refunded_minor" label="退款(分)" />
         <ElTableColumn label="操作" width="150">
           <template #default="{ row }">
-            <ElButton v-if="row.status === 'draft'" link @click="finalize(row)">确认</ElButton>
-            <ElButton v-if="row.status !== 'void'" link type="danger" @click="voidOne(row)">作废</ElButton>
+            <ElButton v-if="canFinalize && row.status === 'draft'" link @click="finalize(row)">确认</ElButton>
+            <ElButton v-if="canVoid && row.status !== 'void'" link type="danger" @click="voidOne(row)">作废</ElButton>
           </template>
         </ElTableColumn>
       </ElTable>
