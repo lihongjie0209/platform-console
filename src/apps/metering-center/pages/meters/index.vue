@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
+import { usePlatformStore } from '@/store/modules/platform';
 import type { Meter } from '../../api';
 import { listMeters, saveMeter } from '../../api';
 defineOptions({ name: 'MeteringCenterMeters' });
+const platformStore = usePlatformStore();
+const canCreate = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'metering.meter.create' }));
+const canUpdate = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'metering.meter.update' }));
 const rows = ref<Meter[]>([]);
 const total = ref(0);
 const page = ref(1);
@@ -36,6 +40,7 @@ async function loadData() {
   }
 }
 function open(row?: Meter) {
+  if ((row && !canUpdate.value) || (!row && !canCreate.value)) return;
   editing.value = row;
   Object.assign(
     form,
@@ -54,6 +59,7 @@ function open(row?: Meter) {
   visible.value = true;
 }
 async function save() {
+  if ((editing.value && !canUpdate.value) || (!editing.value && !canCreate.value)) return;
   await saveMeter(editing.value, {
     ...form,
     dimensionKeys: form.dimensionKeys
@@ -75,7 +81,7 @@ onMounted(loadData);
           <h2 class="m-0">平台计量器目录</h2>
           <p class="mb-0 text-#999">定义用量单位、聚合方式与可用维度。</p>
         </div>
-        <ElButton type="primary" @click="open()">新建计量项</ElButton>
+        <ElButton v-if="canCreate" type="primary" @click="open()">新建计量项</ElButton>
       </div>
     </template>
     <ElForm inline>
@@ -103,7 +109,10 @@ onMounted(loadData);
       <ElTableColumn prop="aggregation" label="聚合" />
       <ElTableColumn prop="status" label="状态" />
       <ElTableColumn label="操作">
-        <template #default="{ row }"><ElButton link type="primary" @click="open(row)">编辑</ElButton></template>
+        <template #default="{ row }">
+          <ElButton v-if="canUpdate" link type="primary" @click="open(row)">编辑</ElButton>
+          <span v-else>-</span>
+        </template>
       </ElTableColumn>
     </ElTable>
     <ElPagination
@@ -142,7 +151,7 @@ onMounted(loadData);
     </ElForm>
     <template #footer>
       <ElButton @click="visible = false">取消</ElButton>
-      <ElButton type="primary" @click="save">保存</ElButton>
+      <ElButton v-if="editing ? canUpdate : canCreate" type="primary" @click="save">保存</ElButton>
     </template>
   </ElDialog>
 </template>
