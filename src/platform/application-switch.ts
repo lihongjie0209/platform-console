@@ -6,6 +6,7 @@ export interface ApplicationSwitchActions {
   refreshRoutes: () => void;
   entryPathForApplication: (applicationId: string) => string;
   navigate: (path: string) => Promise<unknown>;
+  targetPath?: string;
 }
 
 export async function switchApplicationContext(
@@ -18,5 +19,5 @@ export async function switchApplicationContext(
 
   actions.selectApplication(applicationId);
   actions.refreshRoutes();
-  await actions.navigate(actions.entryPathForApplication(applicationId));
+  await actions.navigate(actions.targetPath || actions.entryPathForApplication(applicationId));
 }

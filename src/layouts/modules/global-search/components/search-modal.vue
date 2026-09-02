@@ -5,7 +5,12 @@ import { onKeyStroke, useDebounceFn } from '@vueuse/core';
 import type { InputInstance } from 'element-plus';
 import { useRouteStore } from '@/store/modules/route';
 import { useAppStore } from '@/store/modules/app';
+import { usePlatformStore } from '@/store/modules/platform';
 import { $t } from '@/locales';
+import { searchApplicationNavigation } from '@/platform/application-search';
+import type { ApplicationSearchResult } from '@/platform/application-search';
+import { applicationEntryDecision } from '@/platform/navigation';
+import { switchApplicationContext } from '@/platform/application-switch';
 import SearchResult from './search-result.vue';
 import SearchFooter from './search-footer.vue';
 
@@ -14,12 +19,13 @@ defineOptions({ name: 'SearchModal' });
 const router = useRouter();
 const appStore = useAppStore();
 const routeStore = useRouteStore();
+const platformStore = usePlatformStore();
 
 const isMobile = computed(() => appStore.isMobile);
 
 const keyword = ref('');
-const activePath = ref('');
-const resultOptions = shallowRef<App.Global.Menu[]>([]);
+const activeKey = ref('');
+const resultOptions = shallowRef<ApplicationSearchResult[]>([]);
 
 const handleSearch = useDebounceFn(search, 300);
 
@@ -28,13 +34,12 @@ const visible = defineModel<boolean>('show', { required: true });
 const searchInput = ref<InputInstance>();
 
 function search() {
-  resultOptions.value = routeStore.searchMenus.filter(menu => {
-    const trimKeyword = keyword.value.toLocaleLowerCase().trim();
-    const title = (menu.i18nKey ? $t(menu.i18nKey) : menu.label).toLocaleLowerCase();
-    return trimKeyword && title.includes(trimKeyword);
+  resultOptions.value = searchApplicationNavigation({
+    navigations: platformStore.navigations,
+    keyword: keyword.value,
+    selectedApplicationId: platformStore.selectedApplicationId
   });
-
-  activePath.value = resultOptions.value[0]?.routePath ?? '';
+  activeKey.value = resultOptions.value[0]?.key ?? '';
 }
 
 function handleClose() {
@@ -56,7 +61,7 @@ function handleUp() {
 
   const activeIndex = index === 0 ? length - 1 : index - 1;
 
-  activePath.value = resultOptions.value[activeIndex].routePath;
+  activeKey.value = resultOptions.value[activeIndex].key;
 }
 
 /** key down */
@@ -69,18 +74,30 @@ function handleDown() {
 
   const activeIndex = index === length - 1 ? 0 : index + 1;
 
-  activePath.value = resultOptions.value[activeIndex].routePath;
+  activeKey.value = resultOptions.value[activeIndex].key;
 }
 
 function getActivePathIndex() {
-  return resultOptions.value.findIndex(item => item.routePath === activePath.value);
+  return resultOptions.value.findIndex(item => item.key === activeKey.value);
 }
 
 /** key enter */
-function handleEnter() {
-  if (resultOptions.value?.length === 0 || activePath.value === '') return;
-  handleClose();
-  router.push(activePath.value);
+async function handleEnter() {
+  const result = resultOptions.value.find(item => item.key === activeKey.value);
+  if (!result) return;
+  const navigation = platformStore.navigations.find(item => item.application.id === result.applicationId);
+  try {
+    await switchApplicationContext(result.applicationId, applicationEntryDecision(navigation), {
+      selectApplication: platformStore.selectApplication,
+      refreshRoutes: routeStore.refreshPlatformRoutes,
+      entryPathForApplication: platformStore.entryPathForApplication,
+      navigate: path => router.push(path),
+      targetPath: result.routePath
+    });
+    handleClose();
+  } catch (error) {
+    window.$message?.error(error instanceof Error ? error.message : '无法打开搜索结果');
+  }
 }
 
 function registerShortcut() {
@@ -127,7 +144,7 @@ registerShortcut();
 
     <div>
       <ElEmpty v-if="resultOptions.length === 0" :description="$t('common.noData')" :image-size="50" />
-      <SearchResult v-else v-model:path="activePath" :options="resultOptions" @enter="handleEnter" />
+      <SearchResult v-else v-model:active-key="activeKey" :options="resultOptions" @enter="handleEnter" />
     </div>
     <template #footer>
       <SearchFooter v-if="!isMobile" />

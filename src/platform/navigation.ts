@@ -96,7 +96,7 @@ function executableMenus(application: PlatformApplication, menus: ApplicationMen
 function applicationWorkspaceRoute(application: PlatformApplication): ElegantConstRoute {
   return {
     name: `platform_${routeSegment(application.code)}_workspace`,
-    path: `/apps/${routeSegment(application.code)}/overview`,
+    path: applicationWorkspacePath(application),
     component: 'view.platform_page',
     meta: {
       title: '应用概览',
@@ -112,6 +112,10 @@ function applicationWorkspaceRoute(application: PlatformApplication): ElegantCon
       workspace: true
     }
   } as ElegantConstRoute;
+}
+
+export function applicationWorkspacePath(application: PlatformApplication) {
+  return `/apps/${routeSegment(application.code)}/overview`;
 }
 
 /**
@@ -148,7 +152,7 @@ export function navigationToRoutes(navigation: PublishedNavigation): ElegantCons
 
 export function applicationEntryPath(navigation: PublishedNavigation) {
   const [applicationRoute] = navigationToRoutes(navigation);
-  const workspacePath = `${applicationRoute.path}/overview`;
+  const workspacePath = applicationWorkspacePath(navigation.application);
   const executablePaths = new Set([
     workspacePath,
     ...applicationMenuEntries(navigation)
