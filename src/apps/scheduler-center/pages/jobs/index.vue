@@ -31,6 +31,13 @@ const executionDetail = ref<JobExecution>();
 const executionDetailVisible = ref(false);
 const loadGuard = createLatestRequestGuard();
 const executionGuard = createLatestRequestGuard();
+const canCreate = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.job.create' }));
+const canUpdate = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.job.update' }));
+const canDelete = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.job.delete' }));
+const canTrigger = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.job.trigger' }));
+const canListExecutions = computed(() =>
+  platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.execution.list' })
+);
 const form = reactive<JobInput>({
   name: '',
   cronExpression: '0 0 * * * *',
@@ -73,7 +80,7 @@ function search() {
   loadData();
 }
 function openCreate() {
-  if (!tenantID.value || !applicationID.value) return;
+  if (!canCreate.value || !tenantID.value || !applicationID.value) return;
   editing.value = undefined;
   Object.assign(form, {
     name: '',
@@ -88,6 +95,7 @@ function openCreate() {
   formVisible.value = true;
 }
 function openEdit(row: ScheduledJob) {
+  if (!canUpdate.value) return;
   editing.value = row;
   Object.assign(form, {
     name: row.name,
@@ -102,6 +110,7 @@ function openEdit(row: ScheduledJob) {
   formVisible.value = true;
 }
 async function save() {
+  if ((editing.value && !canUpdate.value) || (!editing.value && !canCreate.value)) return;
   let requestJSON: string;
   try {
     requestJSON = normalizeRequestJSON(form.requestJSON);
@@ -122,12 +131,14 @@ async function save() {
   }
 }
 async function remove(row: ScheduledJob) {
+  if (!canDelete.value) return;
   await ElMessageBox.confirm(`确认删除调度任务“${row.name}”吗？`, '删除任务', { type: 'warning' });
   await deleteJob(row);
   window.$message?.success('任务已删除');
   await loadData();
 }
 async function trigger(row: ScheduledJob) {
+  if (!canTrigger.value) return;
   try {
     const result = await triggerJob(row.id);
     window.$message?.success(`执行完成：${result.status}`);
@@ -137,7 +148,7 @@ async function trigger(row: ScheduledJob) {
   if (selectedJob.value?.id === row.id) await loadExecutions();
 }
 async function loadExecutions() {
-  if (!selectedJob.value) return;
+  if (!canListExecutions.value || !selectedJob.value) return;
   const request = executionGuard.begin();
   const jobID = selectedJob.value.id;
   executionLoading.value = true;
@@ -152,6 +163,7 @@ async function loadExecutions() {
   }
 }
 function showExecutions(row: ScheduledJob) {
+  if (!canListExecutions.value) return;
   selectedJob.value = row;
   executionPage.value = 1;
   executionRows.value = [];
@@ -191,7 +203,9 @@ onMounted(loadData);
           <h2 class="m-0 text-18px font-semibold">调度任务</h2>
           <p class="mb-0 mt-6px text-13px text-#999">通过动态 gRPC 调用管理跨服务定时任务，无需生成下游 Client。</p>
         </div>
-        <ElButton type="primary" :disabled="!tenantID || !applicationID" @click="openCreate">新建任务</ElButton>
+        <ElButton v-if="canCreate" type="primary" :disabled="!tenantID || !applicationID" @click="openCreate">
+          新建任务
+        </ElButton>
       </div>
     </template>
     <ElAlert
@@ -226,10 +240,10 @@ onMounted(loadData);
       </ElTableColumn>
       <ElTableColumn label="操作" width="250" fixed="right">
         <template #default="{ row }">
-          <ElButton link type="primary" @click="openEdit(row)">编辑</ElButton>
-          <ElButton link type="primary" @click="trigger(row)">立即执行</ElButton>
-          <ElButton link type="primary" @click="showExecutions(row)">记录</ElButton>
-          <ElButton link type="danger" @click="remove(row)">删除</ElButton>
+          <ElButton v-if="canUpdate" link type="primary" @click="openEdit(row)">编辑</ElButton>
+          <ElButton v-if="canTrigger" link type="primary" @click="trigger(row)">立即执行</ElButton>
+          <ElButton v-if="canListExecutions" link type="primary" @click="showExecutions(row)">记录</ElButton>
+          <ElButton v-if="canDelete" link type="danger" @click="remove(row)">删除</ElButton>
         </template>
       </ElTableColumn>
     </ElTable>
@@ -275,7 +289,7 @@ onMounted(loadData);
     </ElForm>
     <template #footer>
       <ElButton @click="formVisible = false">取消</ElButton>
-      <ElButton type="primary" :loading="saving" @click="save">保存</ElButton>
+      <ElButton v-if="editing ? canUpdate : canCreate" type="primary" :loading="saving" @click="save">保存</ElButton>
     </template>
   </ElDialog>
 
