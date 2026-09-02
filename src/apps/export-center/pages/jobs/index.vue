@@ -60,6 +60,17 @@ const loadGuard = createLatestRequestGuard();
 const catalogGuard = createLatestRequestGuard();
 const descriptorGuard = createLatestRequestGuard();
 const detailGuard = createLatestRequestGuard();
+const canCreate = computed(() =>
+  store.hasPermission({
+    scope: 'tenant',
+    codes: ['export.dataset.list', 'export.dataset.read', 'export.job.create'],
+    strategy: 'all'
+  })
+);
+const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'export.job.read' }));
+const canCancel = computed(() => store.hasPermission({ scope: 'tenant', codes: 'export.job.cancel' }));
+const canRetry = computed(() => store.hasPermission({ scope: 'tenant', codes: 'export.job.retry' }));
+const canDownload = computed(() => store.hasPermission({ scope: 'tenant', codes: 'export.job.download' }));
 function queryString(key?: string) {
   const value = key ? form.query[key] : undefined;
   return typeof value === 'string' ? value : '';
@@ -119,6 +130,7 @@ function changePageSize() {
   load();
 }
 async function openCreate() {
+  if (!canCreate.value) return;
   visible.value = true;
   form.datasetKey = '';
   form.format = '';
@@ -128,7 +140,7 @@ async function openCreate() {
   await searchDatasets('');
 }
 async function searchDatasets(keyword: string) {
-  if (!scopeReady.value) {
+  if (!canCreate.value || !scopeReady.value) {
     datasets.value = [];
     return;
   }
@@ -147,6 +159,7 @@ async function searchDatasets(keyword: string) {
   }
 }
 async function selectDataset() {
+  if (!canCreate.value) return;
   const selected = findDataset(datasets.value, form.datasetKey);
   descriptor.value = undefined;
   if (!selected) return;
@@ -171,7 +184,7 @@ async function selectDataset() {
   }
 }
 async function create() {
-  if (!scopeReady.value) return;
+  if (!canCreate.value || !scopeReady.value) return;
   const selected = findDataset(datasets.value, form.datasetKey);
   if (!selected || !descriptor.value) return;
   try {
@@ -192,6 +205,7 @@ async function create() {
   }
 }
 async function openDetail(job: ExportJob) {
+  if (!canRead.value) return;
   detailVisible.value = true;
   detail.value = undefined;
   detailLoading.value = true;
@@ -209,6 +223,12 @@ async function openDetail(job: ExportJob) {
   }
 }
 async function action(job: ExportJob, type: 'cancel' | 'retry' | 'download') {
+  if (
+    (type === 'cancel' && !canCancel.value) ||
+    (type === 'retry' && !canRetry.value) ||
+    (type === 'download' && !canDownload.value)
+  )
+    return;
   const key = `${job.id}:${type}`;
   await runTaskAction(key, async () => {
     try {
@@ -252,7 +272,7 @@ onMounted(load);
           <h2 class="m-0">数据导出</h2>
           <p class="mb-0 text-#999">为 {{ applicationName }} 异步生成导出文件，成功后签发短时下载地址。</p>
         </div>
-        <ElButton type="primary" :disabled="!scopeReady" @click="openCreate">创建导出</ElButton>
+        <ElButton v-if="canCreate" type="primary" :disabled="!scopeReady" @click="openCreate">创建导出</ElButton>
       </div>
     </template>
     <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" :closable="false" />
@@ -283,9 +303,9 @@ onMounted(load);
         </ElTableColumn>
         <ElTableColumn label="操作" width="220">
           <template #default="{ row }">
-            <ElButton link @click="openDetail(row)">详情</ElButton>
+            <ElButton v-if="canRead" link @click="openDetail(row)">详情</ElButton>
             <ElButton
-              v-if="row.status === 'succeeded'"
+              v-if="canDownload && row.status === 'succeeded'"
               link
               :loading="actionLoading === `${row.id}:download`"
               :disabled="Boolean(actionLoading)"
@@ -294,7 +314,7 @@ onMounted(load);
               下载
             </ElButton>
             <ElButton
-              v-if="['queued', 'running'].includes(row.status)"
+              v-if="canCancel && ['queued', 'running'].includes(row.status)"
               link
               type="danger"
               :loading="actionLoading === `${row.id}:cancel`"
@@ -304,7 +324,7 @@ onMounted(load);
               取消
             </ElButton>
             <ElButton
-              v-if="['failed', 'canceled'].includes(row.status)"
+              v-if="canRetry && ['failed', 'canceled'].includes(row.status)"
               link
               :loading="actionLoading === `${row.id}:retry`"
               :disabled="Boolean(actionLoading)"
@@ -439,7 +459,7 @@ onMounted(load);
     </ElForm>
     <template #footer>
       <ElButton @click="visible = false">取消</ElButton>
-      <ElButton type="primary" :disabled="!descriptor || !form.format" @click="create">创建</ElButton>
+      <ElButton v-if="canCreate" type="primary" :disabled="!descriptor || !form.format" @click="create">创建</ElButton>
     </template>
   </ElDialog>
 </template>

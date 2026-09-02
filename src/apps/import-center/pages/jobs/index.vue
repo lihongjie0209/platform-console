@@ -62,6 +62,20 @@ const uploadGuard = createLatestRequestGuard();
 const descriptorGuard = createLatestRequestGuard();
 const catalogGuard = createLatestRequestGuard();
 const detailGuard = createLatestRequestGuard();
+const canCreate = computed(() =>
+  store.hasPermission({
+    scope: 'tenant',
+    codes: ['import.dataset.list', 'import.dataset.read', 'import.job.create', 'import.job.upload'],
+    strategy: 'all'
+  })
+);
+const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'import.job.read' }));
+const canConfirm = computed(() => store.hasPermission({ scope: 'tenant', codes: 'import.job.confirm' }));
+const canCancel = computed(() => store.hasPermission({ scope: 'tenant', codes: 'import.job.cancel' }));
+const canRetry = computed(() =>
+  store.hasPermission({ scope: 'tenant', codes: ['import.job.retry', 'import.job.upload'], strategy: 'all' })
+);
+const canDownloadReport = computed(() => store.hasPermission({ scope: 'tenant', codes: 'import.job.download-error' }));
 async function load(silent = false) {
   loadVersion += 1;
   const version = loadVersion;
@@ -96,7 +110,7 @@ useTaskPolling(
   () => load(true)
 );
 async function searchDatasets(keyword: string) {
-  if (!scopeReady.value) {
+  if (!canCreate.value || !scopeReady.value) {
     datasets.value = [];
     return;
   }
@@ -126,7 +140,7 @@ function chooseFile(e: Event) {
   source.value = (e.target as HTMLInputElement).files?.[0];
 }
 async function create() {
-  if (!scopeReady.value || !source.value) return;
+  if (!canCreate.value || !scopeReady.value || !source.value) return;
   const request = uploadGuard.begin();
   const selectedFile = source.value;
   const tenant = tenantID.value;
@@ -157,6 +171,7 @@ async function create() {
   }
 }
 async function changeDataset() {
+  if (!canCreate.value) return;
   const selected = selectedImportDataset(datasets.value, selectedDataset.value);
   descriptor.value = undefined;
   format.value = supportedImportFormat(selected, format.value);
@@ -189,6 +204,7 @@ function downloadTemplate() {
   URL.revokeObjectURL(url);
 }
 async function openDetail(job: ImportJob) {
+  if (!canRead.value) return;
   detailVisible.value = true;
   detail.value = undefined;
   detailLoading.value = true;
@@ -206,6 +222,13 @@ async function openDetail(job: ImportJob) {
   }
 }
 async function action(job: ImportJob, type: 'confirm' | 'cancel' | 'retry' | 'report') {
+  if (
+    (type === 'confirm' && !canConfirm.value) ||
+    (type === 'cancel' && !canCancel.value) ||
+    (type === 'retry' && !canRetry.value) ||
+    (type === 'report' && !canDownloadReport.value)
+  )
+    return;
   const key = `${job.id}:${type}`;
   await runTaskAction(key, async () => {
     try {
@@ -273,7 +296,7 @@ onMounted(() => {
     <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" :closable="false" />
     <template v-else>
       <ElForm inline>
-        <ElFormItem label="数据集">
+        <ElFormItem v-if="canCreate" label="数据集">
           <ElSelect
             v-model="selectedDataset"
             class="w-260px"
@@ -291,7 +314,7 @@ onMounted(() => {
             />
           </ElSelect>
         </ElFormItem>
-        <ElFormItem label="格式">
+        <ElFormItem v-if="canCreate" label="格式">
           <ElSelect v-model="format" class="w-110px">
             <ElOption
               v-for="v in selectedImportDataset(datasets, selectedDataset)?.formats || []"
@@ -301,8 +324,11 @@ onMounted(() => {
             />
           </ElSelect>
         </ElFormItem>
-        <ElFormItem><input :key="fileInputKey" type="file" @change="chooseFile" /></ElFormItem>
+        <ElFormItem v-if="canCreate || canRetry">
+          <input :key="fileInputKey" type="file" @change="chooseFile" />
+        </ElFormItem>
         <ElButton
+          v-if="canCreate"
           type="primary"
           :loading="uploading"
           :disabled="!scopeReady || !selectedDataset || !format || !source"
@@ -311,11 +337,11 @@ onMounted(() => {
           上传并校验
         </ElButton>
       </ElForm>
-      <div v-if="descriptor" class="mb-8px flex-y-center justify-between">
+      <div v-if="canCreate && descriptor" class="mb-8px flex-y-center justify-between">
         <span>字段规范</span>
         <ElButton link type="primary" @click="downloadTemplate">下载 CSV 模板</ElButton>
       </div>
-      <ElTable v-if="descriptor" :data="descriptor.columns" size="small" border class="mb-16px">
+      <ElTable v-if="canCreate && descriptor" :data="descriptor.columns" size="small" border class="mb-16px">
         <ElTableColumn prop="key" label="字段" />
         <ElTableColumn prop="title" label="名称" />
         <ElTableColumn prop="type" label="类型" width="120" />
@@ -355,9 +381,9 @@ onMounted(() => {
         </ElTableColumn>
         <ElTableColumn label="操作" width="220">
           <template #default="{ row }">
-            <ElButton link @click="openDetail(row)">详情</ElButton>
+            <ElButton v-if="canRead" link @click="openDetail(row)">详情</ElButton>
             <ElButton
-              v-if="row.status === 'ready'"
+              v-if="canConfirm && row.status === 'ready'"
               link
               :loading="actionLoading === `${row.id}:confirm`"
               :disabled="Boolean(actionLoading)"
@@ -366,7 +392,7 @@ onMounted(() => {
               确认导入
             </ElButton>
             <ElButton
-              v-if="['uploading', 'queued', 'validating', 'ready'].includes(row.status)"
+              v-if="canCancel && ['uploading', 'queued', 'validating', 'ready'].includes(row.status)"
               link
               type="danger"
               :loading="actionLoading === `${row.id}:cancel`"
@@ -376,7 +402,7 @@ onMounted(() => {
               取消
             </ElButton>
             <ElButton
-              v-if="['failed', 'validation_failed', 'canceled'].includes(row.status)"
+              v-if="canRetry && ['failed', 'validation_failed', 'canceled'].includes(row.status)"
               link
               :loading="actionLoading === `${row.id}:retry`"
               :disabled="Boolean(actionLoading)"
@@ -385,7 +411,7 @@ onMounted(() => {
               重试
             </ElButton>
             <ElButton
-              v-if="row.invalid_rows > 0"
+              v-if="canDownloadReport && row.invalid_rows > 0"
               link
               :loading="actionLoading === `${row.id}:report`"
               :disabled="Boolean(actionLoading)"
