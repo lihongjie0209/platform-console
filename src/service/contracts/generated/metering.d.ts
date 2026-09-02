@@ -167,7 +167,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.MeterPageResponseBody"];
+                        };
                     };
                 };
             };
@@ -251,7 +253,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RecordUsageResultBody"];
+                        };
                     };
                 };
             };
@@ -292,7 +296,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.UsagePageResponseBody"];
+                        };
                     };
                 };
             };
@@ -333,7 +339,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RecordUsageResultBody"][];
+                        };
                     };
                 };
             };
@@ -524,6 +532,12 @@ export interface components {
         "httptransport.MeResponseBody": {
             subject?: string;
         };
+        "httptransport.MeterPageResponseBody": {
+            items?: components["schemas"]["httptransport.MeterView"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
         "httptransport.MeterView": {
             aggregation?: string;
             code?: string;
@@ -555,6 +569,11 @@ export interface components {
         "httptransport.RecordUsageRequest": {
             events: components["schemas"]["httptransport.UsageInputRequest"][];
         };
+        "httptransport.RecordUsageResultBody": {
+            duplicate?: boolean;
+            event_id?: string;
+            fact_id?: string;
+        };
         "httptransport.Response": {
             body?: unknown;
             code?: number;
@@ -580,6 +599,21 @@ export interface components {
             source_id?: string;
             source_service: string;
             tenant_id: string;
+        };
+        "httptransport.UsagePageResponseBody": {
+            items?: components["schemas"]["httptransport.UsagePointBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+            total_quantity?: number;
+        };
+        "httptransport.UsagePointBody": {
+            dimensions?: {
+                [key: string]: string;
+            };
+            quantity?: number;
+            window_end?: string;
+            window_start?: string;
         };
     };
     responses: never;

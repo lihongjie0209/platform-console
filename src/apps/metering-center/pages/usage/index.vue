@@ -77,7 +77,8 @@ watch([tenantID, applicationID], () => {
     </ElForm>
     <ElStatistic title="总用量" :value="totalQuantity" class="mb-16px" />
     <ElTable v-loading="loading" :data="rows" border>
-      <ElTableColumn prop="bucket_start" label="时间桶" />
+      <ElTableColumn prop="window_start" label="开始时间" />
+      <ElTableColumn prop="window_end" label="结束时间" />
       <ElTableColumn prop="quantity" label="用量" />
       <ElTableColumn label="维度">
         <template #default="{ row }">{{ JSON.stringify(row.dimensions || {}) }}</template>

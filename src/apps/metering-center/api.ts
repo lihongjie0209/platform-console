@@ -1,7 +1,12 @@
+import type { components as MeteringContract } from '@/service/contracts/generated/metering';
 import { platformRequest } from '@/service/request';
 import { applicationScope } from '@/platform/application-context';
 
-export interface Meter extends Record<string, unknown> {
+type MeterContract = MeteringContract['schemas']['httptransport.MeterView'];
+type UsagePointContract = MeteringContract['schemas']['httptransport.UsagePointBody'];
+type UsagePageContract = MeteringContract['schemas']['httptransport.UsagePageResponseBody'];
+
+export interface Meter extends MeterContract, Record<string, unknown> {
   id: string;
   code: string;
   name: string;
@@ -12,8 +17,9 @@ export interface Meter extends Record<string, unknown> {
   status: string;
   version: number;
 }
-export interface UsagePoint extends Record<string, unknown> {
-  bucket_start: string;
+export interface UsagePoint extends UsagePointContract, Record<string, unknown> {
+  window_start: string;
+  window_end: string;
   quantity: number;
   dimensions: Record<string, string>;
 }
@@ -85,7 +91,7 @@ export function queryUsage(input: {
   page: number;
   pageSize: number;
 }) {
-  return unwrap<Page<UsagePoint> & { total_quantity: number }>(
+  return unwrap<UsagePageContract & { items: UsagePoint[]; total_quantity: number }>(
     request({
       url: '/api/v1/usage/query',
       method: 'post',
