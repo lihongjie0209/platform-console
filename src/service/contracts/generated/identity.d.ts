@@ -1059,6 +1059,7 @@ export interface components {
             total?: number;
         };
         "httptransport.SessionResponseBody": {
+            client_ip?: string;
             created_at?: string;
             created_by?: string;
             expires_at?: string;
@@ -1071,6 +1072,7 @@ export interface components {
             tenant_id?: string;
             updated_at?: string;
             updated_by?: string;
+            user_agent?: string;
             user_id?: string;
             version?: number;
         };

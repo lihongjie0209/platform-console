@@ -46,6 +46,8 @@ declare namespace Api {
       revoked_at?: string;
       revoke_reason?: string;
       last_used_at: string;
+      client_ip: string;
+      user_agent: string;
       version: number;
       created_at: string;
       updated_at: string;

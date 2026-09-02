@@ -208,6 +208,12 @@ onMounted(loadSessions);
             </ElTag>
           </template>
         </ElTableColumn>
+        <ElTableColumn label="客户端 IP" min-width="150">
+          <template #default="{ row }">{{ row.client_ip || '-' }}</template>
+        </ElTableColumn>
+        <ElTableColumn label="客户端" min-width="240" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.user_agent || '-' }}</template>
+        </ElTableColumn>
         <ElTableColumn label="最后使用" min-width="180">
           <template #default="{ row }">{{ formatTime(row.last_used_at) }}</template>
         </ElTableColumn>
