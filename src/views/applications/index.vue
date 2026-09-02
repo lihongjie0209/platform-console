@@ -6,10 +6,10 @@ import { useAuthStore } from '@/store/modules/auth';
 import { usePlatformStore } from '@/store/modules/platform';
 import { useRouteStore } from '@/store/modules/route';
 import { switchTenantContext } from '@/platform/tenant-switch';
+import { switchApplicationContext } from '@/platform/application-switch';
 import {
   applicationEntryDecision,
   applicationEntryStatusLabel,
-  applicationEntryStatusMessage,
   applicationNavigationCompatibility
 } from '@/platform/navigation';
 import { filterApplications } from '@/platform/application-context';
@@ -93,18 +93,15 @@ async function reloadApplications() {
 async function openApplication(applicationId: string) {
   const navigation = platformStore.navigations.find(item => item.application.id === applicationId);
   const decision = applicationEntryDecision(navigation);
-  const blockedMessage = applicationEntryStatusMessage(decision.status);
-  if (blockedMessage) {
-    window.$message?.warning(blockedMessage);
-    return;
-  }
-
   try {
-    platformStore.selectApplication(applicationId);
-    routeStore.refreshPlatformRoutes();
-    await router.push(platformStore.entryPathForApplication(applicationId));
-  } catch {
-    window.$message?.error('应用授权或发布状态已变化，请重新选择');
+    await switchApplicationContext(applicationId, decision, {
+      selectApplication: platformStore.selectApplication,
+      refreshRoutes: routeStore.refreshPlatformRoutes,
+      entryPathForApplication: platformStore.entryPathForApplication,
+      navigate: path => router.push(path)
+    });
+  } catch (error) {
+    window.$message?.error(error instanceof Error ? error.message : '应用授权或发布状态已变化，请重新选择');
     await router.push('/applications');
   }
 }

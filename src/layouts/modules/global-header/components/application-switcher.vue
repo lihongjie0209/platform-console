@@ -3,12 +3,9 @@ import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePlatformStore } from '@/store/modules/platform';
 import { useRouteStore } from '@/store/modules/route';
-import {
-  applicationEntryDecision,
-  applicationEntryStatusLabel,
-  applicationEntryStatusMessage
-} from '@/platform/navigation';
+import { applicationEntryDecision, applicationEntryStatusLabel } from '@/platform/navigation';
 import { groupApplications } from '@/platform/application-groups';
+import { switchApplicationContext } from '@/platform/application-switch';
 
 defineOptions({ name: 'ApplicationSwitcher' });
 
@@ -40,18 +37,15 @@ async function handleCommand(command: string) {
   }
 
   const decision = entryDecision(command);
-  const blockedMessage = applicationEntryStatusMessage(decision.status);
-  if (blockedMessage) {
-    window.$message?.warning(blockedMessage);
-    return;
-  }
-
   try {
-    platformStore.selectApplication(command);
-    routeStore.refreshPlatformRoutes();
-    await router.push(platformStore.entryPathForApplication(command));
-  } catch {
-    window.$message?.error('应用授权或发布状态已变化，请重新选择');
+    await switchApplicationContext(command, decision, {
+      selectApplication: platformStore.selectApplication,
+      refreshRoutes: routeStore.refreshPlatformRoutes,
+      entryPathForApplication: platformStore.entryPathForApplication,
+      navigate: path => router.push(path)
+    });
+  } catch (error) {
+    window.$message?.error(error instanceof Error ? error.message : '应用授权或发布状态已变化，请重新选择');
     await router.push('/applications');
   }
 }
