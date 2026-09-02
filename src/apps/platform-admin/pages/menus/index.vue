@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
+import { createLatestRequestGuard } from '@/platform/application-context';
 import { applicationPageOptionsFor, pageUsesApplicationNamespace } from '@/apps/registry';
 import { type PermissionCatalogOption, buildPermissionCatalogOptions } from '@/platform/permission-catalog';
 import { type MenuPermissionScope, normalizeMenuPermissionScope } from '@/platform/navigation';
@@ -49,6 +50,8 @@ const permissionLoading = ref(false);
 const permissionOptions = ref<PermissionCatalogOption[]>([]);
 const platformStore = usePlatformStore();
 let permissionRequestSequence = 0;
+const menuRequestGuard = createLatestRequestGuard();
+let loadedMenuApplicationID = '';
 const applications = ref<Application[]>([]);
 const applicationID = ref('');
 const menus = ref<ApplicationMenu[]>([]);
@@ -112,15 +115,28 @@ async function loadApplications() {
 }
 
 async function loadMenus() {
-  if (!applicationID.value) {
+  const requestedApplicationID = applicationID.value;
+  const request = menuRequestGuard.begin();
+  if (requestedApplicationID !== loadedMenuApplicationID) {
     menus.value = [];
+    editorVisible.value = false;
+    publishVisible.value = false;
+    publishComment.value = '';
+  }
+  if (!requestedApplicationID) {
+    loadedMenuApplicationID = '';
+    loading.value = false;
     return;
   }
   loading.value = true;
   try {
-    menus.value = await listMenuDraft(applicationID.value);
+    const result = await listMenuDraft(requestedApplicationID);
+    if (menuRequestGuard.isCurrent(request) && applicationID.value === requestedApplicationID) {
+      menus.value = result;
+      loadedMenuApplicationID = requestedApplicationID;
+    }
   } finally {
-    loading.value = false;
+    if (menuRequestGuard.isCurrent(request)) loading.value = false;
   }
 }
 
@@ -299,7 +315,13 @@ onMounted(async () => {
           </ElSelect>
           <ElButton :loading="loading" @click="loadMenus">刷新</ElButton>
           <ElButton type="primary" :disabled="!applicationID" @click="openCreate()">新增根菜单</ElButton>
-          <ElButton type="success" :disabled="!menus.length" @click="publishVisible = true">发布</ElButton>
+          <ElButton
+            type="success"
+            :disabled="loading || !menus.length || !defaultRouteValid"
+            @click="publishVisible = true"
+          >
+            发布
+          </ElButton>
         </div>
       </div>
     </template>
@@ -307,12 +329,14 @@ onMounted(async () => {
     <ElAlert
       v-if="selectedApplication"
       class="mb-16px"
-      :type="defaultRouteValid ? 'info' : 'warning'"
+      :type="loading || defaultRouteValid ? 'info' : 'warning'"
       :closable="false"
       :title="
-        defaultRouteValid
-          ? `当前应用：${selectedApplication.name}，已发布版本：${selectedApplication.published_release || 0}`
-          : `默认路由 ${selectedApplication.default_route} 不是启用叶子菜单，发布前请先修正应用配置或菜单草稿`
+        loading
+          ? `正在加载 ${selectedApplication.name} 的菜单草稿`
+          : defaultRouteValid
+            ? `当前应用：${selectedApplication.name}，已发布版本：${selectedApplication.published_release || 0}`
+            : `默认路由 ${selectedApplication.default_route} 不是启用叶子菜单，发布前请先修正应用配置或菜单草稿`
       "
     />
     <ElEmpty v-if="!applicationID" description="请先创建或选择应用" />

@@ -59,6 +59,22 @@ export function createSerialTaskQueue() {
   };
 }
 
+export function createLatestRequestGuard() {
+  let revision = 0;
+  return {
+    begin() {
+      revision += 1;
+      return revision;
+    },
+    isCurrent(value: number) {
+      return value === revision;
+    },
+    invalidate() {
+      revision += 1;
+    }
+  };
+}
+
 export interface FailedTenantSelectionContext {
   tenantId: string;
   applicationId: string;

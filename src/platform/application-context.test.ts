@@ -4,6 +4,7 @@ import type { PlatformApplication, PublishedNavigation, TenantSummary } from '@/
 import {
   applicationFilterScope,
   applicationScope,
+  createLatestRequestGuard,
   createSerialTaskQueue,
   failedTenantSelectionContext,
   filterApplications,
@@ -101,6 +102,16 @@ test('tenant scope changes are serialized even when the first operation fails', 
   await assert.rejects(first, /selection failed/);
   await second;
   assert.deepEqual(events, ['first:start', 'first:end', 'second:start', 'second:end']);
+});
+
+test('latest request guard rejects responses from an older application scope', () => {
+  const guard = createLatestRequestGuard();
+  const first = guard.begin();
+  const second = guard.begin();
+  assert.equal(guard.isCurrent(first), false);
+  assert.equal(guard.isCurrent(second), true);
+  guard.invalidate();
+  assert.equal(guard.isCurrent(second), false);
 });
 
 test('failed tenant selection clears stale resources only after server scope exchange', () => {
