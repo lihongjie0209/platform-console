@@ -586,7 +586,7 @@ export async function updateTenant(id: string, form: TenantForm) {
   );
 }
 
-export function listTenantApplicationGrants(tenantID: string) {
+export function listTenantApplicationGrants(tenantID: string, page = 1, pageSize = 100) {
   return unwrap<{
     grants: ResourcePage<ApplicationGrant>;
     applications: Application[];
@@ -597,8 +597,8 @@ export function listTenantApplicationGrants(tenantID: string) {
       data: {
         tenant_id: tenantID,
         active_only: false,
-        page: 1,
-        page_size: 100
+        page,
+        page_size: pageSize
       }
     })
   );

@@ -4,6 +4,7 @@ import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
 import { BizCopyText } from '@/components/business';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { collectAllPages } from '@/platform/pagination';
 import type { TenantDirectoryItem, UserIdentity, UserSession } from '../../api';
 import { listSessions, listTenantDirectory, listUsers, revokeSession } from '../../api';
 
@@ -56,12 +57,14 @@ function statusType(value: string) {
 }
 
 async function loadCatalogs() {
-  const [userPage, tenantPage] = await Promise.all([
-    listUsers({ page: 1, pageSize: 100 }),
-    listTenantDirectory({ page: 1, pageSize: 100 })
+  const [userItems, tenantItems] = await Promise.all([
+    collectAllPages((catalogPage, catalogPageSize) => listUsers({ page: catalogPage, pageSize: catalogPageSize })),
+    collectAllPages((catalogPage, catalogPageSize) =>
+      listTenantDirectory({ page: catalogPage, pageSize: catalogPageSize })
+    )
   ]);
-  users.value = userPage.items;
-  tenants.value = tenantPage.items;
+  users.value = userItems;
+  tenants.value = tenantItems;
 }
 
 async function loadData() {

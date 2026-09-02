@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue';
 import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig, BizFieldOption } from '@/components/business';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { collectAllPages } from '@/platform/pagination';
 import type { TenantDirectoryItem, TenantForm, UserIdentity } from '../../api';
 import { createTenant, getTenant, listTenantDirectory, listUsers, updateTenant } from '../../api';
 
@@ -99,8 +100,8 @@ function userLabel(user: UserIdentity) {
   return `${user.display_name || user.username} (${user.username})`;
 }
 async function loadOwners() {
-  const result = await listUsers({ page: 1, pageSize: 100 });
-  ownerOptions.value = result.items
+  const items = await collectAllPages((page, pageSize) => listUsers({ page, pageSize }));
+  ownerOptions.value = items
     .filter(item => item.status === 'active')
     .map(item => ({ label: userLabel(item), value: item.id }));
 }

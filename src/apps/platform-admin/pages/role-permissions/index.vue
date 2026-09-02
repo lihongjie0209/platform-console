@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { collectAllPages } from '@/platform/pagination';
 import {
   type AuthorizationManagementScope,
   authorizationManagementScopeOptions
@@ -47,12 +48,16 @@ async function loadCatalogs() {
   }
   loading.value = true;
   try {
-    const [rolePage, permissionPage] = await Promise.all([
-      listMyRoles({ tenantID: tenantID.value, permissionScope: assignmentScope.value, page: 1, pageSize: 100 }),
-      listMyPermissions({ tenantID: tenantID.value, permissionScope: assignmentScope.value, page: 1, pageSize: 100 })
+    const [roleItems, permissionItems] = await Promise.all([
+      collectAllPages((page, pageSize) =>
+        listMyRoles({ tenantID: tenantID.value, permissionScope: assignmentScope.value, page, pageSize })
+      ),
+      collectAllPages((page, pageSize) =>
+        listMyPermissions({ tenantID: tenantID.value, permissionScope: assignmentScope.value, page, pageSize })
+      )
     ]);
-    roles.value = rolePage.items;
-    permissions.value = permissionPage.items;
+    roles.value = roleItems;
+    permissions.value = permissionItems;
     if (!roles.value.some(item => item.id === roleID.value)) roleID.value = roles.value[0]?.id || '';
   } finally {
     loading.value = false;

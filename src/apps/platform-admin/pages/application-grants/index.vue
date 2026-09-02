@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
+import { collectAllPages } from '@/platform/pagination';
 import type { Application, ApplicationGrant, ApplicationGrantForm, TenantDirectoryItem } from '../../api';
 import {
   grantApplication,
@@ -69,12 +70,12 @@ function emptyForm(): ApplicationGrantForm {
 }
 
 async function loadCatalogs() {
-  const [tenantPage, applicationPage] = await Promise.all([
-    listTenantDirectory({ page: 1, pageSize: 100 }),
-    listApplications(1, 100)
+  const [tenantItems, applicationItems] = await Promise.all([
+    collectAllPages((page, pageSize) => listTenantDirectory({ page, pageSize })),
+    collectAllPages((page, pageSize) => listApplications(page, pageSize))
   ]);
-  tenants.value = tenantPage.items;
-  applications.value = applicationPage.items;
+  tenants.value = tenantItems;
+  applications.value = applicationItems;
   if (!tenants.value.some(item => item.id === tenantID.value)) tenantID.value = tenants.value[0]?.id || '';
 }
 
@@ -85,8 +86,10 @@ async function loadGrants() {
   }
   loading.value = true;
   try {
-    const result = await listTenantApplicationGrants(tenantID.value);
-    grants.value = result.grants.items;
+    grants.value = await collectAllPages(async (page, pageSize) => {
+      const result = await listTenantApplicationGrants(tenantID.value, page, pageSize);
+      return result.grants;
+    });
   } finally {
     loading.value = false;
   }

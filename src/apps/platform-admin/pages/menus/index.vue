@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard } from '@/platform/application-context';
+import { collectAllPages } from '@/platform/pagination';
 import { applicationPageOptionsFor, pageUsesApplicationNamespace } from '@/apps/registry';
 import { type PermissionCatalogOption, buildPermissionCatalogOptions } from '@/platform/permission-catalog';
 import { type MenuPermissionScope, normalizeMenuPermissionScope } from '@/platform/navigation';
@@ -116,8 +117,7 @@ function resetForm(value = emptyMenu()) {
 }
 
 async function loadApplications() {
-  const result = await listApplications(1, 100);
-  applications.value = result.items;
+  applications.value = await collectAllPages((page, pageSize) => listApplications(page, pageSize));
   if (!applications.value.some(item => item.id === applicationID.value)) {
     applicationID.value = String(applications.value[0]?.id || '');
   }

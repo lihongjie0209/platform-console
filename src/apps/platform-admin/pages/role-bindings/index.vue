@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
+import { collectAllPages } from '@/platform/pagination';
 import {
   type AuthorizationManagementScope,
   authorizationManagementScopeOptions
@@ -152,27 +153,43 @@ async function loadRows() {
 }
 async function loadCatalogs() {
   if (!tenantID.value) return;
-  const [rolePage, userPage, serviceAccountPage] = await Promise.all([
-    listMyRoles({ tenantID: tenantID.value, permissionScope: bindingScope.value, page: 1, pageSize: 100 }),
-    listUsers({ page: 1, pageSize: 100 }),
-    listServiceAccounts({ page: 1, pageSize: 100 })
+  const [roleItems, userItems, serviceAccountItems] = await Promise.all([
+    collectAllPages((catalogPage, catalogPageSize) =>
+      listMyRoles({
+        tenantID: tenantID.value,
+        permissionScope: bindingScope.value,
+        page: catalogPage,
+        pageSize: catalogPageSize
+      })
+    ),
+    collectAllPages((catalogPage, catalogPageSize) => listUsers({ page: catalogPage, pageSize: catalogPageSize })),
+    collectAllPages((catalogPage, catalogPageSize) =>
+      listServiceAccounts({ page: catalogPage, pageSize: catalogPageSize })
+    )
   ]);
-  roles.value = rolePage.items;
-  users.value = userPage.items;
-  serviceAccounts.value = serviceAccountPage.items;
+  roles.value = roleItems;
+  users.value = userItems;
+  serviceAccounts.value = serviceAccountItems;
   if (bindingScope.value === 'platform') {
     memberships.value = [];
     groups.value = [];
     organizations.value = [];
     return;
   }
-  const [membershipPage, groupPage, organizationItems] = await Promise.all([
-    listMemberships({ tenantID: tenantID.value, page: 1, pageSize: 100 }),
-    listGroups(tenantID.value, 1, 100),
+  const [membershipItems, groupItems, organizationItems] = await Promise.all([
+    collectAllPages(async (catalogPage, catalogPageSize) => {
+      const result = await listMemberships({
+        tenantID: tenantID.value,
+        page: catalogPage,
+        pageSize: catalogPageSize
+      });
+      return { ...result, items: result.memberships };
+    }),
+    collectAllPages((catalogPage, catalogPageSize) => listGroups(tenantID.value, catalogPage, catalogPageSize)),
     listOrganizationUnits(tenantID.value)
   ]);
-  memberships.value = membershipPage.memberships;
-  groups.value = groupPage.items;
+  memberships.value = membershipItems;
+  groups.value = groupItems;
   organizations.value = organizationItems;
 }
 function openCreate() {

@@ -4,6 +4,7 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig, BizFieldOption } from '@/components/business';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { collectAllPages } from '@/platform/pagination';
 import type { Membership, MembershipForm, OrganizationUnit, UserIdentity } from '../../api';
 import { addMembership, listMemberships, listOrganizationUnits, listUsers, updateMembership } from '../../api';
 
@@ -135,7 +136,7 @@ function organizationLabel(id: string) {
   return organization ? `${organization.name} (${organization.code})` : id;
 }
 async function loadUsers() {
-  users.value = (await listUsers({ page: 1, pageSize: 100, status: 'active' })).items;
+  users.value = await collectAllPages((page, pageSize) => listUsers({ page, pageSize, status: 'active' }));
 }
 async function loadOrganizations() {
   organizations.value = tenantID.value ? await listOrganizationUnits(tenantID.value) : [];

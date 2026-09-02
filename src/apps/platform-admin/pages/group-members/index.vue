@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { collectAllPages } from '@/platform/pagination';
 import type { Group, GroupMember, Membership, UserIdentity } from '../../api';
 import { addGroupMember, listGroupMembers, listGroups, listMemberships, listUsers, removeGroupMember } from '../../api';
 
@@ -35,12 +36,12 @@ async function loadCatalogs() {
   }
   loading.value = true;
   try {
-    const [groupPage, userPage] = await Promise.all([
-      listGroups(tenantID.value, 1, 100),
-      listUsers({ page: 1, pageSize: 100 })
+    const [groupItems, userItems] = await Promise.all([
+      collectAllPages((catalogPage, catalogPageSize) => listGroups(tenantID.value, catalogPage, catalogPageSize)),
+      collectAllPages((catalogPage, catalogPageSize) => listUsers({ page: catalogPage, pageSize: catalogPageSize }))
     ]);
-    groups.value = groupPage.items.filter(item => item.status === 'active');
-    users.value = userPage.items;
+    groups.value = groupItems.filter(item => item.status === 'active');
+    users.value = userItems;
     if (!groups.value.some(item => item.id === groupID.value)) groupID.value = groups.value[0]?.id || '';
     await loadMemberships();
   } finally {
