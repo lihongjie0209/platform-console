@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { hasApplicationScope } from '@/platform/application-context';
+import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import type { NotificationDelivery } from '../../api';
 import { listDeliveries, sendNotification } from '../../api';
 import { parseNotificationVariables } from '../../variables';
@@ -30,9 +30,16 @@ const form = reactive({
   variables: '{}',
   idempotencyKey: ''
 });
+const loadGuard = createLatestRequestGuard();
 
 async function loadData() {
-  if (!scopeReady.value) return;
+  const request = loadGuard.begin();
+  if (!scopeReady.value) {
+    rows.value = [];
+    total.value = 0;
+    loading.value = false;
+    return;
+  }
   loading.value = true;
   try {
     const result = await listDeliveries({
@@ -42,10 +49,12 @@ async function loadData() {
       page: page.value,
       pageSize: pageSize.value
     });
-    rows.value = result.deliveries || [];
-    total.value = result.total || 0;
+    if (loadGuard.isCurrent(request)) {
+      rows.value = result.deliveries || [];
+      total.value = result.total || 0;
+    }
   } finally {
-    loading.value = false;
+    if (loadGuard.isCurrent(request)) loading.value = false;
   }
 }
 function search() {

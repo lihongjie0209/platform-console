@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { hasApplicationScope } from '@/platform/application-context';
+import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import type { DictionaryDefinition, DictionaryItem } from '../../api';
 import {
   createDefinition,
@@ -51,11 +51,16 @@ const itemForm = reactive({
 const previewVisible = ref(false);
 const previewKeyword = ref('');
 const previewItems = ref<DictionaryItem[]>([]);
+const loadGuard = createLatestRequestGuard();
+const itemsGuard = createLatestRequestGuard();
+const previewGuard = createLatestRequestGuard();
 
 async function loadData() {
+  const request = loadGuard.begin();
   if (!scopeReady.value) {
     rows.value = [];
     total.value = 0;
+    loading.value = false;
     return;
   }
   loading.value = true;
@@ -68,10 +73,12 @@ async function loadData() {
       page: page.value,
       pageSize: pageSize.value
     });
-    rows.value = result.items || [];
-    total.value = result.total || 0;
+    if (loadGuard.isCurrent(request)) {
+      rows.value = result.items || [];
+      total.value = result.total || 0;
+    }
   } finally {
-    loading.value = false;
+    if (loadGuard.isCurrent(request)) loading.value = false;
   }
 }
 function search() {
@@ -129,10 +136,11 @@ async function save() {
   }
 }
 async function openItems(row: DictionaryDefinition) {
+  const request = itemsGuard.begin();
   selected.value = row;
   itemsVisible.value = true;
   const result = await listDraftItems(row.id);
-  items.value = result.items || [];
+  if (itemsGuard.isCurrent(request) && selected.value?.id === row.id) items.value = result.items || [];
 }
 function openNewItem() {
   editingItem.value = undefined;
@@ -201,6 +209,7 @@ async function publish(row: DictionaryDefinition) {
 }
 async function preview(row: DictionaryDefinition) {
   if (!scopeReady.value) return;
+  const request = previewGuard.begin();
   selected.value = row;
   previewVisible.value = true;
   const result = await queryDictionary(
@@ -208,9 +217,13 @@ async function preview(row: DictionaryDefinition) {
     row.code,
     previewKeyword.value
   );
-  previewItems.value = result.items || [];
+  if (previewGuard.isCurrent(request) && selected.value?.id === row.id) previewItems.value = result.items || [];
 }
 watch([tenantID, applicationID], () => {
+  itemsGuard.invalidate();
+  previewGuard.invalidate();
+  rows.value = [];
+  total.value = 0;
   formVisible.value = false;
   itemsVisible.value = false;
   itemVisible.value = false;

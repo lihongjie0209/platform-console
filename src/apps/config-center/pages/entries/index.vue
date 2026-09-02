@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { hasApplicationScope } from '@/platform/application-context';
+import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import type { ConfigDraftInput, ConfigEntry } from '../../api';
 import {
   approveConfig,
@@ -31,6 +31,7 @@ const serviceName = ref('');
 const editorVisible = ref(false);
 const valueMode = ref<'json' | 'secret'>('json');
 const form = reactive({ id: '', key: '', jsonValue: '{}', secretRef: '', rolloutPercentage: 100, version: 0 });
+const loadGuard = createLatestRequestGuard();
 
 const scopeReady = computed(
   () =>
@@ -38,9 +39,11 @@ const scopeReady = computed(
 );
 
 async function loadData() {
+  const request = loadGuard.begin();
   if (!scopeReady.value) {
     rows.value = [];
     total.value = 0;
+    loading.value = false;
     return;
   }
   loading.value = true;
@@ -55,10 +58,12 @@ async function loadData() {
       page.value,
       pageSize.value
     );
-    rows.value = result.entries || [];
-    total.value = result.total || 0;
+    if (loadGuard.isCurrent(request)) {
+      rows.value = result.entries || [];
+      total.value = result.total || 0;
+    }
   } finally {
-    loading.value = false;
+    if (loadGuard.isCurrent(request)) loading.value = false;
   }
 }
 

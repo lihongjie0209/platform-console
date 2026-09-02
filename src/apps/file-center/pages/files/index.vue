@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { UploadFile, UploadUserFile } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
-import { hasApplicationScope } from '@/platform/application-context';
+import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { BizCopyText } from '@/components/business';
 import type { FileMetadata } from '../../api';
 import {
@@ -43,11 +43,21 @@ const uploadVisible = ref(false);
 const uploadFiles = ref<UploadUserFile[]>([]);
 const selectedFile = ref<File>();
 const filter = reactive({ keyword: '', status: '', scanStatus: '', contentType: '', ownerID: '' });
+const loadGuard = createLatestRequestGuard();
+const uploadGuard = createLatestRequestGuard();
+
+interface UploadContext {
+  tenantID: string;
+  applicationID: string;
+  request: number;
+}
 
 async function loadData() {
+  const request = loadGuard.begin();
   if (!scopeReady.value) {
     rows.value = [];
     total.value = 0;
+    loading.value = false;
     return;
   }
   loading.value = true;
@@ -63,10 +73,12 @@ async function loadData() {
       page: page.value,
       pageSize: pageSize.value
     });
-    rows.value = result.files || [];
-    total.value = result.total || 0;
+    if (loadGuard.isCurrent(request)) {
+      rows.value = result.files || [];
+      total.value = result.total || 0;
+    }
   } finally {
-    loading.value = false;
+    if (loadGuard.isCurrent(request)) loading.value = false;
   }
 }
 
@@ -92,10 +104,10 @@ function selectUploadFile(file: UploadFile) {
   selectedFile.value = source;
 }
 
-async function uploadDirect(source: File, checksum: string) {
+async function uploadDirect(source: File, checksum: string, context: UploadContext) {
   const authorization = await initiateUpload({
-    tenantID: tenantID.value,
-    applicationID: applicationID.value,
+    tenantID: context.tenantID,
+    applicationID: context.applicationID,
     filename: source.name,
     contentType: source.type || 'application/octet-stream',
     size: source.size,
@@ -104,13 +116,13 @@ async function uploadDirect(source: File, checksum: string) {
   });
   await putAuthorizedFile(authorization, source);
   await completeUpload(authorization.file, checksum);
-  uploadProgress.value = 100;
+  if (uploadGuard.isCurrent(context.request)) uploadProgress.value = 100;
 }
 
-async function uploadMultipart(source: File, checksum: string) {
+async function uploadMultipart(source: File, checksum: string, context: UploadContext) {
   const session = await initiateMultipartUpload({
-    tenantID: tenantID.value,
-    applicationID: applicationID.value,
+    tenantID: context.tenantID,
+    applicationID: context.applicationID,
     filename: source.name,
     contentType: source.type || 'application/octet-stream',
     size: source.size,
@@ -125,7 +137,9 @@ async function uploadMultipart(source: File, checksum: string) {
       const authorization = await authorizeUploadPart(session.file, range.partNumber);
       const etag = await putAuthorizedPart(authorization, source.slice(range.start, range.end));
       completed.push({ part_number: range.partNumber, etag });
-      uploadProgress.value = Math.round((completed.length / ranges.length) * 100);
+      if (uploadGuard.isCurrent(context.request)) {
+        uploadProgress.value = Math.round((completed.length / ranges.length) * 100);
+      }
     };
     const buckets = multipartBuckets(ranges, 3);
     await Promise.all(
@@ -142,17 +156,20 @@ async function uploadMultipart(source: File, checksum: string) {
 async function upload() {
   const source = selectedFile.value;
   if (!scopeReady.value || !source) return;
+  const request = uploadGuard.begin();
+  const context = { tenantID: tenantID.value, applicationID: applicationID.value, request };
   uploading.value = true;
   uploadProgress.value = 0;
   try {
     const checksum = await sha256Hex(source);
-    if (source.size <= maxDirectUploadBytes) await uploadDirect(source, checksum);
-    else await uploadMultipart(source, checksum);
+    if (source.size <= maxDirectUploadBytes) await uploadDirect(source, checksum, context);
+    else await uploadMultipart(source, checksum, context);
+    if (!uploadGuard.isCurrent(request)) return;
     uploadVisible.value = false;
     window.$message?.success('文件上传完成');
     await loadData();
   } finally {
-    uploading.value = false;
+    if (uploadGuard.isCurrent(request)) uploading.value = false;
   }
 }
 
@@ -184,6 +201,8 @@ function showDetail(row: FileMetadata) {
 }
 
 watch([tenantID, applicationID], () => {
+  uploadGuard.invalidate();
+  uploading.value = false;
   rows.value = [];
   total.value = 0;
   detail.value = undefined;

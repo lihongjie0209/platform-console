@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { BizCopyText } from '@/components/business';
+import { createLatestRequestGuard } from '@/platform/application-context';
 import type { AuditQuery, AuditRecord } from '../../api';
 import { exportAuditRecords, listAuditRecords } from '../../api';
 
@@ -30,6 +31,8 @@ const detailVisible = ref(false);
 const selected = ref<AuditRecord>();
 const tenantID = computed(() => platformStore.selectedTenantId);
 const applicationID = computed(() => platformStore.selectedApplicationId);
+const loadGuard = createLatestRequestGuard();
+const exportGuard = createLatestRequestGuard();
 const form = reactive<SearchForm>({
   actor_id: '',
   actor_type: '',
@@ -61,18 +64,22 @@ function currentQuery(): AuditQuery {
 }
 
 async function loadData() {
+  const request = loadGuard.begin();
   if (!tenantID.value || !applicationID.value) {
     rows.value = [];
     total.value = 0;
+    loading.value = false;
     return;
   }
   loading.value = true;
   try {
     const result = await listAuditRecords(currentQuery());
-    rows.value = result.records;
-    total.value = result.total;
+    if (loadGuard.isCurrent(request)) {
+      rows.value = result.records;
+      total.value = result.total;
+    }
   } finally {
-    loading.value = false;
+    if (loadGuard.isCurrent(request)) loading.value = false;
   }
 }
 
@@ -108,9 +115,11 @@ function summaryText(value: unknown) {
 
 async function exportCSV() {
   if (!tenantID.value || !applicationID.value) return;
+  const request = exportGuard.begin();
   exporting.value = true;
   try {
     const result = await exportAuditRecords(currentQuery());
+    if (!exportGuard.isCurrent(request)) return;
     const blob = new Blob([String(result.content || '')], { type: result.content_type || 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -120,7 +129,7 @@ async function exportCSV() {
     URL.revokeObjectURL(url);
     window.$message?.success(`已导出 ${Number(result.record_count || 0)} 条审计记录`);
   } finally {
-    exporting.value = false;
+    if (exportGuard.isCurrent(request)) exporting.value = false;
   }
 }
 
@@ -136,6 +145,12 @@ function changePageSize(value: number) {
 }
 
 watch([tenantID, applicationID], () => {
+  exportGuard.invalidate();
+  rows.value = [];
+  total.value = 0;
+  selected.value = undefined;
+  detailVisible.value = false;
+  exporting.value = false;
   page.value = 1;
   loadData();
 });

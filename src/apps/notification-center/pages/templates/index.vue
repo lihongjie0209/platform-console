@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { hasApplicationScope } from '@/platform/application-context';
+import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import type { NotificationTemplate } from '../../api';
 import { listTemplates, putTemplate } from '../../api';
 
@@ -30,9 +30,16 @@ const form = reactive({
   status: 'active',
   version: 0
 });
+const loadGuard = createLatestRequestGuard();
 
 async function loadData() {
-  if (!scopeReady.value) return;
+  const request = loadGuard.begin();
+  if (!scopeReady.value) {
+    rows.value = [];
+    total.value = 0;
+    loading.value = false;
+    return;
+  }
   loading.value = true;
   try {
     const result = await listTemplates({
@@ -44,10 +51,12 @@ async function loadData() {
       page: page.value,
       pageSize: pageSize.value
     });
-    rows.value = result.templates || [];
-    total.value = result.total || 0;
+    if (loadGuard.isCurrent(request)) {
+      rows.value = result.templates || [];
+      total.value = result.total || 0;
+    }
   } finally {
-    loading.value = false;
+    if (loadGuard.isCurrent(request)) loading.value = false;
   }
 }
 function search() {
