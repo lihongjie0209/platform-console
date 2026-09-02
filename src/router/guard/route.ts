@@ -5,6 +5,7 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { useRouteStore } from '@/store/modules/route';
 import { localStg } from '@/utils/storage';
 import { getRouteName } from '@/router/elegant/transform';
+import { runnableApplicationIDForPath } from '@/platform/navigation';
 
 /**
  * create route guard
@@ -156,6 +157,9 @@ async function initRoute(to: RouteLocationNormalized): Promise<RouteLocationRaw 
     return undefined;
   }
 
+  const deepLinkLocation = recoverApplicationDeepLink(to, routeStore);
+  if (deepLinkLocation) return deepLinkLocation;
+
   // it is captured by the "not-found" route, then check whether the route exists
   const exist = await routeStore.getIsAuthRouteExist(to.path as RoutePath);
   const noPermissionRoute: RouteKey = '403';
@@ -169,6 +173,23 @@ async function initRoute(to: RouteLocationNormalized): Promise<RouteLocationRaw 
   }
 
   return undefined;
+}
+
+function recoverApplicationDeepLink(
+  to: RouteLocationNormalized,
+  routeStore: Pick<ReturnType<typeof useRouteStore>, 'refreshPlatformRoutes'>
+): RouteLocationRaw | undefined {
+  const platformStore = usePlatformStore();
+  const applicationId = runnableApplicationIDForPath(platformStore.navigations, to.path);
+  if (!applicationId || applicationId === platformStore.selectedApplicationId) return undefined;
+
+  try {
+    platformStore.selectApplication(applicationId);
+    routeStore.refreshPlatformRoutes();
+    return { path: to.path, query: to.query, hash: to.hash, replace: true };
+  } catch {
+    return { name: 'applications' };
+  }
 }
 
 function handleRouteSwitch(to: RouteLocationNormalized, from: RouteLocationNormalized) {

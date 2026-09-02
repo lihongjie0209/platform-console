@@ -12,6 +12,7 @@ import {
   navigationToRoutes,
   normalizeMenuPermissionScope,
   retainRunnableApplicationID,
+  runnableApplicationIDForPath,
   safeExternalURL
 } from './navigation';
 
@@ -398,6 +399,38 @@ test('session restoration retains only a granted and runnable application', () =
       [application],
       [{ ...navigation, menus: [applicationMenu({ id: 'future', component: 'billing-center.future' })] }],
       application.id
+    ),
+    ''
+  );
+});
+
+test('deep links resolve only an exact route from a runnable application', () => {
+  const navigation = {
+    application: {
+      id: 'billing-id',
+      code: 'billing-center',
+      name: '计费中心',
+      description: '',
+      icon: '',
+      default_route: '',
+      status: 'active'
+    },
+    menus: [applicationMenu({ id: 'plans', route: 'plans', component: 'billing-center.plans' })]
+  } as Parameters<typeof runnableApplicationIDForPath>[0][number];
+
+  assert.equal(runnableApplicationIDForPath([navigation], '/apps/billing-center/plans'), 'billing-id');
+  assert.equal(runnableApplicationIDForPath([navigation], '/apps/billing-center/overview'), 'billing-id');
+  assert.equal(runnableApplicationIDForPath([navigation], '/apps/billing-center/unknown'), '');
+  assert.equal(runnableApplicationIDForPath([navigation], '/apps/billing-center'), '');
+  assert.equal(
+    runnableApplicationIDForPath(
+      [
+        {
+          ...navigation,
+          menus: [applicationMenu({ id: 'future', route: 'future', component: 'billing-center.future' })]
+        }
+      ],
+      '/apps/billing-center/future'
     ),
     ''
   );

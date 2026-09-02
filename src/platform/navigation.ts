@@ -223,6 +223,17 @@ export function retainRunnableApplicationID(
   return applicationEntryDecision(navigation).status === 'ready' ? preferredApplicationID : '';
 }
 
+/** Resolves an internal deep link without mounting routes from every application at once. */
+export function runnableApplicationIDForPath(navigations: PublishedNavigation[], path: string) {
+  const runnableNavigations = navigations.filter(navigation => applicationEntryDecision(navigation).status === 'ready');
+  for (const navigation of runnableNavigations) {
+    const routePaths = navigationToRoutes(navigation).flatMap(route => leafRoutePaths(route.children || [route]));
+    if (routePaths.includes(path)) return navigation.application.id;
+  }
+
+  return '';
+}
+
 /** Flattens published page menus into safe workspace shortcuts. */
 export function applicationMenuEntries(navigation: PublishedNavigation): ApplicationMenuEntry[] {
   return navigation.menus
