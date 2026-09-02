@@ -211,6 +211,18 @@ export function applicationEntryDecision(navigation?: PublishedNavigation): Appl
   return path ? { status: 'ready', path } : { status: 'unpublished', path: '' };
 }
 
+/** Keeps a persisted application selection only when it is still granted and runnable. */
+export function retainRunnableApplicationID(
+  applications: PlatformApplication[],
+  navigations: PublishedNavigation[],
+  preferredApplicationID: string
+) {
+  if (!applications.some(application => application.id === preferredApplicationID)) return '';
+
+  const navigation = navigations.find(item => item.application.id === preferredApplicationID);
+  return applicationEntryDecision(navigation).status === 'ready' ? preferredApplicationID : '';
+}
+
 /** Flattens published page menus into safe workspace shortcuts. */
 export function applicationMenuEntries(navigation: PublishedNavigation): ApplicationMenuEntry[] {
   return navigation.menus
@@ -251,7 +263,9 @@ export function activeApplicationRoutes(navigations: PublishedNavigation[], appl
   if (!applicationId) return routes;
 
   const navigation = navigations.find(item => item.application.id === applicationId);
-  if (navigation) routes.push(...navigationToRoutes(navigation));
+  if (applicationEntryDecision(navigation).status === 'ready' && navigation) {
+    routes.push(...navigationToRoutes(navigation));
+  }
 
   return routes;
 }

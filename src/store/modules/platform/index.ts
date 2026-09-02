@@ -16,7 +16,12 @@ import {
   retainActiveNavigations,
   selectActiveTenant
 } from '@/platform/application-context';
-import { filterNavigationsByPermissions, navigationPermissionCodes } from '@/platform/navigation';
+import {
+  applicationEntryDecision,
+  filterNavigationsByPermissions,
+  navigationPermissionCodes,
+  retainRunnableApplicationID
+} from '@/platform/navigation';
 
 async function fetchAllowedNavigationPermissionCodes(tenantId: string, navigations: PublishedNavigation[]) {
   const permissionCodes = navigationPermissionCodes(navigations);
@@ -125,7 +130,12 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
       if (revision !== requestRevision) return;
       navigations.value = filterNavigationsByPermissions(activeNavigations, allowedCodes);
 
-      if (!applications.value.some(item => item.id === selectedApplicationId.value)) {
+      const retainedApplicationID = retainRunnableApplicationID(
+        applications.value,
+        navigations.value,
+        selectedApplicationId.value
+      );
+      if (!retainedApplicationID) {
         selectedApplicationId.value = '';
         sessionStg.remove('selectedApplicationId');
       }
@@ -158,6 +168,10 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
   function selectApplication(applicationId: string) {
     if (!applications.value.some(item => item.id === applicationId)) {
       throw new Error('selected application is not granted to the current tenant');
+    }
+    const navigation = navigations.value.find(item => item.application.id === applicationId);
+    if (applicationEntryDecision(navigation).status !== 'ready') {
+      throw new Error('selected application is not runnable in the current console');
     }
     selectedApplicationId.value = applicationId;
     sessionStg.set('selectedApplicationId', applicationId);

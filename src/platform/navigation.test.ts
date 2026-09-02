@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import type { ApplicationMenu } from '@/service/api/platform-navigation';
+import type { ApplicationMenu, PlatformApplication } from '@/service/api/platform-navigation';
 import {
   activeApplicationRoutes,
   applicationEntryDecision,
@@ -11,6 +11,7 @@ import {
   navigationPermissionCodes,
   navigationToRoutes,
   normalizeMenuPermissionScope,
+  retainRunnableApplicationID,
   safeExternalURL
 } from './navigation';
 
@@ -315,8 +316,12 @@ test('every application has a workspace and exposes only visible page shortcuts'
   );
 });
 
-test('activeApplicationRoutes mounts only the selected application workspace', () => {
-  const navigation = (id: string, code: string): Parameters<typeof activeApplicationRoutes>[0][number] => ({
+test('activeApplicationRoutes mounts only a runnable selected application workspace', () => {
+  const navigation = (
+    id: string,
+    code: string,
+    component: string
+  ): Parameters<typeof activeApplicationRoutes>[0][number] => ({
     application: {
       id,
       code,
@@ -336,7 +341,7 @@ test('activeApplicationRoutes mounts only the selected application workspace', (
         name: '首页',
         i18n_key: '',
         route: 'home',
-        component: `${code}.home`,
+        component,
         icon: '',
         external_url: '',
         permission_code: '',
@@ -346,17 +351,55 @@ test('activeApplicationRoutes mounts only the selected application workspace', (
       }
     ]
   });
-  const navigations = [navigation('app-a', 'orders'), navigation('app-b', 'billing')];
+  const navigations = [
+    navigation('app-a', 'platform-admin', 'platform-admin.users'),
+    navigation('app-b', 'billing-center', 'billing-center.plans')
+  ];
 
   const routes = activeApplicationRoutes(navigations, 'app-b');
   assert.deepEqual(
     routes.map(route => route.path),
-    ['/applications', '/apps/billing']
+    ['/applications', '/apps/billing-center']
   );
-  assert.equal(JSON.stringify(routes).includes('/apps/orders'), false);
+  assert.equal(JSON.stringify(routes).includes('/apps/platform-admin'), false);
   assert.deepEqual(
     activeApplicationRoutes(navigations, '').map(route => route.path),
     ['/applications']
+  );
+  assert.deepEqual(
+    activeApplicationRoutes([navigation('future-id', 'billing-center', 'billing-center.future')], 'future-id').map(
+      route => route.path
+    ),
+    ['/applications']
+  );
+});
+
+test('session restoration retains only a granted and runnable application', () => {
+  const application = {
+    id: 'billing-id',
+    code: 'billing-center',
+    name: '计费中心',
+    description: '',
+    icon: '',
+    default_route: '',
+    status: 'active'
+  } satisfies PlatformApplication;
+  const navigation = {
+    application,
+    release: { id: 'release-id', version: 1 },
+    menus: [applicationMenu({ id: 'plans', component: 'billing-center.plans' })]
+  } as Parameters<typeof retainRunnableApplicationID>[1][number];
+
+  assert.equal(retainRunnableApplicationID([application], [navigation], application.id), application.id);
+  assert.equal(retainRunnableApplicationID([], [navigation], application.id), '');
+  assert.equal(retainRunnableApplicationID([application], [], application.id), '');
+  assert.equal(
+    retainRunnableApplicationID(
+      [application],
+      [{ ...navigation, menus: [applicationMenu({ id: 'future', component: 'billing-center.future' })] }],
+      application.id
+    ),
+    ''
   );
 });
 
