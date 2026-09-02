@@ -34,6 +34,9 @@ pnpm check:contracts
 docker build -f docker/Dockerfile -t platform-console .
 ```
 
+容器构建默认使用 npm 官方源；需要使用内部或区域镜像时，通过
+`--build-arg NPM_REGISTRY=https://registry.example.test/` 显式覆盖。
+
 架构与边界说明见 [docs/architecture.md](docs/architecture.md)。
 
 ## 上游与许可证
