@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { usePlatformStore } from '@/store/modules/platform';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { ServiceInstance, ServiceSummary } from '../../api';
 import { listInstances, listServices } from '../../api';
 
 defineOptions({ name: 'RegistryCenterServices' });
+const platformStore = usePlatformStore();
+const canListInstances = computed(() =>
+  platformStore.hasPermission({ scope: 'platform', codes: 'service_registry.instance.list' })
+);
 const loading = ref(false);
 const prefix = ref('');
 const services = ref<ServiceSummary[]>([]);
@@ -27,6 +32,7 @@ async function loadServices() {
   }
 }
 async function showInstances(row: ServiceSummary) {
+  if (!canListInstances.value) return;
   selected.value = row;
   const result = await listInstances(row.service_name, {}, includeDraining.value);
   instances.value = result.instances || [];
@@ -66,7 +72,7 @@ onMounted(loadServices);
       <ElTableColumn prop="draining_instances" label="Draining" width="130" />
       <ElTableColumn label="操作" width="100">
         <template #default="{ row }">
-          <ElButton link type="primary" @click="showInstances(row)">实例</ElButton>
+          <ElButton v-if="canListInstances" link type="primary" @click="showInstances(row)">实例</ElButton>
         </template>
       </ElTableColumn>
     </ElTable>
@@ -78,7 +84,7 @@ onMounted(loadServices);
   >
     <div class="mb-12px flex-y-center justify-between">
       <ElCheckbox v-model="includeDraining" @change="selected && showInstances(selected)">包含 Draining</ElCheckbox>
-      <ElButton @click="selected && showInstances(selected)">刷新</ElButton>
+      <ElButton v-if="canListInstances" @click="selected && showInstances(selected)">刷新</ElButton>
     </div>
     <ElTable :data="instances" border>
       <ElTableColumn prop="instance_id" label="实例 ID" min-width="220" show-overflow-tooltip />

@@ -34,6 +34,7 @@ const tenantID = computed(() => platformStore.selectedTenantId);
 const applicationID = computed(() => platformStore.selectedApplicationId);
 const loadGuard = createLatestRequestGuard();
 const exportGuard = createLatestRequestGuard();
+const canExport = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'audit.record.export' }));
 const form = reactive<SearchForm>({
   actor_id: '',
   actor_type: '',
@@ -115,7 +116,7 @@ function summaryText(value: unknown) {
 }
 
 async function exportCSV() {
-  if (!tenantID.value || !applicationID.value) return;
+  if (!canExport.value || !tenantID.value || !applicationID.value) return;
   const request = exportGuard.begin();
   exporting.value = true;
   try {
@@ -170,7 +171,9 @@ onMounted(loadData);
         </div>
         <div class="flex-y-center gap-8px">
           <ElButton :loading="loading" @click="loadData">刷新</ElButton>
-          <ElButton :loading="exporting" :disabled="!tenantID || !applicationID" @click="exportCSV">导出 CSV</ElButton>
+          <ElButton v-if="canExport" :loading="exporting" :disabled="!tenantID || !applicationID" @click="exportCSV">
+            导出 CSV
+          </ElButton>
         </div>
       </div>
     </template>

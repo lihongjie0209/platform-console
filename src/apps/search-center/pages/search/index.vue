@@ -10,6 +10,7 @@ const tenantID = computed(() => store.selectedTenantId);
 const applicationID = computed(() => store.selectedApplicationId);
 const applicationName = computed(() => store.selectedApplication?.name || '当前应用');
 const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
+const canSuggest = computed(() => store.hasPermission({ scope: 'tenant', codes: 'search.document.suggest' }));
 const query = ref('');
 const documentTypes = ref<string[]>([]);
 const sort = ref('relevance');
@@ -50,7 +51,8 @@ async function search() {
 async function suggest(value: string) {
   suggestVersion += 1;
   const version = suggestVersion;
-  if (!scopeReady.value || !value.trim()) {
+  if (!canSuggest.value || !scopeReady.value || !value.trim()) {
+    suggestions.value = [];
     return [];
   }
   const result = await suggestDocuments(tenantID.value, applicationID.value, value);
@@ -91,7 +93,7 @@ watch([tenantID, applicationID], () => {
         <ElAutocomplete
           v-model="query"
           class="flex-1"
-          :fetch-suggestions="suggest"
+          :fetch-suggestions="canSuggest ? suggest : undefined"
           placeholder="搜索标题、摘要和内容"
           @keyup.enter="search"
           @select="search"

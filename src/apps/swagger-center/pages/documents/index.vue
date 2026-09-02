@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { usePlatformStore } from '@/store/modules/platform';
 import type { SwaggerService } from '../../api';
 import { getSwaggerSpec, listSwaggerServices } from '../../api';
 import { renderSwaggerUI } from '../../swagger-ui';
 
 defineOptions({ name: 'SwaggerCenterDocuments' });
+const platformStore = usePlatformStore();
+const canRead = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'swagger.document.read' }));
 
 const loading = ref(false);
 const rendering = ref(false);
@@ -22,7 +25,7 @@ async function loadServices() {
     if (!services.value.some(item => item.name === selectedName.value)) {
       selectedName.value = services.value[0]?.name || '';
     }
-    if (selectedName.value) await loadSpec();
+    if (canRead.value && selectedName.value) await loadSpec();
   } finally {
     loading.value = false;
   }
@@ -31,7 +34,7 @@ async function loadServices() {
 async function loadSpec() {
   renderRevision += 1;
   const revision = renderRevision;
-  if (!selectedName.value) return;
+  if (!canRead.value || !selectedName.value) return;
   rendering.value = true;
   try {
     const response = await getSwaggerSpec(selectedName.value);
@@ -61,7 +64,14 @@ onBeforeUnmount(() => {
           <p class="mb-0 mt-6px text-13px text-#999">自动发现平台服务，在统一登录态下查看 OpenAPI 文档并调试接口。</p>
         </div>
         <div class="flex-y-center gap-8px">
-          <ElSelect v-model="selectedName" filterable class="w-280px" placeholder="选择服务" @change="loadSpec">
+          <ElSelect
+            v-model="selectedName"
+            filterable
+            class="w-280px"
+            placeholder="选择服务"
+            :disabled="!canRead"
+            @change="loadSpec"
+          >
             <ElOption v-for="service in services" :key="service.name" :label="service.title" :value="service.name">
               <div class="flex-y-center justify-between gap-12px">
                 <span>{{ service.title }}</span>
@@ -74,6 +84,7 @@ onBeforeUnmount(() => {
       </div>
     </template>
     <ElEmpty v-if="!loading && !services.length" description="尚未发现 OpenAPI 服务" />
+    <ElAlert v-if="!canRead" title="当前账号无权读取 API 文档内容" type="warning" show-icon :closable="false" />
     <div v-else v-loading="loading || rendering" class="min-h-600px">
       <div ref="swaggerRoot" class="swagger-ui-host" />
     </div>
