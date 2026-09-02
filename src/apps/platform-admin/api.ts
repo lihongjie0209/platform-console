@@ -90,6 +90,22 @@ export interface UserForm extends Record<string, unknown> {
   version: number;
 }
 
+export interface AdminMFAStatus {
+  available: boolean;
+  enabled: boolean;
+  status: string;
+  recovery_codes_remaining: number;
+  version: number;
+  enabled_at?: string;
+}
+
+export interface AdminMFAResetResult {
+  user_id: string;
+  reset: boolean;
+  revoked_sessions: number;
+  version: number;
+}
+
 export interface ServiceAccount extends ServiceAccountContract, Record<string, unknown> {
   id: string;
   client_id: string;
@@ -423,6 +439,26 @@ export async function updateUserStatus(id: string, form: UserForm) {
       url: '/api/v1/identities/update-status',
       method: 'post',
       data: { id, status: form.status, reason: form.reason, version: form.version }
+    })
+  );
+}
+
+export function getUserMFAStatus(userID: string) {
+  return unwrap<AdminMFAStatus>(
+    identityRequest({
+      url: '/api/v1/identities/mfa/status',
+      method: 'post',
+      data: { user_id: userID }
+    })
+  );
+}
+
+export function resetUserMFA(userID: string, reason: string, version: number) {
+  return unwrap<AdminMFAResetResult>(
+    identityRequest({
+      url: '/api/v1/identities/mfa/reset',
+      method: 'post',
+      data: { user_id: userID, reason, version }
     })
   );
 }

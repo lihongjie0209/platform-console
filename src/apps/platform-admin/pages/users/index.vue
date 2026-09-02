@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
 import { passwordPolicyError } from '@/platform/password-policy';
 import type { UserForm, UserIdentity } from '../../api';
-import { createUser, listUsers, updateUserStatus } from '../../api';
+import { createUser, getUserMFAStatus, listUsers, resetUserMFA, updateUserStatus } from '../../api';
 
 defineOptions({ name: 'PlatformAdminUsers' });
 interface Query extends Record<string, unknown> {
@@ -124,6 +125,37 @@ const adapter: BizCrudAdapter<UserIdentity, Query, UserForm, string> = {
   create: createUser,
   update: updateUserStatus
 };
+
+const resettingMFAUserID = ref('');
+
+async function resetMFA(row: UserIdentity) {
+  resettingMFAUserID.value = row.id;
+  try {
+    const status = await getUserMFAStatus(row.id);
+    if (!status.enabled) {
+      window.$message?.info('该用户未启用 MFA，无需重置');
+      return;
+    }
+    const { value: reason } = await ElMessageBox.prompt(
+      `重置后，${row.username} 的所有恢复码和登录会话将立即失效。请输入可审计的重置原因。`,
+      '高风险操作：重置 MFA',
+      {
+        type: 'warning',
+        confirmButtonText: '确认重置',
+        cancelButtonText: '取消',
+        inputType: 'textarea',
+        inputPlaceholder: '例如：用户已完成线下身份核验并报告设备遗失',
+        inputValidator: input => Boolean(input?.trim()) || '请输入重置原因'
+      }
+    );
+    const result = await resetUserMFA(row.id, reason.trim(), status.version);
+    window.$message?.success(`MFA 已重置，并撤销 ${result.revoked_sessions} 个活跃会话`);
+  } catch {
+    // The request layer reports service failures; prompt cancellation needs no extra notice.
+  } finally {
+    resettingMFAUserID.value = '';
+  }
+}
 </script>
 
 <template>
@@ -136,6 +168,7 @@ const adapter: BizCrudAdapter<UserIdentity, Query, UserForm, string> = {
     </template>
     <template #cell-actions="{ row, edit, canEdit }">
       <BizRowActions :can-edit="canEdit" :can-delete="false" @edit="edit(row)" />
+      <ElButton link type="danger" :loading="resettingMFAUserID === row.id" @click="resetMFA(row)">重置 MFA</ElButton>
     </template>
   </BizCrudPage>
 </template>

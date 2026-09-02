@@ -742,6 +742,112 @@
                 }
             }
         },
+        "/api/v1/identities/mfa/reset": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "identities"
+                ],
+                "summary": "Reset a user's MFA and revoke all sessions",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.AdminResetMFARequest"
+                            }
+                        }
+                    },
+                    "description": "Target user, reason, and expected MFA version",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.AdminResetMFAResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Code 30009: stale resource version",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/identities/mfa/status": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "identities"
+                ],
+                "summary": "Get a user's MFA status for platform administration",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.AdminMFAStatusRequest"
+                            }
+                        }
+                    },
+                    "description": "Target user",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.MFAStatusResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/identities/register": {
             "post": {
                 "security": [
@@ -1308,6 +1414,53 @@
                     },
                     "status": {
                         "type": "string"
+                    }
+                }
+            },
+            "httptransport.AdminMFAStatusRequest": {
+                "type": "object",
+                "required": [
+                    "user_id"
+                ],
+                "properties": {
+                    "user_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.AdminResetMFARequest": {
+                "type": "object",
+                "required": [
+                    "reason",
+                    "user_id",
+                    "version"
+                ],
+                "properties": {
+                    "reason": {
+                        "type": "string"
+                    },
+                    "user_id": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.AdminResetMFAResponseBody": {
+                "type": "object",
+                "properties": {
+                    "reset": {
+                        "type": "boolean"
+                    },
+                    "revoked_sessions": {
+                        "type": "integer"
+                    },
+                    "user_id": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
                     }
                 }
             },

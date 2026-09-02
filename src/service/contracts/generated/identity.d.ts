@@ -730,6 +730,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/identities/mfa/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset a user's MFA and revoke all sessions */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Target user, reason, and expected MFA version */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.AdminResetMFARequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.AdminResetMFAResponseBody"];
+                        };
+                    };
+                };
+                /** @description Code 30009: stale resource version */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/identities/mfa/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a user's MFA status for platform administration */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Target user */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.AdminMFAStatusRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.MFAStatusResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/identities/register": {
         parameters: {
             query?: never;
@@ -1230,6 +1325,20 @@ export interface components {
                 [key: string]: components["schemas"]["health.Dependency"];
             };
             status?: string;
+        };
+        "httptransport.AdminMFAStatusRequest": {
+            user_id: string;
+        };
+        "httptransport.AdminResetMFARequest": {
+            reason: string;
+            user_id: string;
+            version: number;
+        };
+        "httptransport.AdminResetMFAResponseBody": {
+            reset?: boolean;
+            revoked_sessions?: number;
+            user_id?: string;
+            version?: number;
         };
         "httptransport.ChangePasswordRequest": {
             current_password: string;
