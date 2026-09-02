@@ -4,6 +4,7 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformDateTime } from '@/platform/date-time';
 import { formatPlatformBytes } from '@/platform/display';
+import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
 import { useTaskPolling } from '@/platform/task-polling';
 import type { ExportDataset, ExportDatasetDescriptor, ExportJob } from '../../api';
 import {
@@ -38,6 +39,7 @@ const datasetCode = ref('');
 const page = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
+const { active: actionLoading, run: runTaskAction, reset: resetTaskAction } = useKeyedAsyncAction();
 const hasActiveJobs = computed(() => rows.value.some(job => ['queued', 'running'].includes(job.status)));
 const visible = ref(false);
 const detailVisible = ref(false);
@@ -191,14 +193,21 @@ async function openDetail(job: ExportJob) {
   }
 }
 async function action(job: ExportJob, type: 'cancel' | 'retry' | 'download') {
-  if (type === 'cancel') await cancelExport(job);
-  if (type === 'retry') await retryExport(job);
-  if (type === 'download') {
-    const value = await downloadExport(job);
-    window.open(value.url, '_blank', 'noopener');
-    return;
-  }
-  await load();
+  const key = `${job.id}:${type}`;
+  await runTaskAction(key, async () => {
+    try {
+      if (type === 'cancel') await cancelExport(job);
+      if (type === 'retry') await retryExport(job);
+      if (type === 'download') {
+        const value = await downloadExport(job);
+        window.open(value.url, '_blank', 'noopener');
+        return;
+      }
+      await load();
+    } catch (error) {
+      window.$message?.error(error instanceof Error ? error.message : '导出任务操作失败');
+    }
+  });
 }
 watch([tenantID, applicationID], () => {
   visible.value = false;
@@ -212,6 +221,7 @@ watch([tenantID, applicationID], () => {
   detailGuard.invalidate();
   detailVisible.value = false;
   detail.value = undefined;
+  resetTaskAction();
   load();
 });
 onMounted(load);
@@ -257,16 +267,32 @@ onMounted(load);
         <ElTableColumn label="操作" width="220">
           <template #default="{ row }">
             <ElButton link @click="openDetail(row)">详情</ElButton>
-            <ElButton v-if="row.status === 'succeeded'" link @click="action(row, 'download')">下载</ElButton>
+            <ElButton
+              v-if="row.status === 'succeeded'"
+              link
+              :loading="actionLoading === `${row.id}:download`"
+              :disabled="Boolean(actionLoading)"
+              @click="action(row, 'download')"
+            >
+              下载
+            </ElButton>
             <ElButton
               v-if="['queued', 'running'].includes(row.status)"
               link
               type="danger"
+              :loading="actionLoading === `${row.id}:cancel`"
+              :disabled="Boolean(actionLoading)"
               @click="action(row, 'cancel')"
             >
               取消
             </ElButton>
-            <ElButton v-if="['failed', 'canceled'].includes(row.status)" link @click="action(row, 'retry')">
+            <ElButton
+              v-if="['failed', 'canceled'].includes(row.status)"
+              link
+              :loading="actionLoading === `${row.id}:retry`"
+              :disabled="Boolean(actionLoading)"
+              @click="action(row, 'retry')"
+            >
               重试
             </ElButton>
           </template>

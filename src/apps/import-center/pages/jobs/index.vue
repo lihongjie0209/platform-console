@@ -5,6 +5,7 @@ import { createLatestRequestGuard, hasApplicationScope } from '@/platform/applic
 import { formatPlatformDateTime } from '@/platform/date-time';
 import { formatPlatformBytes } from '@/platform/display';
 import { sha256Hex } from '@/platform/file';
+import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
 import { useTaskPolling } from '@/platform/task-polling';
 import type { ImportDataset, ImportDatasetDescriptor, ImportJob } from '../../api';
 import {
@@ -41,6 +42,7 @@ const datasetCode = ref('');
 const page = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
+const { active: actionLoading, run: runTaskAction, reset: resetTaskAction } = useKeyedAsyncAction();
 const detailVisible = ref(false);
 const detailLoading = ref(false);
 const detail = ref<ImportJob>();
@@ -190,23 +192,30 @@ async function openDetail(job: ImportJob) {
   }
 }
 async function action(job: ImportJob, type: 'confirm' | 'cancel' | 'retry' | 'report') {
-  if (type === 'confirm') await confirmImport(job);
-  if (type === 'cancel') await cancelImport(job);
-  if (type === 'retry') {
-    if (!source.value) {
-      window.$message?.warning('请先选择修正后的文件');
-      return;
+  const key = `${job.id}:${type}`;
+  await runTaskAction(key, async () => {
+    try {
+      if (type === 'confirm') await confirmImport(job);
+      if (type === 'cancel') await cancelImport(job);
+      if (type === 'retry') {
+        if (!source.value) {
+          window.$message?.warning('请先选择修正后的文件');
+          return;
+        }
+        const auth = await retryImport(job);
+        await putImportFile(auth, source.value);
+        await completeImportUpload(auth.job, source.value.size, await sha256Hex(source.value));
+      }
+      if (type === 'report') {
+        const value = await errorReport(job);
+        window.open(value.url, '_blank', 'noopener');
+        return;
+      }
+      await load();
+    } catch (error) {
+      window.$message?.error(error instanceof Error ? error.message : '导入任务操作失败');
     }
-    const auth = await retryImport(job);
-    await putImportFile(auth, source.value);
-    await completeImportUpload(auth.job, source.value.size, await sha256Hex(source.value));
-  }
-  if (type === 'report') {
-    const value = await errorReport(job);
-    window.open(value.url, '_blank', 'noopener');
-    return;
-  }
-  await load();
+  });
 }
 watch([tenantID, applicationID], () => {
   uploadGuard.invalidate();
@@ -215,6 +224,7 @@ watch([tenantID, applicationID], () => {
   detailGuard.invalidate();
   detailVisible.value = false;
   detail.value = undefined;
+  resetTaskAction();
   loadVersion += 1;
   rows.value = [];
   page.value = 1;
@@ -331,11 +341,21 @@ onMounted(() => {
         <ElTableColumn label="操作" width="220">
           <template #default="{ row }">
             <ElButton link @click="openDetail(row)">详情</ElButton>
-            <ElButton v-if="row.status === 'ready'" link @click="action(row, 'confirm')">确认导入</ElButton>
+            <ElButton
+              v-if="row.status === 'ready'"
+              link
+              :loading="actionLoading === `${row.id}:confirm`"
+              :disabled="Boolean(actionLoading)"
+              @click="action(row, 'confirm')"
+            >
+              确认导入
+            </ElButton>
             <ElButton
               v-if="['uploading', 'queued', 'validating', 'ready'].includes(row.status)"
               link
               type="danger"
+              :loading="actionLoading === `${row.id}:cancel`"
+              :disabled="Boolean(actionLoading)"
               @click="action(row, 'cancel')"
             >
               取消
@@ -343,11 +363,21 @@ onMounted(() => {
             <ElButton
               v-if="['failed', 'validation_failed', 'canceled'].includes(row.status)"
               link
+              :loading="actionLoading === `${row.id}:retry`"
+              :disabled="Boolean(actionLoading)"
               @click="action(row, 'retry')"
             >
               重试
             </ElButton>
-            <ElButton v-if="row.invalid_rows > 0" link @click="action(row, 'report')">错误报告</ElButton>
+            <ElButton
+              v-if="row.invalid_rows > 0"
+              link
+              :loading="actionLoading === `${row.id}:report`"
+              :disabled="Boolean(actionLoading)"
+              @click="action(row, 'report')"
+            >
+              错误报告
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>
