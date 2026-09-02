@@ -199,7 +199,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.MenuBody"][];
+                        };
                     };
                 };
             };
@@ -416,7 +418,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.Decision"][];
+                        };
                     };
                 };
             };
@@ -889,6 +893,11 @@ export interface components {
             metadata_json?: Record<string, never>;
             name: string;
             sort_order?: number;
+        };
+        "httptransport.Decision": {
+            application_id?: string;
+            granted?: boolean;
+            reason?: string;
         };
         "httptransport.DeleteMenuRequest": {
             id: string;
