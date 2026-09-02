@@ -1,5 +1,4 @@
 import type { Component } from 'vue';
-import { defineAsyncComponent } from 'vue';
 import { auditCenterManifest } from './audit-center/manifest';
 import { billingCenterManifest } from './billing-center/manifest';
 import { configCenterManifest } from './config-center/manifest';
@@ -19,6 +18,7 @@ import { swaggerCenterManifest } from './swagger-center/manifest';
 import type { ApplicationManifest } from './types';
 import { webhookCenterManifest } from './webhook-center/manifest';
 import { workflowCenterManifest } from './workflow-center/manifest';
+import { createApplicationAsyncComponent } from './async-component';
 
 const manifests: readonly ApplicationManifest[] = [
   platformAdminManifest,
@@ -83,7 +83,7 @@ export function resolveApplicationPage(pageKey?: string, applicationCode?: strin
   if (!component) {
     const loader = pageLoaders.get(pageKey);
     if (!loader) return undefined;
-    component = defineAsyncComponent(loader);
+    component = createApplicationAsyncComponent(loader);
     pageComponents.set(pageKey, component);
   }
   return component;
@@ -97,7 +97,7 @@ export function resolveApplicationWorkspace(applicationCode?: string): Component
 
   let component = workspaceComponents.get(code);
   if (!component) {
-    component = defineAsyncComponent(loader);
+    component = createApplicationAsyncComponent(loader);
     workspaceComponents.set(code, component);
   }
   return component;
