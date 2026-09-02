@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import type { ApplicationMenu } from '@/service/api/platform-navigation';
 import {
   activeApplicationRoutes,
+  applicationEntryDecision,
   applicationEntryPath,
   applicationMenuEntries,
   applicationNavigationCompatibility,
@@ -393,5 +394,33 @@ test('application compatibility distinguishes installed, external and unavailabl
       menus: [applicationMenu({ id: 'future', code: 'future', component: 'billing-center.future' })]
     }).usable,
     false
+  );
+});
+
+test('every application entry point uses the same publication and compatibility decision', () => {
+  const navigation = {
+    application: {
+      id: 'billing-id',
+      code: 'billing-center',
+      name: 'Billing',
+      description: '',
+      icon: '',
+      default_route: '',
+      status: 'active'
+    },
+    menus: [applicationMenu({ id: 'plans', component: 'billing-center.plans' })]
+  } as NonNullable<Parameters<typeof applicationEntryDecision>[0]>;
+
+  assert.deepEqual(applicationEntryDecision(), { status: 'unpublished', path: '' });
+  assert.deepEqual(applicationEntryDecision(navigation), {
+    status: 'ready',
+    path: '/apps/billing-center/overview'
+  });
+  assert.deepEqual(
+    applicationEntryDecision({
+      ...navigation,
+      menus: [applicationMenu({ id: 'future', component: 'billing-center.future' })]
+    }),
+    { status: 'unavailable', path: '' }
   );
 });

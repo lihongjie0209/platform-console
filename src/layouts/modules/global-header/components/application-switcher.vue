@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePlatformStore } from '@/store/modules/platform';
 import { useRouteStore } from '@/store/modules/route';
-import { applicationEntryPath } from '@/platform/navigation';
+import { applicationEntryDecision } from '@/platform/navigation';
 
 defineOptions({ name: 'ApplicationSwitcher' });
 
@@ -15,22 +15,29 @@ const routeStore = useRouteStore();
 const selectedName = computed(() => platformStore.selectedApplication?.name || '选择应用');
 const selectedIcon = computed(() => platformStore.selectedApplication?.icon || 'mdi:apps');
 
+function entryDecision(applicationId: string) {
+  return applicationEntryDecision(platformStore.navigations.find(item => item.application.id === applicationId));
+}
+
 async function handleCommand(command: string) {
   if (command === launcherCommand) {
     await router.push('/applications');
     return;
   }
 
-  const navigation = platformStore.navigations.find(item => item.application.id === command);
-  const entryPath = navigation ? applicationEntryPath(navigation) : '';
-  if (!entryPath) {
-    window.$message?.warning('该应用尚未发布可访问页面');
+  const decision = entryDecision(command);
+  if (decision.status === 'unpublished') {
+    window.$message?.warning('该应用尚未发布可用菜单');
+    return;
+  }
+  if (decision.status === 'unavailable') {
+    window.$message?.warning('当前控制台版本尚未安装该应用的可执行页面，请升级控制台或联系管理员');
     return;
   }
 
   platformStore.selectApplication(command);
   routeStore.refreshPlatformRoutes();
-  await router.push(entryPath);
+  await router.push(decision.path);
 }
 </script>
 
@@ -51,12 +58,16 @@ async function handleCommand(command: string) {
           v-for="application in platformStore.applications"
           :key="application.id"
           :command="application.id"
+          :disabled="entryDecision(application.id).status !== 'ready'"
           :class="{
             'text-primary font-semibold': application.id === platformStore.selectedApplicationId
           }"
         >
           <SvgIcon :icon="application.icon || 'mdi:application-outline'" class="mr-8px text-17px" />
           <span class="max-w-240px truncate">{{ application.name }}</span>
+          <ElTag v-if="entryDecision(application.id).status !== 'ready'" class="ml-8px" size="small" type="warning">
+            {{ entryDecision(application.id).status === 'unavailable' ? '待安装' : '未发布' }}
+          </ElTag>
         </ElDropdownItem>
         <ElDropdownItem divided :command="launcherCommand">
           <SvgIcon icon="mdi:view-grid-outline" class="mr-8px text-17px" />

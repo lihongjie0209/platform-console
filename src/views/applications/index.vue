@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/store/modules/auth';
 import { usePlatformStore } from '@/store/modules/platform';
 import { useRouteStore } from '@/store/modules/route';
-import { applicationEntryPath, applicationNavigationCompatibility } from '@/platform/navigation';
+import { applicationEntryDecision, applicationNavigationCompatibility } from '@/platform/navigation';
 import { filterApplications } from '@/platform/application-context';
 import { BizEmptyState, BizPageContainer } from '@/components/business';
 
@@ -61,26 +61,19 @@ async function reloadApplications() {
 
 async function openApplication(applicationId: string) {
   const navigation = platformStore.navigations.find(item => item.application.id === applicationId);
-  if (!navigation) {
+  const decision = applicationEntryDecision(navigation);
+  if (decision.status === 'unpublished') {
     window.$message?.warning('该应用尚未发布可用菜单');
     return;
   }
-
-  const compatibility = applicationNavigationCompatibility(navigation);
-  if (!compatibility.usable) {
+  if (decision.status === 'unavailable') {
     window.$message?.warning('当前控制台版本尚未安装该应用的可执行页面，请升级控制台或联系管理员');
-    return;
-  }
-
-  const entryPath = applicationEntryPath(navigation);
-  if (!entryPath) {
-    window.$message?.warning('该应用尚未发布可访问页面');
     return;
   }
 
   platformStore.selectApplication(applicationId);
   routeStore.refreshPlatformRoutes();
-  await router.push(entryPath);
+  await router.push(decision.path);
 }
 </script>
 

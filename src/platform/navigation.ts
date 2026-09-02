@@ -161,6 +161,13 @@ export interface ApplicationNavigationCompatibility {
   usable: boolean;
 }
 
+export type ApplicationEntryStatus = 'ready' | 'unpublished' | 'unavailable';
+
+export interface ApplicationEntryDecision {
+  status: ApplicationEntryStatus;
+  path: string;
+}
+
 export function safeExternalURL(raw: string) {
   try {
     const parsed = new URL(raw);
@@ -195,6 +202,13 @@ export function applicationNavigationCompatibility(
   }
   result.usable = result.supportedPages > 0 || result.externalPages > 0;
   return result;
+}
+
+export function applicationEntryDecision(navigation?: PublishedNavigation): ApplicationEntryDecision {
+  if (!navigation) return { status: 'unpublished', path: '' };
+  if (!applicationNavigationCompatibility(navigation).usable) return { status: 'unavailable', path: '' };
+  const path = applicationEntryPath(navigation);
+  return path ? { status: 'ready', path } : { status: 'unpublished', path: '' };
 }
 
 /** Flattens published page menus into safe workspace shortcuts. */
