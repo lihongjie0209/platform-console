@@ -14,6 +14,7 @@ import { chunkValues, collectAllPages } from '@/platform/pagination';
 import {
   createSerialTaskQueue,
   failedTenantSelectionContext,
+  filterApplications,
   retainActiveNavigations,
   selectActiveTenant,
   shouldReusePlatformContext
@@ -159,7 +160,10 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
       }
       if (revision !== requestRevision) return;
 
-      applications.value = tenantApplications.filter(item => item.status === 'active');
+      applications.value = filterApplications(
+        tenantApplications.filter(item => item.status === 'active'),
+        ''
+      );
       const activeNavigations = retainActiveNavigations(applications.value, navigationItems);
       const allowedCodes = await fetchAllowedNavigationPermissionCodes(tenantId, activeNavigations);
       if (revision !== requestRevision) return;
