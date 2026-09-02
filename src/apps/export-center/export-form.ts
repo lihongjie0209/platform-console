@@ -2,6 +2,19 @@ import type { ExportDataset, ExportDatasetDescriptor } from './api';
 
 export type ExportQueryValue = string | number | boolean | undefined;
 
+export const exportStatusOptions = Object.freeze([
+  { value: 'queued', label: '排队中' },
+  { value: 'running', label: '导出中' },
+  { value: 'succeeded', label: '成功' },
+  { value: 'failed', label: '失败' },
+  { value: 'canceled', label: '已取消' },
+  { value: 'expired', label: '已过期' }
+]);
+
+export function exportStatusLabel(value: string) {
+  return exportStatusOptions.find(option => option.value === value)?.label || value;
+}
+
 export function datasetKey(value: Pick<ExportDataset, 'provider_service' | 'code'>) {
   return `${value.provider_service}\u0000${value.code}`;
 }

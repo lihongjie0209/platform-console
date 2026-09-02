@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { formatPlatformDateTime } from '@/platform/date-time';
 import { sha256Hex } from '@/platform/file';
 import { useTaskPolling } from '@/platform/task-polling';
 import type { ImportDataset, ImportDatasetDescriptor, ImportJob } from '../../api';
@@ -17,7 +18,14 @@ import {
   putImportFile,
   retryImport
 } from '../../api';
-import { importDatasetKey, importTemplateCSV, selectedImportDataset, supportedImportFormat } from '../../import-form';
+import {
+  importDatasetKey,
+  importStatusLabel,
+  importStatusOptions,
+  importTemplateCSV,
+  selectedImportDataset,
+  supportedImportFormat
+} from '../../import-form';
 defineOptions({ name: 'ImportCenterJobs' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
@@ -270,19 +278,29 @@ onMounted(() => {
         <ElTableColumn prop="description" label="说明" />
       </ElTable>
       <ElForm inline>
-        <ElFormItem label="状态"><ElInput v-model="status" /></ElFormItem>
+        <ElFormItem label="状态">
+          <ElSelect v-model="status" clearable class="w-150px">
+            <ElOption v-for="option in importStatusOptions" :key="option.value" v-bind="option" />
+          </ElSelect>
+        </ElFormItem>
         <ElFormItem label="数据集编码"><ElInput v-model="datasetCode" /></ElFormItem>
         <ElButton @click="search">查询</ElButton>
       </ElForm>
       <ElTable :data="rows" border>
         <ElTableColumn prop="filename" label="文件" />
         <ElTableColumn prop="dataset_code" label="数据集" />
-        <ElTableColumn prop="status" label="状态" />
+        <ElTableColumn label="状态" width="110">
+          <template #default="{ row }">{{ importStatusLabel(row.status) }}</template>
+        </ElTableColumn>
         <ElTableColumn prop="progress_percent" label="进度">
           <template #default="{ row }"><ElProgress :percentage="row.progress_percent || 0" /></template>
         </ElTableColumn>
         <ElTableColumn label="有效/无效">
           <template #default="{ row }">{{ row.valid_rows }} / {{ row.invalid_rows }}</template>
+        </ElTableColumn>
+        <ElTableColumn prop="error_message" label="失败原因" show-overflow-tooltip />
+        <ElTableColumn label="更新时间" width="170">
+          <template #default="{ row }">{{ formatPlatformDateTime(row.updated_at) }}</template>
         </ElTableColumn>
         <ElTableColumn label="操作" width="220">
           <template #default="{ row }">

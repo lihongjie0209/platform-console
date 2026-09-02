@@ -35,6 +35,8 @@ export interface ImportJob extends Record<string, unknown> {
   applied_rows: number;
   progress_percent: number;
   error_message: string;
+  created_at: string;
+  updated_at: string;
   version: number;
 }
 interface Page<T> {

@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { formatPlatformDateTime } from '@/platform/date-time';
 import { useTaskPolling } from '@/platform/task-polling';
 import type { ExportDataset, ExportDatasetDescriptor, ExportJob } from '../../api';
 import {
@@ -14,7 +15,15 @@ import {
   retryExport
 } from '../../api';
 import type { ExportQueryValue } from '../../export-form';
-import { buildExportQuery, datasetKey, descriptorDefaults, exportQueryDefaults, findDataset } from '../../export-form';
+import {
+  buildExportQuery,
+  datasetKey,
+  descriptorDefaults,
+  exportQueryDefaults,
+  exportStatusLabel,
+  exportStatusOptions,
+  findDataset
+} from '../../export-form';
 defineOptions({ name: 'ExportCenterJobs' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
@@ -196,7 +205,11 @@ onMounted(load);
     <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" :closable="false" />
     <template v-else>
       <ElForm inline>
-        <ElFormItem label="状态"><ElInput v-model="status" /></ElFormItem>
+        <ElFormItem label="状态">
+          <ElSelect v-model="status" clearable class="w-140px">
+            <ElOption v-for="option in exportStatusOptions" :key="option.value" v-bind="option" />
+          </ElSelect>
+        </ElFormItem>
         <ElFormItem label="数据集"><ElInput v-model="datasetCode" /></ElFormItem>
         <ElButton @click="search">查询</ElButton>
       </ElForm>
@@ -204,11 +217,17 @@ onMounted(load);
         <ElTableColumn prop="filename" label="文件" />
         <ElTableColumn prop="dataset_code" label="数据集" />
         <ElTableColumn prop="format" label="格式" />
-        <ElTableColumn prop="status" label="状态" />
+        <ElTableColumn label="状态" width="100">
+          <template #default="{ row }">{{ exportStatusLabel(row.status) }}</template>
+        </ElTableColumn>
         <ElTableColumn prop="progress_percent" label="进度">
           <template #default="{ row }"><ElProgress :percentage="row.progress_percent || 0" /></template>
         </ElTableColumn>
         <ElTableColumn prop="rows_exported" label="行数" />
+        <ElTableColumn prop="error_message" label="失败原因" show-overflow-tooltip />
+        <ElTableColumn label="更新时间" width="170">
+          <template #default="{ row }">{{ formatPlatformDateTime(row.updated_at) }}</template>
+        </ElTableColumn>
         <ElTableColumn label="操作">
           <template #default="{ row }">
             <ElButton v-if="row.status === 'succeeded'" link @click="action(row, 'download')">下载</ElButton>

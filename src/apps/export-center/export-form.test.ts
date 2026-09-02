@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildExportQuery, datasetKey, descriptorDefaults, exportQueryDefaults, findDataset } from './export-form';
+import {
+  buildExportQuery,
+  datasetKey,
+  descriptorDefaults,
+  exportQueryDefaults,
+  exportStatusLabel,
+  findDataset
+} from './export-form';
 
 test('dataset selection keeps provider and dataset together', () => {
   const values = [
@@ -14,6 +21,11 @@ test('dataset selection keeps provider and dataset together', () => {
   ];
   assert.equal(findDataset(values, datasetKey(values[0]!)), values[0]);
   assert.equal(findDataset(values, 'other\u0000billing.invoices'), undefined);
+});
+
+test('export statuses have user-facing labels and preserve unknown values', () => {
+  assert.equal(exportStatusLabel('running'), '导出中');
+  assert.equal(exportStatusLabel('future_status'), 'future_status');
 });
 
 test('provider query schema controls defaults and submitted properties', () => {

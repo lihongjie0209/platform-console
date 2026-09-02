@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { importDatasetKey, importTemplateCSV, selectedImportDataset, supportedImportFormat } from './import-form';
+import {
+  importDatasetKey,
+  importStatusLabel,
+  importTemplateCSV,
+  selectedImportDataset,
+  supportedImportFormat
+} from './import-form';
 
 const dataset = {
   provider_service: 'billing-service',
@@ -17,6 +23,11 @@ test('import dataset key keeps provider identity with the dataset code', () => {
     selectedImportDataset([dataset], importDatasetKey({ ...dataset, provider_service: 'other' })),
     undefined
   );
+});
+
+test('import statuses have user-facing labels and preserve unknown values', () => {
+  assert.equal(importStatusLabel('validation_failed'), '校验未通过');
+  assert.equal(importStatusLabel('future_status'), 'future_status');
 });
 
 test('import format remains valid for the selected provider capability', () => {
