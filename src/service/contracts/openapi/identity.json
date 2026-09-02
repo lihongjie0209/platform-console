@@ -126,7 +126,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/identity.Tokens"
+                                                    "$ref": "#/components/schemas/httptransport.LoginResponseBody"
                                                 }
                                             }
                                         }
@@ -193,6 +193,270 @@
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/mfa/disable": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Disable TOTP MFA after password and TOTP verification",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.DisableMFARequest"
+                            }
+                        }
+                    },
+                    "description": "Current password, TOTP code, and expected version",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.DisableMFAResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Code 30009: stale resource version",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/mfa/setup/confirm": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Confirm TOTP MFA setup and issue recovery codes once",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.ConfirmMFASetupRequest"
+                            }
+                        }
+                    },
+                    "description": "TOTP code and expected version",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.ConfirmMFASetupResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Code 30009: stale resource version",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/mfa/setup/start": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Start TOTP MFA setup after password verification",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.StartMFASetupRequest"
+                            }
+                        }
+                    },
+                    "description": "Current password",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.MFASetupResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/mfa/status": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Get MFA status for the authenticated user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.MFAStatusResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/mfa/verify": {
+            "post": {
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Complete an MFA login challenge with TOTP or a recovery code",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.VerifyMFAChallengeRequest"
+                            }
+                        }
+                    },
+                    "description": "Challenge and exactly one verification code",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.LoginResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Code 20001: invalid or expired challenge",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Code 10029: rate limited",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1015,6 +1279,38 @@
                     }
                 }
             },
+            "httptransport.ConfirmMFASetupRequest": {
+                "type": "object",
+                "required": [
+                    "code",
+                    "version"
+                ],
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.ConfirmMFASetupResponseBody": {
+                "type": "object",
+                "properties": {
+                    "recovery_codes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "revoked_sessions": {
+                        "type": "integer"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
             "httptransport.CreateServiceAccountRequest": {
                 "type": "object",
                 "required": [
@@ -1041,6 +1337,36 @@
                     },
                     "client_secret": {
                         "type": "string"
+                    }
+                }
+            },
+            "httptransport.DisableMFARequest": {
+                "type": "object",
+                "required": [
+                    "code",
+                    "current_password",
+                    "version"
+                ],
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "current_password": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.DisableMFAResponseBody": {
+                "type": "object",
+                "properties": {
+                    "disabled": {
+                        "type": "boolean"
+                    },
+                    "revoked_sessions": {
+                        "type": "integer"
                     }
                 }
             },
@@ -1153,6 +1479,35 @@
                     }
                 }
             },
+            "httptransport.LoginResponseBody": {
+                "type": "object",
+                "properties": {
+                    "access_token": {
+                        "type": "string"
+                    },
+                    "expires_at": {
+                        "type": "string"
+                    },
+                    "mfa_challenge_expires_at": {
+                        "type": "string"
+                    },
+                    "mfa_challenge_token": {
+                        "type": "string"
+                    },
+                    "mfa_required": {
+                        "type": "boolean"
+                    },
+                    "refresh_token": {
+                        "type": "string"
+                    },
+                    "session_id": {
+                        "type": "string"
+                    },
+                    "token_type": {
+                        "type": "string"
+                    }
+                }
+            },
             "httptransport.LogoutRequest": {
                 "type": "object",
                 "required": [
@@ -1164,6 +1519,46 @@
                     },
                     "session_id": {
                         "type": "string"
+                    }
+                }
+            },
+            "httptransport.MFASetupResponseBody": {
+                "type": "object",
+                "properties": {
+                    "expires_at": {
+                        "type": "string"
+                    },
+                    "secret": {
+                        "type": "string"
+                    },
+                    "uri": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.MFAStatusResponseBody": {
+                "type": "object",
+                "properties": {
+                    "available": {
+                        "type": "boolean"
+                    },
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "enabled_at": {
+                        "type": "string"
+                    },
+                    "recovery_codes_remaining": {
+                        "type": "integer"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
                     }
                 }
             },
@@ -1449,6 +1844,17 @@
                     }
                 }
             },
+            "httptransport.StartMFASetupRequest": {
+                "type": "object",
+                "required": [
+                    "current_password"
+                ],
+                "properties": {
+                    "current_password": {
+                        "type": "string"
+                    }
+                }
+            },
             "httptransport.UpdateIdentityStatusRequest": {
                 "type": "object",
                 "required": [
@@ -1487,6 +1893,23 @@
                     },
                     "version": {
                         "type": "integer"
+                    }
+                }
+            },
+            "httptransport.VerifyMFAChallengeRequest": {
+                "type": "object",
+                "required": [
+                    "challenge_token"
+                ],
+                "properties": {
+                    "challenge_token": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "recovery_code": {
+                        "type": "string"
                     }
                 }
             },

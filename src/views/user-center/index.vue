@@ -2,7 +2,15 @@
 import { onMounted, reactive, ref } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import dayjs from 'dayjs';
-import { fetchChangePassword, fetchOwnSessions, fetchRevokeOwnSession } from '@/service/api';
+import {
+  fetchChangePassword,
+  fetchConfirmMFASetup,
+  fetchDisableMFA,
+  fetchMFAStatus,
+  fetchOwnSessions,
+  fetchRevokeOwnSession,
+  fetchStartMFASetup
+} from '@/service/api';
 import { useAuthStore } from '@/store/modules/auth';
 import { validatePasswordChange } from '@/platform/password-policy';
 import { canRevokeSession, isCurrentSession } from '@/platform/session-view';
@@ -20,6 +28,24 @@ const sessionTotal = ref(0);
 const sessionPage = ref(1);
 const sessionPageSize = ref(10);
 const sessionStatus = ref('active');
+const mfaLoading = ref(false);
+const mfaSubmitting = ref(false);
+const mfaStatus = ref<Api.Auth.MFAStatus>({
+  available: false,
+  enabled: false,
+  status: 'disabled',
+  recovery_codes_remaining: 0,
+  version: 0
+});
+const mfaSetupVisible = ref(false);
+const mfaSetup = ref<Api.Auth.MFASetup>();
+const mfaCurrentPassword = ref('');
+const mfaConfirmCode = ref('');
+const recoveryCodesVisible = ref(false);
+const recoveryCodes = ref<string[]>([]);
+const mfaDisableVisible = ref(false);
+const mfaDisablePassword = ref('');
+const mfaDisableCode = ref('');
 const form = reactive({ currentPassword: '', newPassword: '', confirmPassword: '' });
 const rules: FormRules<typeof form> = {
   currentPassword: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
@@ -135,7 +161,92 @@ async function revokeSession(session: Api.Auth.Session) {
   }
 }
 
-onMounted(loadSessions);
+async function loadMFAStatus() {
+  mfaLoading.value = true;
+  try {
+    const { data, error } = await fetchMFAStatus();
+    if (!error) mfaStatus.value = data;
+  } finally {
+    mfaLoading.value = false;
+  }
+}
+
+function openMFASetup() {
+  mfaCurrentPassword.value = '';
+  mfaConfirmCode.value = '';
+  mfaSetup.value = undefined;
+  mfaSetupVisible.value = true;
+}
+
+async function startMFASetup() {
+  if (!mfaCurrentPassword.value) {
+    window.$message?.error('请输入当前密码');
+    return;
+  }
+  mfaSubmitting.value = true;
+  try {
+    const { data, error } = await fetchStartMFASetup(mfaCurrentPassword.value);
+    if (!error) {
+      mfaSetup.value = data;
+      mfaCurrentPassword.value = '';
+    }
+  } finally {
+    mfaSubmitting.value = false;
+  }
+}
+
+async function confirmMFASetup() {
+  if (!mfaSetup.value || !/^\d{6}$/.test(mfaConfirmCode.value.trim())) {
+    window.$message?.error('请输入认证器中的 6 位动态验证码');
+    return;
+  }
+  mfaSubmitting.value = true;
+  try {
+    const { data, error } = await fetchConfirmMFASetup(mfaConfirmCode.value.trim(), mfaSetup.value.version);
+    if (error) return;
+    recoveryCodes.value = data.recovery_codes;
+    mfaSetupVisible.value = false;
+    recoveryCodesVisible.value = true;
+    window.$message?.success('多因素认证已启用');
+    await Promise.all([loadMFAStatus(), loadSessions()]);
+  } finally {
+    mfaSubmitting.value = false;
+  }
+}
+
+function openMFADisable() {
+  mfaDisablePassword.value = '';
+  mfaDisableCode.value = '';
+  mfaDisableVisible.value = true;
+}
+
+async function disableMFA() {
+  if (!mfaDisablePassword.value || !/^\d{6}$/.test(mfaDisableCode.value.trim())) {
+    window.$message?.error('请输入当前密码和 6 位动态验证码');
+    return;
+  }
+  mfaSubmitting.value = true;
+  try {
+    const { error } = await fetchDisableMFA(
+      mfaDisablePassword.value,
+      mfaDisableCode.value.trim(),
+      mfaStatus.value.version
+    );
+    if (error) return;
+    mfaDisableVisible.value = false;
+    window.$message?.success('多因素认证已停用');
+    await Promise.all([loadMFAStatus(), loadSessions()]);
+  } finally {
+    mfaSubmitting.value = false;
+  }
+}
+
+async function copyRecoveryCodes() {
+  await navigator.clipboard.writeText(recoveryCodes.value.join('\n'));
+  window.$message?.success('恢复码已复制，请保存到安全位置');
+}
+
+onMounted(() => Promise.all([loadSessions(), loadMFAStatus()]));
 </script>
 
 <template>
@@ -162,6 +273,38 @@ onMounted(loadSessions);
           <span v-else>-</span>
         </ElDescriptionsItem>
       </ElDescriptions>
+    </ElCard>
+
+    <ElCard v-loading="mfaLoading" shadow="never">
+      <template #header>
+        <div class="flex-y-center justify-between gap-12px">
+          <div>
+            <div class="font-600">多因素认证</div>
+            <div class="mt-4px text-12px text-#999">使用 TOTP 认证器和一次性恢复码保护密码登录。</div>
+          </div>
+          <ElTag v-if="mfaStatus.available" :type="mfaStatus.enabled ? 'success' : 'info'" effect="plain">
+            {{ mfaStatus.enabled ? '已启用' : '未启用' }}
+          </ElTag>
+          <ElTag v-else type="warning" effect="plain">未配置</ElTag>
+        </div>
+      </template>
+      <ElAlert
+        v-if="!mfaStatus.available"
+        type="warning"
+        show-icon
+        :closable="false"
+        title="当前环境尚未配置 MFA 加密密钥，请联系平台管理员。"
+      />
+      <ElDescriptions v-else :column="2" border>
+        <ElDescriptionsItem label="状态">{{ mfaStatus.enabled ? '已启用' : mfaStatus.status }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="启用时间">{{ formatTime(mfaStatus.enabled_at || '') }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="剩余恢复码">{{ mfaStatus.recovery_codes_remaining }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="版本">{{ mfaStatus.version || '-' }}</ElDescriptionsItem>
+      </ElDescriptions>
+      <div v-if="mfaStatus.available" class="mt-16px">
+        <ElButton v-if="!mfaStatus.enabled" type="primary" @click="openMFASetup">启用 MFA</ElButton>
+        <ElButton v-else type="danger" plain @click="openMFADisable">停用 MFA</ElButton>
+      </div>
     </ElCard>
 
     <ElCard shadow="never">
@@ -277,6 +420,80 @@ onMounted(loadSessions);
       </ElForm>
     </ElCard>
   </ElSpace>
+
+  <ElDialog v-model="mfaSetupVisible" title="启用多因素认证" width="620px" :close-on-click-modal="false">
+    <template v-if="!mfaSetup">
+      <ElAlert class="mb-16px" type="info" show-icon :closable="false" title="请先验证当前密码。" />
+      <ElInput
+        v-model="mfaCurrentPassword"
+        type="password"
+        show-password
+        autocomplete="current-password"
+        placeholder="当前密码"
+      />
+    </template>
+    <template v-else>
+      <ElAlert
+        class="mb-16px"
+        type="warning"
+        show-icon
+        :closable="false"
+        title="在认证器中手动输入密钥或导入 URI，然后输入生成的 6 位验证码。密钥仅本次显示。"
+      />
+      <ElDescriptions :column="1" border class="mb-16px">
+        <ElDescriptionsItem label="密钥"><BizCopyText :value="mfaSetup.secret" /></ElDescriptionsItem>
+        <ElDescriptionsItem label="配置 URI"><BizCopyText :value="mfaSetup.uri" /></ElDescriptionsItem>
+        <ElDescriptionsItem label="有效期">{{ formatTime(mfaSetup.expires_at) }}</ElDescriptionsItem>
+      </ElDescriptions>
+      <ElInput v-model="mfaConfirmCode" maxlength="6" autocomplete="one-time-code" placeholder="6 位动态验证码" />
+    </template>
+    <template #footer>
+      <ElButton @click="mfaSetupVisible = false">取消</ElButton>
+      <ElButton v-if="!mfaSetup" type="primary" :loading="mfaSubmitting" @click="startMFASetup">验证密码</ElButton>
+      <ElButton v-else type="primary" :loading="mfaSubmitting" @click="confirmMFASetup">确认启用</ElButton>
+    </template>
+  </ElDialog>
+
+  <ElDialog v-model="recoveryCodesVisible" title="保存恢复码" width="620px" :close-on-click-modal="false">
+    <ElAlert
+      class="mb-16px"
+      type="warning"
+      show-icon
+      :closable="false"
+      title="每个恢复码只能使用一次，关闭后无法再次查看。请立即保存到密码管理器。"
+    />
+    <div class="grid grid-cols-2 gap-8px rounded bg-#f5f7fa p-16px font-mono">
+      <span v-for="code in recoveryCodes" :key="code">{{ code }}</span>
+    </div>
+    <template #footer>
+      <ElButton @click="copyRecoveryCodes">复制全部</ElButton>
+      <ElButton type="primary" @click="recoveryCodesVisible = false">我已安全保存</ElButton>
+    </template>
+  </ElDialog>
+
+  <ElDialog v-model="mfaDisableVisible" title="停用多因素认证" width="560px">
+    <ElAlert
+      class="mb-16px"
+      type="warning"
+      show-icon
+      :closable="false"
+      title="停用后恢复码将全部失效，并退出其他活跃会话。"
+    />
+    <ElSpace direction="vertical" fill class="w-full">
+      <ElInput
+        v-model="mfaDisablePassword"
+        type="password"
+        show-password
+        autocomplete="current-password"
+        placeholder="当前密码"
+      />
+      <ElInput v-model="mfaDisableCode" maxlength="6" autocomplete="one-time-code" placeholder="6 位动态验证码" />
+    </ElSpace>
+    <template #footer>
+      <ElButton @click="mfaDisableVisible = false">取消</ElButton>
+      <ElButton type="danger" :loading="mfaSubmitting" @click="disableMFA">确认停用</ElButton>
+    </template>
+  </ElDialog>
 </template>
 
 <style scoped></style>

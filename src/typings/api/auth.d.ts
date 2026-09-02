@@ -12,6 +12,17 @@ declare namespace Api {
       session_id: string;
     }
 
+    interface LoginResult extends Partial<LoginToken> {
+      mfa_required: boolean;
+      mfa_challenge_token?: string;
+      mfa_challenge_expires_at?: string;
+    }
+
+    interface MFAChallenge {
+      token: string;
+      expiresAt: string;
+    }
+
     interface UserInfo {
       subject: string;
       subject_type: string;
@@ -58,6 +69,33 @@ declare namespace Api {
       total: number;
       page: number;
       page_size: number;
+    }
+
+    interface MFAStatus {
+      available: boolean;
+      enabled: boolean;
+      status: string;
+      recovery_codes_remaining: number;
+      version: number;
+      enabled_at?: string;
+    }
+
+    interface MFASetup {
+      secret: string;
+      uri: string;
+      version: number;
+      expires_at: string;
+    }
+
+    interface MFAConfirmation {
+      recovery_codes: string[];
+      revoked_sessions: number;
+      version: number;
+    }
+
+    interface MFADisableResult {
+      disabled: boolean;
+      revoked_sessions: number;
     }
   }
 }

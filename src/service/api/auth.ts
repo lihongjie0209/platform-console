@@ -9,12 +9,25 @@ const identityRequest = platformRequest('identity');
  * @param password Password
  */
 export function fetchLogin(login: string, password: string) {
-  return identityRequest<Api.Auth.LoginToken>({
+  return identityRequest<Api.Auth.LoginResult>({
     url: '/api/v1/auth/login',
     method: 'post',
     data: {
       login,
       password
+    }
+  });
+}
+
+/** Complete an in-memory MFA login challenge. */
+export function fetchVerifyMFAChallenge(challengeToken: string, code: string, recoveryCode: string) {
+  return identityRequest<Api.Auth.LoginResult>({
+    url: '/api/v1/auth/mfa/verify',
+    method: 'post',
+    data: {
+      challenge_token: challengeToken,
+      code,
+      recovery_code: recoveryCode
     }
   });
 }
@@ -86,5 +99,37 @@ export function fetchRevokeOwnSession(sessionID: string, version: number) {
       reason: 'user security revocation',
       version
     }
+  });
+}
+
+/** Get MFA enrollment status for the current user. */
+export function fetchMFAStatus() {
+  return identityRequest<Api.Auth.MFAStatus>({ url: '/api/v1/auth/mfa/status', method: 'post' });
+}
+
+/** Start MFA setup after current-password verification. */
+export function fetchStartMFASetup(currentPassword: string) {
+  return identityRequest<Api.Auth.MFASetup>({
+    url: '/api/v1/auth/mfa/setup/start',
+    method: 'post',
+    data: { current_password: currentPassword }
+  });
+}
+
+/** Confirm MFA setup with the first TOTP code. */
+export function fetchConfirmMFASetup(code: string, version: number) {
+  return identityRequest<Api.Auth.MFAConfirmation>({
+    url: '/api/v1/auth/mfa/setup/confirm',
+    method: 'post',
+    data: { code, version }
+  });
+}
+
+/** Disable MFA after password and TOTP verification. */
+export function fetchDisableMFA(currentPassword: string, code: string, version: number) {
+  return identityRequest<Api.Auth.MFADisableResult>({
+    url: '/api/v1/auth/mfa/disable',
+    method: 'post',
+    data: { current_password: currentPassword, code, version }
   });
 }

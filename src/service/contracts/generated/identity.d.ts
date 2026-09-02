@@ -132,7 +132,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["identity.Tokens"];
+                            body?: components["schemas"]["httptransport.LoginResponseBody"];
                         };
                     };
                 };
@@ -197,6 +197,252 @@ export interface paths {
             responses: {
                 /** @description OK */
                 200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Disable TOTP MFA after password and TOTP verification */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Current password, TOTP code, and expected version */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.DisableMFARequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.DisableMFAResponseBody"];
+                        };
+                    };
+                };
+                /** @description Code 30009: stale resource version */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/setup/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm TOTP MFA setup and issue recovery codes once */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description TOTP code and expected version */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ConfirmMFASetupRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ConfirmMFASetupResponseBody"];
+                        };
+                    };
+                };
+                /** @description Code 30009: stale resource version */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/setup/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start TOTP MFA setup after password verification */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Current password */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.StartMFASetupRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.MFASetupResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get MFA status for the authenticated user */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.MFAStatusResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete an MFA login challenge with TOTP or a recovery code */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Challenge and exactly one verification code */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.VerifyMFAChallengeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.LoginResponseBody"];
+                        };
+                    };
+                };
+                /** @description Code 20001: invalid or expired challenge */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+                /** @description Code 10029: rate limited */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -941,6 +1187,15 @@ export interface components {
             changed?: boolean;
             revoked_sessions?: number;
         };
+        "httptransport.ConfirmMFASetupRequest": {
+            code: string;
+            version: number;
+        };
+        "httptransport.ConfirmMFASetupResponseBody": {
+            recovery_codes?: string[];
+            revoked_sessions?: number;
+            version?: number;
+        };
         "httptransport.CreateServiceAccountRequest": {
             audiences: string[];
             name: string;
@@ -948,6 +1203,15 @@ export interface components {
         "httptransport.CreateServiceAccountResponseBody": {
             account?: components["schemas"]["httptransport.ServiceAccountResponseBody"];
             client_secret?: string;
+        };
+        "httptransport.DisableMFARequest": {
+            code: string;
+            current_password: string;
+            version: number;
+        };
+        "httptransport.DisableMFAResponseBody": {
+            disabled?: boolean;
+            revoked_sessions?: number;
         };
         "httptransport.IdentityResponseBody": {
             display_name?: string;
@@ -986,9 +1250,33 @@ export interface components {
             login: string;
             password: string;
         };
+        "httptransport.LoginResponseBody": {
+            access_token?: string;
+            expires_at?: string;
+            mfa_challenge_expires_at?: string;
+            mfa_challenge_token?: string;
+            mfa_required?: boolean;
+            refresh_token?: string;
+            session_id?: string;
+            token_type?: string;
+        };
         "httptransport.LogoutRequest": {
             reason?: string;
             session_id: string;
+        };
+        "httptransport.MFASetupResponseBody": {
+            expires_at?: string;
+            secret?: string;
+            uri?: string;
+            version?: number;
+        };
+        "httptransport.MFAStatusResponseBody": {
+            available?: boolean;
+            enabled?: boolean;
+            enabled_at?: string;
+            recovery_codes_remaining?: number;
+            status?: string;
+            version?: number;
         };
         "httptransport.MeResponseBody": {
             buttons?: string[];
@@ -1076,6 +1364,9 @@ export interface components {
             user_id?: string;
             version?: number;
         };
+        "httptransport.StartMFASetupRequest": {
+            current_password: string;
+        };
         "httptransport.UpdateIdentityStatusRequest": {
             id: string;
             reason?: string;
@@ -1086,6 +1377,11 @@ export interface components {
             id: string;
             status: string;
             version: number;
+        };
+        "httptransport.VerifyMFAChallengeRequest": {
+            challenge_token: string;
+            code?: string;
+            recovery_code?: string;
         };
         "identity.JWK": {
             alg?: string;

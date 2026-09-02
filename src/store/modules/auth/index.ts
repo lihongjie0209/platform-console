@@ -2,13 +2,14 @@ import { computed, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { defineStore } from 'pinia';
 import { useLoading } from '@sa/hooks';
-import { fetchGetUserInfo, fetchLogin, fetchLogout } from '@/service/api';
+import { fetchGetUserInfo, fetchLogin, fetchLogout, fetchVerifyMFAChallenge } from '@/service/api';
 import { useRouterPush } from '@/hooks/common/router';
 import { localStg, sessionStg } from '@/utils/storage';
 import { SetupStoreId } from '@/enum';
 import { $t } from '@/locales';
 import { emptyUserInfo, normalizeUserInfo } from '@/platform/user-profile';
 import { revokeCurrentSession } from '@/platform/session-lifecycle';
+import { loginTokenFromResult, mfaChallengeFromLogin } from '@/platform/mfa-login';
 import { useRouteStore } from '../route';
 import { useTabStore } from '../tab';
 import { clearAuthStorage, getToken } from './shared';
@@ -23,6 +24,7 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   const { loading: logoutLoading, startLoading: startLogoutLoading, endLoading: endLogoutLoading } = useLoading();
 
   const token = ref(getToken());
+  const mfaChallenge = ref<Api.Auth.MFAChallenge | null>(null);
 
   const userInfo: Api.Auth.UserInfo = reactive(emptyUserInfo());
 
@@ -94,34 +96,62 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
    */
   async function login(userName: string, password: string, redirect = true) {
     startLoading();
-
-    const { data: loginToken, error } = await fetchLogin(userName, password);
-
-    if (!error) {
-      const pass = await loginByToken(loginToken);
-
-      if (pass) {
-        // Check if the tab needs to be cleared
-        const isClear = checkTabClear();
-        let needRedirect = redirect;
-
-        if (isClear) {
-          // If the tab needs to be cleared,it means we don't need to redirect.
-          needRedirect = false;
-        }
-        await redirectFromLogin(needRedirect);
-
-        window.$notification?.success({
-          title: $t('page.login.common.loginSuccess'),
-          message: $t('page.login.common.welcomeBack', { userName: userInfo.subject }),
-          duration: 4500
-        });
+    mfaChallenge.value = null;
+    try {
+      const { data: result, error } = await fetchLogin(userName, password);
+      if (error) {
+        await resetStore();
+        return;
       }
-    } else {
-      resetStore();
+      const challenge = mfaChallengeFromLogin(result);
+      if (challenge) {
+        mfaChallenge.value = challenge;
+        return;
+      }
+      const loginToken = loginTokenFromResult(result);
+      if (!loginToken) {
+        window.$message?.error('登录响应不完整，请稍后重试。');
+        return;
+      }
+      await completeLogin(loginToken, redirect);
+    } finally {
+      endLoading();
     }
+  }
 
-    endLoading();
+  async function verifyMFA(code: string, recoveryCode: string, redirect = true) {
+    if (!mfaChallenge.value) return;
+    startLoading();
+    try {
+      const { data: result, error } = await fetchVerifyMFAChallenge(mfaChallenge.value.token, code, recoveryCode);
+      if (error) return;
+      const loginToken = loginTokenFromResult(result);
+      if (!loginToken) {
+        window.$message?.error('MFA 验证响应不完整，请重新登录。');
+        mfaChallenge.value = null;
+        return;
+      }
+      mfaChallenge.value = null;
+      await completeLogin(loginToken, redirect);
+    } finally {
+      endLoading();
+    }
+  }
+
+  function cancelMFA() {
+    mfaChallenge.value = null;
+  }
+
+  async function completeLogin(loginToken: Api.Auth.LoginToken, redirect: boolean) {
+    const pass = await loginByToken(loginToken);
+    if (!pass) return;
+    const isClear = checkTabClear();
+    await redirectFromLogin(isClear ? false : redirect);
+    window.$notification?.success({
+      title: $t('page.login.common.loginSuccess'),
+      message: $t('page.login.common.welcomeBack', { userName: userInfo.subject }),
+      duration: 4500
+    });
   }
 
   async function loginByToken(loginToken: Api.Auth.LoginToken) {
@@ -188,6 +218,7 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
 
   return {
     token,
+    mfaChallenge,
     userInfo,
     isStaticSuper,
     isLogin,
@@ -196,6 +227,8 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     resetStore,
     logout,
     login,
+    verifyMFA,
+    cancelMFA,
     initUserInfo
   };
 });
