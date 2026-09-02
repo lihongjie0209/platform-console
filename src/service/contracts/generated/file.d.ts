@@ -35,7 +35,7 @@ export interface paths {
                     };
                     content: {
                         "*/*": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["file.Metadata"];
+                            body?: components["schemas"]["httptransport.FileBody"];
                         };
                     };
                 };
@@ -73,7 +73,7 @@ export interface paths {
                     };
                     content: {
                         "*/*": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["file.Authorization"];
+                            body?: components["schemas"]["httptransport.FileAuthorizationBody"];
                         };
                     };
                 };
@@ -111,7 +111,7 @@ export interface paths {
                     };
                     content: {
                         "*/*": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["file.Metadata"];
+                            body?: components["schemas"]["httptransport.FileBody"];
                         };
                     };
                 };
@@ -154,7 +154,7 @@ export interface paths {
                     };
                     content: {
                         "*/*": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["file.MetadataPage"];
+                            body?: components["schemas"]["httptransport.FilePageBody"];
                         };
                     };
                 };
@@ -206,7 +206,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["file.Metadata"];
+                            body?: components["schemas"]["httptransport.FileBody"];
                         };
                     };
                 };
@@ -249,7 +249,7 @@ export interface paths {
                     };
                     content: {
                         "*/*": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["file.Metadata"];
+                            body?: components["schemas"]["httptransport.FileBody"];
                         };
                     };
                 };
@@ -292,7 +292,7 @@ export interface paths {
                     };
                     content: {
                         "*/*": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["file.Authorization"];
+                            body?: components["schemas"]["httptransport.FileAuthorizationBody"];
                         };
                     };
                 };
@@ -335,7 +335,7 @@ export interface paths {
                     };
                     content: {
                         "*/*": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["file.Metadata"];
+                            body?: components["schemas"]["httptransport.FileBody"];
                         };
                     };
                 };
@@ -378,7 +378,7 @@ export interface paths {
                     };
                     content: {
                         "*/*": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["file.Authorization"];
+                            body?: components["schemas"]["httptransport.FileAuthorizationBody"];
                         };
                     };
                 };
@@ -421,7 +421,7 @@ export interface paths {
                     };
                     content: {
                         "*/*": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["file.Metadata"];
+                            body?: components["schemas"]["httptransport.FileBody"];
                         };
                     };
                 };
@@ -464,7 +464,7 @@ export interface paths {
                     };
                     content: {
                         "*/*": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["file.MultipartAuthorization"];
+                            body?: components["schemas"]["httptransport.MultipartAuthorizationBody"];
                         };
                     };
                 };
@@ -659,51 +659,6 @@ export interface components {
             uptime?: string;
             version?: string;
         };
-        "file.Authorization": {
-            expires_at?: string;
-            file?: components["schemas"]["file.Metadata"];
-            headers?: {
-                [key: string]: string;
-            };
-            url?: string;
-        };
-        "file.Metadata": {
-            application_id?: string;
-            bucket?: string;
-            checksum_sha256?: string;
-            content_type?: string;
-            created_at?: string;
-            created_by?: string;
-            filename?: string;
-            id?: string;
-            idempotency_key?: string;
-            object_key?: string;
-            owner_id?: string;
-            part_count?: number;
-            part_size?: number;
-            scan_status?: string;
-            size?: number;
-            status?: string;
-            tenant_id?: string;
-            updated_at?: string;
-            updated_by?: string;
-            upload_expires_at?: string;
-            upload_mode?: string;
-            version?: number;
-        };
-        "file.MetadataPage": {
-            files?: components["schemas"]["file.Metadata"][];
-            page?: number;
-            page_size?: number;
-            total?: number;
-        };
-        "file.MultipartAuthorization": {
-            expires_at?: string;
-            file?: components["schemas"]["file.Metadata"];
-            part_count?: number;
-            part_size?: number;
-            upload_id?: string;
-        };
         "health.Dependency": {
             latency?: string;
             status?: string;
@@ -745,10 +700,45 @@ export interface components {
             id: string;
             tenant_id: string;
         };
+        "httptransport.FileAuthorizationBody": {
+            expires_at?: string;
+            file?: components["schemas"]["httptransport.FileBody"];
+            headers?: {
+                [key: string]: string;
+            };
+            url?: string;
+        };
+        "httptransport.FileBody": {
+            application_id?: string;
+            checksum_sha256?: string;
+            content_type?: string;
+            created_at?: string;
+            created_by?: string;
+            filename?: string;
+            id?: string;
+            owner_id?: string;
+            part_count?: number;
+            part_size?: number;
+            scan_status?: string;
+            size?: number;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            upload_expires_at?: string;
+            upload_mode?: string;
+            version?: number;
+        };
         "httptransport.FileIDRequest": {
             application_id: string;
             id: string;
             tenant_id: string;
+        };
+        "httptransport.FilePageBody": {
+            files?: components["schemas"]["httptransport.FileBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
         };
         "httptransport.InitiateMultipartUploadRequest": {
             application_id: string;
@@ -782,6 +772,12 @@ export interface components {
         };
         "httptransport.MeResponseBody": {
             subject?: string;
+        };
+        "httptransport.MultipartAuthorizationBody": {
+            expires_at?: string;
+            file?: components["schemas"]["httptransport.FileBody"];
+            part_count?: number;
+            part_size?: number;
         };
         "httptransport.ReportScanResultRequest": {
             application_id: string;

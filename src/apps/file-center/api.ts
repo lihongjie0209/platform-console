@@ -2,8 +2,10 @@ import type { components as FileContract } from '@/service/contracts/generated/f
 import { platformRequest } from '@/service/request';
 import { applicationScope } from '@/platform/application-context';
 
-type FileContractMetadata = FileContract['schemas']['file.Metadata'];
-type FileContractAuthorization = FileContract['schemas']['file.Authorization'];
+type FileContractMetadata = FileContract['schemas']['httptransport.FileBody'];
+type FileContractAuthorization = FileContract['schemas']['httptransport.FileAuthorizationBody'];
+type FileContractMultipartAuthorization = FileContract['schemas']['httptransport.MultipartAuthorizationBody'];
+type FileContractPage = FileContract['schemas']['httptransport.FilePageBody'];
 
 export interface FileMetadata extends FileContractMetadata, Record<string, unknown> {
   id: string;
@@ -23,9 +25,8 @@ export interface UploadAuthorization extends FileContractAuthorization {
   headers: Record<string, string>;
 }
 
-export interface MultipartAuthorization {
+export interface MultipartAuthorization extends FileContractMultipartAuthorization {
   file: FileMetadata;
-  upload_id: string;
   part_size: number;
   part_count: number;
   expires_at: string;
@@ -36,7 +37,7 @@ export interface CompletedPart {
   etag: string;
 }
 
-export interface FilePage {
+export interface FilePage extends FileContractPage {
   files: FileMetadata[];
   total: number;
   page: number;

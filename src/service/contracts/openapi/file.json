@@ -43,7 +43,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/file.Metadata"
+                                                    "$ref": "#/components/schemas/httptransport.FileBody"
                                                 }
                                             }
                                         }
@@ -83,7 +83,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/file.Authorization"
+                                                    "$ref": "#/components/schemas/httptransport.FileAuthorizationBody"
                                                 }
                                             }
                                         }
@@ -123,7 +123,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/file.Metadata"
+                                                    "$ref": "#/components/schemas/httptransport.FileBody"
                                                 }
                                             }
                                         }
@@ -171,7 +171,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/file.MetadataPage"
+                                                    "$ref": "#/components/schemas/httptransport.FilePageBody"
                                                 }
                                             }
                                         }
@@ -232,7 +232,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/file.Metadata"
+                                                    "$ref": "#/components/schemas/httptransport.FileBody"
                                                 }
                                             }
                                         }
@@ -280,7 +280,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/file.Metadata"
+                                                    "$ref": "#/components/schemas/httptransport.FileBody"
                                                 }
                                             }
                                         }
@@ -328,7 +328,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/file.Authorization"
+                                                    "$ref": "#/components/schemas/httptransport.FileAuthorizationBody"
                                                 }
                                             }
                                         }
@@ -376,7 +376,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/file.Metadata"
+                                                    "$ref": "#/components/schemas/httptransport.FileBody"
                                                 }
                                             }
                                         }
@@ -424,7 +424,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/file.Authorization"
+                                                    "$ref": "#/components/schemas/httptransport.FileAuthorizationBody"
                                                 }
                                             }
                                         }
@@ -472,7 +472,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/file.Metadata"
+                                                    "$ref": "#/components/schemas/httptransport.FileBody"
                                                 }
                                             }
                                         }
@@ -520,7 +520,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/file.MultipartAuthorization"
+                                                    "$ref": "#/components/schemas/httptransport.MultipartAuthorizationBody"
                                                 }
                                             }
                                         }
@@ -752,137 +752,6 @@
                     }
                 }
             },
-            "file.Authorization": {
-                "type": "object",
-                "properties": {
-                    "expires_at": {
-                        "type": "string"
-                    },
-                    "file": {
-                        "$ref": "#/components/schemas/file.Metadata"
-                    },
-                    "headers": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        }
-                    },
-                    "url": {
-                        "type": "string"
-                    }
-                }
-            },
-            "file.Metadata": {
-                "type": "object",
-                "properties": {
-                    "application_id": {
-                        "type": "string"
-                    },
-                    "bucket": {
-                        "type": "string"
-                    },
-                    "checksum_sha256": {
-                        "type": "string"
-                    },
-                    "content_type": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "created_by": {
-                        "type": "string"
-                    },
-                    "filename": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "idempotency_key": {
-                        "type": "string"
-                    },
-                    "object_key": {
-                        "type": "string"
-                    },
-                    "owner_id": {
-                        "type": "string"
-                    },
-                    "part_count": {
-                        "type": "integer"
-                    },
-                    "part_size": {
-                        "type": "integer"
-                    },
-                    "scan_status": {
-                        "type": "string"
-                    },
-                    "size": {
-                        "type": "integer"
-                    },
-                    "status": {
-                        "type": "string"
-                    },
-                    "tenant_id": {
-                        "type": "string"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    },
-                    "updated_by": {
-                        "type": "string"
-                    },
-                    "upload_expires_at": {
-                        "type": "string"
-                    },
-                    "upload_mode": {
-                        "type": "string"
-                    },
-                    "version": {
-                        "type": "integer"
-                    }
-                }
-            },
-            "file.MetadataPage": {
-                "type": "object",
-                "properties": {
-                    "files": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/file.Metadata"
-                        }
-                    },
-                    "page": {
-                        "type": "integer"
-                    },
-                    "page_size": {
-                        "type": "integer"
-                    },
-                    "total": {
-                        "type": "integer"
-                    }
-                }
-            },
-            "file.MultipartAuthorization": {
-                "type": "object",
-                "properties": {
-                    "expires_at": {
-                        "type": "string"
-                    },
-                    "file": {
-                        "$ref": "#/components/schemas/file.Metadata"
-                    },
-                    "part_count": {
-                        "type": "integer"
-                    },
-                    "part_size": {
-                        "type": "integer"
-                    },
-                    "upload_id": {
-                        "type": "string"
-                    }
-                }
-            },
             "health.Dependency": {
                 "type": "object",
                 "properties": {
@@ -1030,6 +899,88 @@
                     }
                 }
             },
+            "httptransport.FileAuthorizationBody": {
+                "type": "object",
+                "properties": {
+                    "expires_at": {
+                        "type": "string"
+                    },
+                    "file": {
+                        "$ref": "#/components/schemas/httptransport.FileBody"
+                    },
+                    "headers": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.FileBody": {
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
+                    "checksum_sha256": {
+                        "type": "string"
+                    },
+                    "content_type": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "filename": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "owner_id": {
+                        "type": "string"
+                    },
+                    "part_count": {
+                        "type": "integer"
+                    },
+                    "part_size": {
+                        "type": "integer"
+                    },
+                    "scan_status": {
+                        "type": "string"
+                    },
+                    "size": {
+                        "type": "integer"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "upload_expires_at": {
+                        "type": "string"
+                    },
+                    "upload_mode": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
             "httptransport.FileIDRequest": {
                 "type": "object",
                 "required": [
@@ -1046,6 +997,26 @@
                     },
                     "tenant_id": {
                         "type": "string"
+                    }
+                }
+            },
+            "httptransport.FilePageBody": {
+                "type": "object",
+                "properties": {
+                    "files": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.FileBody"
+                        }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "total": {
+                        "type": "integer"
                     }
                 }
             },
@@ -1163,6 +1134,23 @@
                 "properties": {
                     "subject": {
                         "type": "string"
+                    }
+                }
+            },
+            "httptransport.MultipartAuthorizationBody": {
+                "type": "object",
+                "properties": {
+                    "expires_at": {
+                        "type": "string"
+                    },
+                    "file": {
+                        "$ref": "#/components/schemas/httptransport.FileBody"
+                    },
+                    "part_count": {
+                        "type": "integer"
+                    },
+                    "part_size": {
+                        "type": "integer"
                     }
                 }
             },
