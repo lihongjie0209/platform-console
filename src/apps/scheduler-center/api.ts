@@ -2,8 +2,10 @@ import type { components as SchedulerContract } from '@/service/contracts/genera
 import { platformRequest } from '@/service/request';
 import { applicationScope } from '@/platform/application-context';
 
-type JobContract = SchedulerContract['schemas']['job.Job'];
-type ExecutionContract = SchedulerContract['schemas']['job.Execution'];
+type JobContract = SchedulerContract['schemas']['httptransport.JobBody'];
+type ExecutionContract = SchedulerContract['schemas']['httptransport.ExecutionBody'];
+type JobPageContract = SchedulerContract['schemas']['httptransport.JobPageBody'];
+type ExecutionPageContract = SchedulerContract['schemas']['httptransport.ExecutionPageBody'];
 
 export interface ScheduledJob extends JobContract, Record<string, unknown> {
   id: string;
@@ -55,8 +57,15 @@ export interface SchedulerJobQuery extends SchedulerScope {
   pageSize: number;
 }
 
-interface Page<T> {
-  items: T[];
+interface JobPage extends JobPageContract {
+  items: ScheduledJob[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+interface ExecutionPage extends ExecutionPageContract {
+  items: JobExecution[];
   total: number;
   page: number;
   page_size: number;
@@ -85,7 +94,7 @@ function jobPayload(input: JobInput) {
 }
 
 export function listJobs(query: SchedulerJobQuery) {
-  return unwrap<Page<ScheduledJob>>(
+  return unwrap<JobPage>(
     schedulerRequest({
       url: '/api/v1/scheduler/jobs/list',
       method: 'post',
@@ -136,7 +145,7 @@ export function triggerJob(id: string) {
 }
 
 export function listExecutions(jobID: string, page: number, pageSize: number) {
-  return unwrap<Page<JobExecution>>(
+  return unwrap<ExecutionPage>(
     schedulerRequest({
       url: '/api/v1/scheduler/executions/list',
       method: 'post',

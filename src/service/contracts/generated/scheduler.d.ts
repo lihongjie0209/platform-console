@@ -82,7 +82,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["job.Execution"];
+                            body?: components["schemas"]["httptransport.ExecutionBody"];
                         };
                     };
                 };
@@ -125,7 +125,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["httptransport.ExecutionPage"];
+                            body?: components["schemas"]["httptransport.ExecutionPageBody"];
                         };
                     };
                 };
@@ -168,7 +168,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["job.Job"];
+                            body?: components["schemas"]["httptransport.JobBody"];
                         };
                     };
                 };
@@ -247,7 +247,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["job.Job"];
+                            body?: components["schemas"]["httptransport.JobBody"];
                         };
                     };
                 };
@@ -290,7 +290,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["httptransport.JobPage"];
+                            body?: components["schemas"]["httptransport.JobPageBody"];
                         };
                     };
                 };
@@ -328,7 +328,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["job.Execution"];
+                            body?: components["schemas"]["httptransport.ExecutionBody"];
                         };
                     };
                 };
@@ -371,7 +371,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["job.Job"];
+                            body?: components["schemas"]["httptransport.JobBody"];
                         };
                     };
                 };
@@ -545,17 +545,54 @@ export interface components {
             id: string;
             version: number;
         };
-        "httptransport.ExecutionPage": {
-            items?: components["schemas"]["job.Execution"][];
+        "httptransport.ExecutionBody": {
+            application_id?: string;
+            created_at?: string;
+            created_by?: string;
+            duration_milliseconds?: number;
+            error_code?: string;
+            error_message?: string;
+            finished_at?: string;
+            id?: string;
+            job_id?: string;
+            response_json?: string;
+            started_at?: string;
+            status?: string;
+            tenant_id?: string;
+            trigger_type?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
+        "httptransport.ExecutionPageBody": {
+            items?: components["schemas"]["httptransport.ExecutionBody"][];
             page?: number;
             page_size?: number;
             total?: number;
         };
+        "httptransport.JobBody": {
+            application_id?: string;
+            created_at?: string;
+            created_by?: string;
+            cron_expression?: string;
+            full_method?: string;
+            id?: string;
+            name?: string;
+            request_json?: string;
+            status?: string;
+            tenant_id?: string;
+            timeout_milliseconds?: number;
+            timezone?: string;
+            updated_at?: string;
+            updated_by?: string;
+            upstream?: string;
+            version?: number;
+        };
         "httptransport.JobIDRequest": {
             id: string;
         };
-        "httptransport.JobPage": {
-            items?: components["schemas"]["job.Job"][];
+        "httptransport.JobPageBody": {
+            items?: components["schemas"]["httptransport.JobBody"][];
             page?: number;
             page_size?: number;
             total?: number;
@@ -594,43 +631,6 @@ export interface components {
             timezone?: string;
             upstream: string;
             version: number;
-        };
-        "job.Execution": {
-            application_id?: string;
-            created_at?: string;
-            created_by?: string;
-            duration_milliseconds?: number;
-            error_code?: string;
-            error_message?: string;
-            finished_at?: string;
-            id?: string;
-            job_id?: string;
-            response_json?: string;
-            started_at?: string;
-            status?: string;
-            tenant_id?: string;
-            trigger_type?: string;
-            updated_at?: string;
-            updated_by?: string;
-            version?: number;
-        };
-        "job.Job": {
-            application_id?: string;
-            created_at?: string;
-            created_by?: string;
-            cron_expression?: string;
-            full_method?: string;
-            id?: string;
-            name?: string;
-            request_json?: string;
-            status?: string;
-            tenant_id?: string;
-            timeout_milliseconds?: number;
-            timezone?: string;
-            updated_at?: string;
-            updated_by?: string;
-            upstream?: string;
-            version?: number;
         };
     };
     responses: never;
