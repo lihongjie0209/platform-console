@@ -15,6 +15,7 @@ import {
 import { useAuthStore } from '@/store/modules/auth';
 import { validatePasswordChange } from '@/platform/password-policy';
 import { canRevokeSession, isCurrentSession } from '@/platform/session-view';
+import { confirmUserAction } from '@/platform/user-action';
 import { BizCopyText } from '@/components/business';
 
 defineOptions({ name: 'UserCenter' });
@@ -149,11 +150,14 @@ function changeSessionPageSize(value: number) {
 
 async function revokeSession(session: Api.Auth.Session) {
   if (!canRevokeSession(session, authStore.userInfo.session_id)) return;
-  await ElMessageBox.confirm('撤销后，该设备需要重新登录。确认撤销此会话吗？', '撤销会话', {
-    type: 'warning',
-    confirmButtonText: '确认撤销',
-    cancelButtonText: '取消'
-  });
+  const confirmed = await confirmUserAction(() =>
+    ElMessageBox.confirm('撤销后，该设备需要重新登录。确认撤销此会话吗？', '撤销会话', {
+      type: 'warning',
+      confirmButtonText: '确认撤销',
+      cancelButtonText: '取消'
+    })
+  );
+  if (!confirmed) return;
   revokingSessionID.value = session.session_id;
   try {
     const { error } = await fetchRevokeOwnSession(session.session_id, session.version);

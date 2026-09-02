@@ -4,6 +4,7 @@ import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard } from '@/platform/application-context';
 import { collectAllPages } from '@/platform/pagination';
+import { confirmUserAction } from '@/platform/user-action';
 import { applicationPageOptionsFor, pageUsesApplicationNamespace } from '@/apps/registry';
 import { type PermissionCatalogOption, buildPermissionCatalogOptions } from '@/platform/permission-catalog';
 import { type MenuPermissionScope, normalizeMenuPermissionScope } from '@/platform/navigation';
@@ -278,6 +279,12 @@ async function saveMenu() {
 
 async function removeMenu(menu: ApplicationMenu) {
   if (!canDeleteMenus.value) return;
+  const confirmed = await confirmUserAction(() =>
+    ElMessageBox.confirm(`确认删除菜单“${menu.name}”吗？请先确认其下没有仍需保留的子菜单。`, '删除菜单', {
+      type: 'warning'
+    })
+  );
+  if (!confirmed) return;
   await deleteMenu(String(menu.id), Number(menu.version));
   window.$message?.success('菜单已删除');
   await loadMenus();

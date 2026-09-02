@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { confirmUserAction } from '@/platform/user-action';
 import type { Invitation, InvitationForm } from '../../api';
 import { createInvitation, listInvitations, revokeInvitation } from '../../api';
 
@@ -69,6 +70,10 @@ async function submit() {
 }
 async function revoke(row: Invitation) {
   if (!canRevokeInvitation.value) return;
+  const confirmed = await confirmUserAction(() =>
+    ElMessageBox.confirm(`确认撤销发给“${row.email}”的邀请吗？`, '撤销邀请', { type: 'warning' })
+  );
+  if (!confirmed) return;
   await revokeInvitation(String(row.id), Number(row.version));
   window.$message?.success('邀请已撤销');
   await loadData();

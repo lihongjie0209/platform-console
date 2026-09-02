@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { promptUserInput } from '@/platform/user-action';
 import type { ConfigDraftInput, ConfigEntry } from '../../api';
 import {
   approveConfig,
@@ -152,35 +153,29 @@ async function runAction(allowed: boolean, action: () => Promise<ConfigEntry>, m
 
 async function review(entry: ConfigEntry, approve: boolean) {
   if ((approve && !canApprove.value) || (!approve && !canReject.value)) return;
-  try {
-    const result = await ElMessageBox.prompt(
-      approve ? '填写审批意见（可选）' : '填写驳回原因',
-      approve ? '审批配置' : '驳回配置',
-      {
-        inputValidator: value => approve || Boolean(value?.trim()) || '驳回原因不能为空'
-      }
-    );
-    await runAction(
-      approve ? canApprove.value : canReject.value,
-      () => (approve ? approveConfig(entry, result.value || '') : rejectConfig(entry, result.value || '')),
-      approve ? '审批通过' : '已驳回'
-    );
-  } catch {
-    // User cancelled the prompt.
-  }
+  const comment = await promptUserInput(() =>
+    ElMessageBox.prompt(approve ? '填写审批意见（可选）' : '填写驳回原因', approve ? '审批配置' : '驳回配置', {
+      inputValidator: value => approve || Boolean(value?.trim()) || '驳回原因不能为空'
+    })
+  );
+  if (comment === undefined) return;
+  await runAction(
+    approve ? canApprove.value : canReject.value,
+    () => (approve ? approveConfig(entry, comment) : rejectConfig(entry, comment)),
+    approve ? '审批通过' : '已驳回'
+  );
 }
 
 async function rollback(entry: ConfigEntry) {
   if (!canRollback.value) return;
-  try {
-    const result = await ElMessageBox.prompt('输入需要恢复的历史修订号', '回滚配置', {
+  const revision = await promptUserInput(() =>
+    ElMessageBox.prompt('输入需要恢复的历史修订号', '回滚配置', {
       inputPattern: /^[1-9]\d*$/,
       inputErrorMessage: '请输入正整数修订号'
-    });
-    await runAction(canRollback.value, () => rollbackConfig(entry, Number(result.value)), '配置已回滚');
-  } catch {
-    // User cancelled the prompt.
-  }
+    })
+  );
+  if (!revision) return;
+  await runAction(canRollback.value, () => rollbackConfig(entry, Number(revision)), '配置已回滚');
 }
 
 function statusType(status: string) {

@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { confirmUserAction, promptUserInput } from '@/platform/user-action';
 import type { DictionaryDefinition, DictionaryItem } from '../../api';
 import {
   createDefinition,
@@ -223,14 +224,18 @@ async function saveItem() {
 }
 async function removeItem(row: DictionaryItem) {
   if (!canDeleteItems.value) return;
-  await ElMessageBox.confirm(`确认删除条目“${row.name}”吗？`, '删除条目', { type: 'warning' });
+  const confirmed = await confirmUserAction(() =>
+    ElMessageBox.confirm(`确认删除条目“${row.name}”吗？`, '删除条目', { type: 'warning' })
+  );
+  if (!confirmed) return;
   await deleteItem(row);
   if (selected.value) await openItems(selected.value);
 }
 async function publish(row: DictionaryDefinition) {
   if (!canPublish.value) return;
-  const result = await ElMessageBox.prompt('请输入发布说明', '发布字典', { inputValue: '' });
-  await publishDefinition(row, result.value);
+  const comment = await promptUserInput(() => ElMessageBox.prompt('请输入发布说明', '发布字典', { inputValue: '' }));
+  if (comment === undefined) return;
+  await publishDefinition(row, comment);
   window.$message?.success('字典版本已发布');
   await loadData();
 }

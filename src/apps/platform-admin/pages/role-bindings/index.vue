@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
 import { collectAllPages } from '@/platform/pagination';
+import { confirmUserAction } from '@/platform/user-action';
 import {
   type AuthorizationManagementScope,
   authorizationManagementScopeOptions
@@ -217,6 +218,12 @@ async function submit() {
 }
 async function revoke(row: Binding) {
   if (!canRevokeBinding.value) return;
+  const confirmed = await confirmUserAction(() =>
+    ElMessageBox.confirm('撤销后目标主体将立即失去该角色授予的权限，确认继续吗？', '撤销角色绑定', {
+      type: 'warning'
+    })
+  );
+  if (!confirmed) return;
   await revokeMyBinding({
     tenantID: tenantID.value,
     permissionScope: bindingScope.value,

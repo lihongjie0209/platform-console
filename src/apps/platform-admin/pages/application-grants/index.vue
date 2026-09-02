@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
 import { collectAllPages } from '@/platform/pagination';
+import { confirmUserAction } from '@/platform/user-action';
 import type { Application, ApplicationGrant, ApplicationGrantForm, TenantDirectoryItem } from '../../api';
 import {
   grantApplication,
@@ -136,6 +137,12 @@ async function submitGrant() {
 
 async function revoke(row: GrantRow) {
   if (!canRevoke.value || !row.id || !row.grant?.version) return;
+  const confirmed = await confirmUserAction(() =>
+    ElMessageBox.confirm(`撤销后租户将无法继续使用“${row.name}”，确认继续吗？`, '撤销应用授权', {
+      type: 'warning'
+    })
+  );
+  if (!confirmed) return;
   await revokeApplicationGrant(tenantID.value, String(row.id), Number(row.grant.version));
   window.$message?.success('应用授权已撤销');
   await loadGrants();

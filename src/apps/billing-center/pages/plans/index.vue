@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard } from '@/platform/application-context';
 import { parseJSONArray, parseJSONObject } from '@/platform/json';
+import { confirmUserAction } from '@/platform/user-action';
 import type { Plan, UsagePrice } from '../../api';
 import { deleteUsagePrice, getPlan, listPlans, savePlan, upsertUsagePrice } from '../../api';
 defineOptions({ name: 'BillingCenterPlans' });
@@ -134,6 +135,10 @@ async function savePrice() {
 }
 async function removePrice(v: UsagePrice) {
   if (!canDelete.value) return;
+  const confirmed = await confirmUserAction(() =>
+    ElMessageBox.confirm(`确认删除计量项“${v.meter_code}”的用量价格吗？`, '删除用量价格', { type: 'warning' })
+  );
+  if (!confirmed) return;
   await deleteUsagePrice(v);
   if (selected.value) await manage(selected.value);
 }

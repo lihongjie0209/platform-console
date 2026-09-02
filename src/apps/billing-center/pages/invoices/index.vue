@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { promptUserInput } from '@/platform/user-action';
 import type { Invoice } from '../../api';
 import { finalizeInvoice, listInvoices, voidInvoice } from '../../api';
 defineOptions({ name: 'BillingCenterInvoices' });
@@ -48,7 +49,15 @@ async function finalize(v: Invoice) {
 }
 async function voidOne(v: Invoice) {
   if (!canVoid.value) return;
-  await voidInvoice(v, 'operator void');
+  const reason = await promptUserInput(() =>
+    ElMessageBox.prompt('请输入作废原因', '作废账单', {
+      inputPattern: /\S+/,
+      inputErrorMessage: '作废原因不能为空',
+      type: 'warning'
+    })
+  );
+  if (!reason) return;
+  await voidInvoice(v, reason);
   await load();
 }
 watch([tenantID, applicationID], () => {

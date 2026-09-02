@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { collectAllPages } from '@/platform/pagination';
+import { confirmUserAction } from '@/platform/user-action';
 import {
   type AuthorizationManagementScope,
   authorizationManagementScopeOptions
@@ -96,6 +97,12 @@ async function toggle(permission: Permission, enabled: boolean) {
         permissionID: permission.id
       });
     } else if (assignment) {
+      const confirmed = await confirmUserAction(() =>
+        ElMessageBox.confirm(`确认从当前角色撤销权限“${permission.code}”吗？`, '撤销角色权限', {
+          type: 'warning'
+        })
+      );
+      if (!confirmed) return;
       await revokeMyRolePermission({
         tenantID: tenantID.value,
         permissionScope: assignmentScope.value,

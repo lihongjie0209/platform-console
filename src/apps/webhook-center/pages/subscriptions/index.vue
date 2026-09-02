@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { parseJSONObject } from '@/platform/json';
+import { confirmUserAction } from '@/platform/user-action';
 import type { WebhookSubscription } from '../../api';
 import { deleteSubscription, listSubscriptions, rotateSecret, saveSubscription, testSubscription } from '../../api';
 defineOptions({ name: 'WebhookCenterSubscriptions' });
@@ -104,6 +105,12 @@ async function save() {
 }
 async function rotate(v: WebhookSubscription) {
   if (!canRotateSecret.value) return;
+  const confirmed = await confirmUserAction(() =>
+    ElMessageBox.confirm('轮换后旧签名密钥立即失效，新密钥仅显示一次。确认继续吗？', '轮换签名密钥', {
+      type: 'warning'
+    })
+  );
+  if (!confirmed) return;
   const result = await rotateSecret(v);
   secret.value = result.signing_secret;
   window.$message?.warning('新密钥仅显示一次，请立即保存');
@@ -111,6 +118,10 @@ async function rotate(v: WebhookSubscription) {
 }
 async function remove(v: WebhookSubscription) {
   if (!canDelete.value) return;
+  const confirmed = await confirmUserAction(() =>
+    ElMessageBox.confirm(`确认删除 Webhook 订阅“${v.name}”吗？`, '删除订阅', { type: 'warning' })
+  );
+  if (!confirmed) return;
   await deleteSubscription(v);
   await load();
 }

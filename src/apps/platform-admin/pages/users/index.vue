@@ -6,6 +6,7 @@ import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
 import { formatPlatformDateTime } from '@/platform/date-time';
 import { passwordPolicyError } from '@/platform/password-policy';
 import { buildPasswordResetURL } from '@/platform/password-reset';
+import { promptUserInput } from '@/platform/user-action';
 import type { UserForm, UserIdentity } from '../../api';
 import {
   createUser,
@@ -168,18 +169,21 @@ async function issuePasswordReset(row: UserIdentity) {
   if (!canResetPassword.value) return;
   passwordResetUserID.value = row.id;
   try {
-    const { value: reason } = await ElMessageBox.prompt(
-      `请确认已通过线下渠道核验 ${row.username} 的身份，并填写签发原因。`,
-      '签发一次性密码重置令牌',
-      {
-        type: 'warning',
-        confirmButtonText: '确认签发',
-        cancelButtonText: '取消',
-        inputType: 'textarea',
-        inputValidator: input => Boolean(input?.trim()) || '请输入签发原因'
-      }
+    const reason = await promptUserInput(() =>
+      ElMessageBox.prompt(
+        `请确认已通过线下渠道核验 ${row.username} 的身份，并填写签发原因。`,
+        '签发一次性密码重置令牌',
+        {
+          type: 'warning',
+          confirmButtonText: '确认签发',
+          cancelButtonText: '取消',
+          inputType: 'textarea',
+          inputValidator: input => Boolean(input?.trim()) || '请输入签发原因'
+        }
+      )
     );
-    const issue = await issueUserPasswordReset(row.id, reason.trim());
+    if (!reason) return;
+    const issue = await issueUserPasswordReset(row.id, reason);
     passwordResetToken.value = issue.reset_token;
     passwordResetExpiresAt.value = issue.expires_at;
     passwordResetVisible.value = true;
@@ -199,19 +203,22 @@ async function resetMFA(row: UserIdentity) {
       window.$message?.info('该用户未启用 MFA，无需重置');
       return;
     }
-    const { value: reason } = await ElMessageBox.prompt(
-      `重置后，${row.username} 的所有恢复码和登录会话将立即失效。请输入可审计的重置原因。`,
-      '高风险操作：重置 MFA',
-      {
-        type: 'warning',
-        confirmButtonText: '确认重置',
-        cancelButtonText: '取消',
-        inputType: 'textarea',
-        inputPlaceholder: '例如：用户已完成线下身份核验并报告设备遗失',
-        inputValidator: input => Boolean(input?.trim()) || '请输入重置原因'
-      }
+    const reason = await promptUserInput(() =>
+      ElMessageBox.prompt(
+        `重置后，${row.username} 的所有恢复码和登录会话将立即失效。请输入可审计的重置原因。`,
+        '高风险操作：重置 MFA',
+        {
+          type: 'warning',
+          confirmButtonText: '确认重置',
+          cancelButtonText: '取消',
+          inputType: 'textarea',
+          inputPlaceholder: '例如：用户已完成线下身份核验并报告设备遗失',
+          inputValidator: input => Boolean(input?.trim()) || '请输入重置原因'
+        }
+      )
     );
-    const result = await resetUserMFA(row.id, reason.trim(), status.version);
+    if (!reason) return;
+    const result = await resetUserMFA(row.id, reason, status.version);
     window.$message?.success(`MFA 已重置，并撤销 ${result.revoked_sessions} 个活跃会话`);
   } catch {
     // The request layer reports service failures; prompt cancellation needs no extra notice.

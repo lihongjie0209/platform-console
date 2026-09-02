@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { promptUserInput } from '@/platform/user-action';
 import type { WorkflowInstance } from '../../api';
 import { cancelInstance, listInstances, startInstance } from '../../api';
 import { parseJSONObject } from '../../json';
@@ -85,8 +86,15 @@ async function start() {
 }
 async function cancel(row: WorkflowInstance) {
   if (!canCancel.value) return;
-  const result = await ElMessageBox.prompt('请输入取消原因', '取消流程');
-  await cancelInstance(row, result.value);
+  const reason = await promptUserInput(() =>
+    ElMessageBox.prompt('请输入取消原因', '取消流程', {
+      inputPattern: /\S+/,
+      inputErrorMessage: '取消原因不能为空',
+      type: 'warning'
+    })
+  );
+  if (!reason) return;
+  await cancelInstance(row, reason);
   await loadData();
 }
 function show(row: WorkflowInstance) {

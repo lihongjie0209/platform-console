@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { confirmUserAction } from '@/platform/user-action';
 import type { WebhookDelivery } from '../../api';
 import { listDeliveries, replayDelivery } from '../../api';
 defineOptions({ name: 'WebhookCenterDeliveries' });
@@ -46,6 +47,10 @@ function applyFilters() {
 }
 async function replay(v: WebhookDelivery) {
   if (!canReplay.value) return;
+  const confirmed = await confirmUserAction(() =>
+    ElMessageBox.confirm('重放可能使外部系统再次处理同一事件，确认继续吗？', '重放 Webhook', { type: 'warning' })
+  );
+  if (!confirmed) return;
   await replayDelivery(v);
   await load();
 }

@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { confirmUserAction } from '@/platform/user-action';
 import type { JobExecution, JobInput, ScheduledJob } from '../../api';
 import { createJob, deleteJob, listExecutions, listJobs, triggerJob, updateJob } from '../../api';
 import { normalizeRequestJSON } from '../../request-json';
@@ -132,7 +133,10 @@ async function save() {
 }
 async function remove(row: ScheduledJob) {
   if (!canDelete.value) return;
-  await ElMessageBox.confirm(`确认删除调度任务“${row.name}”吗？`, '删除任务', { type: 'warning' });
+  const confirmed = await confirmUserAction(() =>
+    ElMessageBox.confirm(`确认删除调度任务“${row.name}”吗？`, '删除任务', { type: 'warning' })
+  );
+  if (!confirmed) return;
   await deleteJob(row);
   window.$message?.success('任务已删除');
   await loadData();

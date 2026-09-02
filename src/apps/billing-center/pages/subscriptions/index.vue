@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { confirmUserAction } from '@/platform/user-action';
 import type { Subscription } from '../../api';
 import { cancelSubscription, createSubscription, listSubscriptions } from '../../api';
 defineOptions({ name: 'BillingCenterSubscriptions' });
@@ -57,6 +58,10 @@ async function create() {
 }
 async function cancel(v: Subscription) {
   if (!canCancel.value) return;
+  const confirmed = await confirmUserAction(() =>
+    ElMessageBox.confirm('取消将在当前计费周期结束后生效，确认继续吗？', '取消订阅', { type: 'warning' })
+  );
+  if (!confirmed) return;
   await cancelSubscription(v, true);
   await load();
 }

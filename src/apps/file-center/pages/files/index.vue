@@ -6,6 +6,7 @@ import { createLatestRequestGuard, hasApplicationScope } from '@/platform/applic
 import { formatPlatformDateTime, formatPlatformTableDateTime } from '@/platform/date-time';
 import { BizCopyText } from '@/components/business';
 import { formatFileSize, sha256Hex } from '@/platform/file';
+import { confirmUserAction } from '@/platform/user-action';
 import type { FileMetadata } from '../../api';
 import {
   abortMultipartUpload,
@@ -190,11 +191,14 @@ async function download(row: FileMetadata) {
 
 async function remove(row: FileMetadata) {
   if (!canDelete.value || !scopeReady.value) return;
-  await ElMessageBox.confirm(`确认删除文件“${row.filename}”吗？对象存储中的内容也会被删除。`, '删除文件', {
-    type: 'warning',
-    confirmButtonText: '删除',
-    cancelButtonText: '取消'
-  });
+  const confirmed = await confirmUserAction(() =>
+    ElMessageBox.confirm(`确认删除文件“${row.filename}”吗？对象存储中的内容也会被删除。`, '删除文件', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消'
+    })
+  );
+  if (!confirmed) return;
   await deleteFile(row);
   window.$message?.success('文件已删除');
   await loadData();
