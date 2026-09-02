@@ -745,6 +745,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/identities/batch-get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Batch get up to 100 user identities */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description User IDs */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.BatchGetIdentitiesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.IdentityBatchResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/identities/list": {
         parameters: {
             query?: never;
@@ -1529,6 +1572,9 @@ export interface components {
             user_id?: string;
             version?: number;
         };
+        "httptransport.BatchGetIdentitiesRequest": {
+            user_ids: string[];
+        };
         "httptransport.ChangePasswordRequest": {
             current_password: string;
             new_password: string;
@@ -1570,6 +1616,9 @@ export interface components {
         "httptransport.DisableMFAResponseBody": {
             disabled?: boolean;
             revoked_sessions?: number;
+        };
+        "httptransport.IdentityBatchResponseBody": {
+            items?: components["schemas"]["httptransport.IdentityResponseBody"][];
         };
         "httptransport.IdentityPageResponseBody": {
             items?: components["schemas"]["httptransport.IdentityResponseBody"][];

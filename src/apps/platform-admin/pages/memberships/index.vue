@@ -3,10 +3,18 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig, BizFieldOption } from '@/components/business';
+import { createLatestRequestGuard } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
-import { collectAllPages } from '@/platform/pagination';
 import type { Membership, MembershipForm, OrganizationUnit, UserIdentity } from '../../api';
-import { addMembership, listMemberships, listOrganizationUnits, listUsers, updateMembership } from '../../api';
+import {
+  addMembership,
+  batchGetUsers,
+  listMemberships,
+  listOrganizationUnits,
+  listUsers,
+  updateMembership
+} from '../../api';
+import { boundedDistinctIDs, mergeUserDirectory } from '../../user-directory';
 
 defineOptions({ name: 'PlatformAdminMemberships' });
 interface Query extends Record<string, unknown> {
@@ -17,6 +25,7 @@ interface Query extends Record<string, unknown> {
 }
 const platformStore = usePlatformStore();
 const users = ref<UserIdentity[]>([]);
+const userSearchGuard = createLatestRequestGuard();
 const organizations = ref<OrganizationUnit[]>([]);
 const userOptions = computed<BizFieldOption[]>(() =>
   users.value.map(item => ({ label: `${item.display_name || item.username} (${item.username})`, value: item.id }))
@@ -53,7 +62,7 @@ const config: BizCrudConfig<Membership, Query, MembershipForm, string> = {
       label: '用户',
       type: 'select',
       options: userOptions,
-      props: { filterable: true, clearable: true }
+      props: { filterable: true, clearable: true, remote: true, remoteMethod: searchUsers }
     },
     { key: 'status', label: '状态', type: 'select', options: statusFilters }
   ],
@@ -78,7 +87,7 @@ const config: BizCrudConfig<Membership, Query, MembershipForm, string> = {
         type: 'select',
         options: userOptions,
         disabled: editing,
-        props: { filterable: true },
+        props: { filterable: true, remote: true, remoteMethod: searchUsers },
         rules: [{ required: true, message: '请选择用户' }]
       },
       {
@@ -121,6 +130,11 @@ const adapter: BizCrudAdapter<Membership, Query, MembershipForm, string> = {
       page: query.current,
       pageSize: query.size
     });
+    const ids = boundedDistinctIDs(result.memberships.map(item => item.user_id));
+    if (ids.length) {
+      const directory = await batchGetUsers(ids);
+      users.value = mergeUserDirectory(users.value, directory.items || []);
+    }
     return { items: result.memberships, total: result.total, page: result.page, pageSize: result.page_size };
   },
   create: form => addMembership(tenantID.value, form),
@@ -135,14 +149,16 @@ function organizationLabel(id: string) {
   const organization = organizationByID.value.get(id);
   return organization ? `${organization.name} (${organization.code})` : id;
 }
-async function loadUsers() {
-  users.value = await collectAllPages((page, pageSize) => listUsers({ page, pageSize, status: 'active' }));
+async function searchUsers(keyword: string) {
+  const request = userSearchGuard.begin();
+  const result = await listUsers({ page: 1, pageSize: 50, keyword: keyword.trim(), status: 'active' });
+  if (userSearchGuard.isCurrent(request)) users.value = mergeUserDirectory(users.value, result.items);
 }
 async function loadOrganizations() {
   organizations.value = tenantID.value ? await listOrganizationUnits(tenantID.value) : [];
 }
 watch(tenantID, loadOrganizations);
-onMounted(() => Promise.all([loadUsers(), loadOrganizations()]));
+onMounted(() => Promise.all([searchUsers(''), loadOrganizations()]));
 </script>
 
 <template>

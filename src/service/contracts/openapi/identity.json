@@ -783,6 +783,54 @@
                 }
             }
         },
+        "/api/v1/identities/batch-get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "identities"
+                ],
+                "summary": "Batch get up to 100 user identities",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.BatchGetIdentitiesRequest"
+                            }
+                        }
+                    },
+                    "description": "User IDs",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.IdentityBatchResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/identities/list": {
             "post": {
                 "security": [
@@ -1709,6 +1757,20 @@
                     }
                 }
             },
+            "httptransport.BatchGetIdentitiesRequest": {
+                "type": "object",
+                "required": [
+                    "user_ids"
+                ],
+                "properties": {
+                    "user_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
             "httptransport.ChangePasswordRequest": {
                 "type": "object",
                 "required": [
@@ -1849,6 +1911,17 @@
                     },
                     "revoked_sessions": {
                         "type": "integer"
+                    }
+                }
+            },
+            "httptransport.IdentityBatchResponseBody": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.IdentityResponseBody"
+                        }
                     }
                 }
             },

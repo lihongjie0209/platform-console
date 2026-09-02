@@ -443,6 +443,16 @@ export function listUsers(query: UserQuery) {
   );
 }
 
+export function batchGetUsers(userIDs: string[]) {
+  return unwrap<{ items: UserIdentity[] }>(
+    identityRequest({
+      url: '/api/v1/identities/batch-get',
+      method: 'post',
+      data: { user_ids: userIDs }
+    })
+  );
+}
+
 export async function createUser(form: UserForm) {
   await unwrap<UserIdentity>(
     identityRequest({

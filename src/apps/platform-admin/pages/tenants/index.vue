@@ -2,8 +2,8 @@
 import { onMounted, ref } from 'vue';
 import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig, BizFieldOption } from '@/components/business';
+import { createLatestRequestGuard } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
-import { collectAllPages } from '@/platform/pagination';
 import type { TenantDirectoryItem, TenantForm, UserIdentity } from '../../api';
 import { createTenant, getTenant, listTenantDirectory, listUsers, updateTenant } from '../../api';
 
@@ -15,6 +15,7 @@ interface Query extends Record<string, unknown> {
   status: string;
 }
 const ownerOptions = ref<BizFieldOption[]>([]);
+const ownerSearchGuard = createLatestRequestGuard();
 const emptyForm = (): TenantForm => ({ code: '', name: '', owner_user_id: '', status: 'active', version: 0 });
 const config: BizCrudConfig<TenantDirectoryItem, Query, TenantForm, string> = {
   title: '租户管理',
@@ -62,7 +63,7 @@ const config: BizCrudConfig<TenantDirectoryItem, Query, TenantForm, string> = {
         options: ownerOptions,
         visible: model => Number(model.version) === 0,
         rules: [{ required: true, message: '请选择初始管理员' }],
-        props: { filterable: true }
+        props: { filterable: true, remote: true, remoteMethod: searchOwners }
       },
       {
         key: 'status',
@@ -99,13 +100,15 @@ const adapter: BizCrudAdapter<TenantDirectoryItem, Query, TenantForm, string> = 
 function userLabel(user: UserIdentity) {
   return `${user.display_name || user.username} (${user.username})`;
 }
-async function loadOwners() {
-  const items = await collectAllPages((page, pageSize) => listUsers({ page, pageSize }));
-  ownerOptions.value = items
+async function searchOwners(keyword: string) {
+  const request = ownerSearchGuard.begin();
+  const result = await listUsers({ page: 1, pageSize: 50, keyword: keyword.trim(), status: 'active' });
+  if (!ownerSearchGuard.isCurrent(request)) return;
+  ownerOptions.value = result.items
     .filter(item => item.status === 'active')
     .map(item => ({ label: userLabel(item), value: item.id }));
 }
-onMounted(loadOwners);
+onMounted(() => searchOwners(''));
 </script>
 
 <template>

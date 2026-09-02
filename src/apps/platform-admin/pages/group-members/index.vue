@@ -4,7 +4,15 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
 import { collectAllPages } from '@/platform/pagination';
 import type { Group, GroupMember, Membership, UserIdentity } from '../../api';
-import { addGroupMember, listGroupMembers, listGroups, listMemberships, listUsers, removeGroupMember } from '../../api';
+import {
+  addGroupMember,
+  batchGetUsers,
+  listGroupMembers,
+  listGroups,
+  listMemberships,
+  removeGroupMember
+} from '../../api';
+import { boundedDistinctIDs, mergeUserDirectory } from '../../user-directory';
 
 defineOptions({ name: 'PlatformAdminGroupMembers' });
 const platformStore = usePlatformStore();
@@ -36,12 +44,10 @@ async function loadCatalogs() {
   }
   loading.value = true;
   try {
-    const [groupItems, userItems] = await Promise.all([
-      collectAllPages((catalogPage, catalogPageSize) => listGroups(tenantID.value, catalogPage, catalogPageSize)),
-      collectAllPages((catalogPage, catalogPageSize) => listUsers({ page: catalogPage, pageSize: catalogPageSize }))
-    ]);
+    const groupItems = await collectAllPages((catalogPage, catalogPageSize) =>
+      listGroups(tenantID.value, catalogPage, catalogPageSize)
+    );
     groups.value = groupItems.filter(item => item.status === 'active');
-    users.value = userItems;
     if (!groups.value.some(item => item.id === groupID.value)) groupID.value = groups.value[0]?.id || '';
     await loadMemberships();
   } finally {
@@ -58,6 +64,11 @@ async function loadMemberships() {
   });
   memberships.value = result.memberships;
   total.value = result.total;
+  const ids = boundedDistinctIDs(result.memberships.map(item => item.user_id));
+  if (ids.length) {
+    const directory = await batchGetUsers(ids);
+    users.value = mergeUserDirectory(users.value, directory.items || []);
+  }
 }
 async function loadAssignments() {
   if (!groupID.value) {
