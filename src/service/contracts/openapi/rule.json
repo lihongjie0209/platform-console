@@ -136,7 +136,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.RuleSetDetailBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -175,7 +187,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.RuleSetPageBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -273,7 +297,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/httptransport.RuleVersionView"
+                                                    "$ref": "#/components/schemas/httptransport.CreateRuleVersionBody"
                                                 }
                                             }
                                         }
@@ -316,7 +340,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.RuleVersionPageBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -355,7 +391,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.PublishRuleVersionBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -394,7 +442,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.ValidateRuleVersionBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -433,7 +493,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.EvaluateResponse"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -746,6 +818,17 @@
                     }
                 }
             },
+            "httptransport.CreateRuleVersionBody": {
+                "type": "object",
+                "properties": {
+                    "duplicate": {
+                        "type": "boolean"
+                    },
+                    "rule_version": {
+                        "$ref": "#/components/schemas/httptransport.RuleVersionView"
+                    }
+                }
+            },
             "httptransport.CreateRuleVersionRequest": {
                 "type": "object",
                 "properties": {
@@ -880,6 +963,17 @@
                     }
                 }
             },
+            "httptransport.PublishRuleVersionBody": {
+                "type": "object",
+                "properties": {
+                    "rule_set": {
+                        "$ref": "#/components/schemas/httptransport.RuleSetView"
+                    },
+                    "rule_version": {
+                        "$ref": "#/components/schemas/httptransport.RuleVersionView"
+                    }
+                }
+            },
             "httptransport.PublishRuleVersionRequest": {
                 "type": "object",
                 "properties": {
@@ -915,6 +1009,37 @@
                     },
                     "request_id": {
                         "type": "string"
+                    }
+                }
+            },
+            "httptransport.RuleSetDetailBody": {
+                "type": "object",
+                "properties": {
+                    "published_version": {
+                        "$ref": "#/components/schemas/httptransport.RuleVersionView"
+                    },
+                    "rule_set": {
+                        "$ref": "#/components/schemas/httptransport.RuleSetView"
+                    }
+                }
+            },
+            "httptransport.RuleSetPageBody": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.RuleSetView"
+                        }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "total": {
+                        "type": "integer"
                     }
                 }
             },
@@ -958,6 +1083,26 @@
                         "type": "string"
                     },
                     "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.RuleVersionPageBody": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.RuleVersionView"
+                        }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "total": {
                         "type": "integer"
                     }
                 }
@@ -1035,6 +1180,23 @@
                     }
                 }
             },
+            "httptransport.ValidateRuleVersionBody": {
+                "type": "object",
+                "properties": {
+                    "checksum": {
+                        "type": "string"
+                    },
+                    "issues": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.ValidationIssueBody"
+                        }
+                    },
+                    "valid": {
+                        "type": "boolean"
+                    }
+                }
+            },
             "httptransport.ValidateRuleVersionRequest": {
                 "type": "object",
                 "properties": {
@@ -1045,6 +1207,20 @@
                         "type": "object"
                     },
                     "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.ValidationIssueBody": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "path": {
                         "type": "string"
                     }
                 }

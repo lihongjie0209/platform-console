@@ -14,7 +14,7 @@
   "search": "https://raw.githubusercontent.com/lihongjie0209/search-service/main/docs/swagger.json",
   "metering": "https://raw.githubusercontent.com/lihongjie0209/metering-service/e4d25f195ac134245f1c8aaec4c01137b2a4108e/docs/swagger.json",
   "billing": "https://raw.githubusercontent.com/lihongjie0209/billing-service/d6807537daf9e32c0f63da9bfe955a27d51ade29/docs/swagger.json",
-  "rule": "https://raw.githubusercontent.com/lihongjie0209/rule-service/main/docs/swagger.json",
+  "rule": "https://raw.githubusercontent.com/lihongjie0209/rule-service/b428a1e88be21e9262d74eb8c832feb238e8a7f9/docs/swagger.json",
   "data-export": "https://raw.githubusercontent.com/lihongjie0209/data-export-service/c7312c4/docs/swagger.json",
   "import": "https://raw.githubusercontent.com/lihongjie0209/import-service/0e4a1a2/docs/swagger.json",
   "swagger": "https://raw.githubusercontent.com/lihongjie0209/swagger-service/243c8b0/docs/swagger.json",

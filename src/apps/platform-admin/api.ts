@@ -10,6 +10,7 @@ export type ApplicationMenu = ApplicationContract['schemas']['httptransport.Menu
 export type MenuRelease = ApplicationContract['schemas']['httptransport.MenuReleaseBody'] & Record<string, unknown>;
 export type ApplicationGrant = ApplicationContract['schemas']['httptransport.GrantBody'] & Record<string, unknown>;
 export type Group = TenantContract['schemas']['httptransport.GroupBody'] & Record<string, unknown>;
+type TenantResponseContract = TenantContract['schemas']['httptransport.TenantBody'];
 export type OrganizationUnit = TenantContract['schemas']['httptransport.OrganizationUnitBody'] &
   Record<string, unknown>;
 export type Membership = TenantContract['schemas']['httptransport.MembershipBody'] & Record<string, unknown>;
@@ -158,7 +159,7 @@ export interface SessionQuery {
   status?: string;
 }
 
-export interface TenantDirectoryItem extends Record<string, unknown> {
+export interface TenantDirectoryItem extends TenantResponseContract, Record<string, unknown> {
   id: string;
   code: string;
   name: string;

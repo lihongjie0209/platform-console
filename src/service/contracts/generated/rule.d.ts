@@ -124,7 +124,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RuleSetDetailBody"];
+                        };
                     };
                 };
             };
@@ -165,7 +167,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RuleSetPageBody"];
+                        };
                     };
                 };
             };
@@ -250,7 +254,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["httptransport.RuleVersionView"];
+                            body?: components["schemas"]["httptransport.CreateRuleVersionBody"];
                         };
                     };
                 };
@@ -292,7 +296,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RuleVersionPageBody"];
+                        };
                     };
                 };
             };
@@ -333,7 +339,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PublishRuleVersionBody"];
+                        };
                     };
                 };
             };
@@ -374,7 +382,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ValidateRuleVersionBody"];
+                        };
                     };
                 };
             };
@@ -415,7 +425,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.EvaluateResponse"];
+                        };
                     };
                 };
             };
@@ -643,6 +655,10 @@ export interface components {
             name?: string;
             tenant_id?: string;
         };
+        "httptransport.CreateRuleVersionBody": {
+            duplicate?: boolean;
+            rule_version?: components["schemas"]["httptransport.RuleVersionView"];
+        };
         "httptransport.CreateRuleVersionRequest": {
             application_id?: string;
             definition?: Record<string, never>;
@@ -690,6 +706,10 @@ export interface components {
             status?: string;
             tenant_id?: string;
         };
+        "httptransport.PublishRuleVersionBody": {
+            rule_set?: components["schemas"]["httptransport.RuleSetView"];
+            rule_version?: components["schemas"]["httptransport.RuleVersionView"];
+        };
         "httptransport.PublishRuleVersionRequest": {
             application_id?: string;
             rule_set_id?: string;
@@ -703,6 +723,16 @@ export interface components {
             code?: number;
             message?: string;
             request_id?: string;
+        };
+        "httptransport.RuleSetDetailBody": {
+            published_version?: components["schemas"]["httptransport.RuleVersionView"];
+            rule_set?: components["schemas"]["httptransport.RuleSetView"];
+        };
+        "httptransport.RuleSetPageBody": {
+            items?: components["schemas"]["httptransport.RuleSetView"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
         };
         "httptransport.RuleSetView": {
             application_id?: string;
@@ -718,6 +748,12 @@ export interface components {
             updated_at?: string;
             updated_by?: string;
             version?: number;
+        };
+        "httptransport.RuleVersionPageBody": {
+            items?: components["schemas"]["httptransport.RuleVersionView"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
         };
         "httptransport.RuleVersionView": {
             application_id?: string;
@@ -744,10 +780,20 @@ export interface components {
             tenant_id?: string;
             version?: number;
         };
+        "httptransport.ValidateRuleVersionBody": {
+            checksum?: string;
+            issues?: components["schemas"]["httptransport.ValidationIssueBody"][];
+            valid?: boolean;
+        };
         "httptransport.ValidateRuleVersionRequest": {
             application_id?: string;
             definition?: Record<string, never>;
             tenant_id?: string;
+        };
+        "httptransport.ValidationIssueBody": {
+            code?: string;
+            message?: string;
+            path?: string;
         };
     };
     responses: never;
