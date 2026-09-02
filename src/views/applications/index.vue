@@ -10,6 +10,7 @@ import {
   applicationEntryStatusMessage
 } from '@/platform/navigation';
 import { filterApplications } from '@/platform/application-context';
+import { groupApplications } from '@/platform/application-groups';
 import { BizEmptyState, BizPageContainer } from '@/components/business';
 
 defineOptions({ name: 'ApplicationLauncher' });
@@ -24,6 +25,7 @@ const tenantId = ref(platformStore.selectedTenantId);
 const filteredApplications = computed(() => {
   return filterApplications(platformStore.applications, keyword.value);
 });
+const applicationGroups = computed(() => groupApplications(filteredApplications.value));
 const entryDecisionByApplication = computed(() => {
   return new Map(
     platformStore.navigations.map(navigation => [navigation.application.id, applicationEntryDecision(navigation)])
@@ -113,48 +115,56 @@ async function openApplication(applicationId: string) {
       v-else-if="!filteredApplications.length"
       :description="keyword ? '没有匹配的应用' : '当前租户尚未获得任何应用授权'"
     />
-    <ElRow v-else :gutter="16">
-      <ElCol v-for="application in filteredApplications" :key="application.id" :xs="24" :sm="12" :lg="8" :xl="6">
-        <button
-          class="mb-16px w-full cursor-pointer border-0 bg-transparent p-0 text-left"
-          :class="{
-            'cursor-not-allowed opacity-65': applicationEntryState(application.id).status !== 'ready'
-          }"
-          type="button"
-          @click="openApplication(application.id)"
-        >
-          <ElCard
-            class="h-full transition-transform duration-200 hover:shadow-lg hover:-translate-y-2px"
-            shadow="hover"
-          >
-            <div class="flex items-start gap-14px">
-              <div class="size-48px flex-center shrink-0 rounded-10px bg-primary-50 text-primary">
-                <SvgIcon :icon="application.icon || 'mdi:application-outline'" class="text-28px" />
-              </div>
-              <div class="min-w-0 flex-1">
-                <div class="truncate text-16px font-semibold">
-                  {{ application.name }}
+    <div v-else class="flex flex-col gap-24px">
+      <section v-for="group in applicationGroups" :key="group.category">
+        <div class="mb-12px flex items-center gap-8px">
+          <h2 class="m-0 text-15px font-semibold">{{ group.label }}</h2>
+          <ElTag size="small" effect="plain">{{ group.applications.length }}</ElTag>
+        </div>
+        <ElRow :gutter="16">
+          <ElCol v-for="application in group.applications" :key="application.id" :xs="24" :sm="12" :lg="8" :xl="6">
+            <button
+              class="mb-16px w-full cursor-pointer border-0 bg-transparent p-0 text-left"
+              :class="{
+                'cursor-not-allowed opacity-65': applicationEntryState(application.id).status !== 'ready'
+              }"
+              type="button"
+              @click="openApplication(application.id)"
+            >
+              <ElCard
+                class="h-full transition-transform duration-200 hover:shadow-lg hover:-translate-y-2px"
+                shadow="hover"
+              >
+                <div class="flex items-start gap-14px">
+                  <div class="size-48px flex-center shrink-0 rounded-10px bg-primary-50 text-primary">
+                    <SvgIcon :icon="application.icon || 'mdi:application-outline'" class="text-28px" />
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="truncate text-16px font-semibold">
+                      {{ application.name }}
+                    </div>
+                    <div class="mt-3px flex items-center gap-8px text-12px text-gray-400">
+                      <span class="truncate">{{ application.code }}</span>
+                      <ElTag
+                        v-if="applicationEntryState(application.id).status !== 'ready'"
+                        size="small"
+                        type="warning"
+                        effect="plain"
+                      >
+                        {{ applicationEntryStatusLabel(applicationEntryState(application.id).status) }}
+                      </ElTag>
+                    </div>
+                    <p class="mb-0 mt-12px min-h-40px text-13px text-gray-500 leading-20px">
+                      {{ application.description || '暂无应用说明' }}
+                    </p>
+                  </div>
+                  <SvgIcon icon="mdi:chevron-right" class="mt-14px shrink-0 text-20px text-gray-400" />
                 </div>
-                <div class="mt-3px flex items-center gap-8px text-12px text-gray-400">
-                  <span class="truncate">{{ application.code }}</span>
-                  <ElTag
-                    v-if="applicationEntryState(application.id).status !== 'ready'"
-                    size="small"
-                    type="warning"
-                    effect="plain"
-                  >
-                    {{ applicationEntryStatusLabel(applicationEntryState(application.id).status) }}
-                  </ElTag>
-                </div>
-                <p class="mb-0 mt-12px min-h-40px text-13px text-gray-500 leading-20px">
-                  {{ application.description || '暂无应用说明' }}
-                </p>
-              </div>
-              <SvgIcon icon="mdi:chevron-right" class="mt-14px shrink-0 text-20px text-gray-400" />
-            </div>
-          </ElCard>
-        </button>
-      </ElCol>
-    </ElRow>
+              </ElCard>
+            </button>
+          </ElCol>
+        </ElRow>
+      </section>
+    </div>
   </BizPageContainer>
 </template>

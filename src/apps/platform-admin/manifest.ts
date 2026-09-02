@@ -3,6 +3,7 @@ import type { ApplicationManifest } from '../types';
 export const platformAdminManifest = {
   code: 'platform-admin',
   name: '平台管理',
+  category: 'platform',
   pages: {
     'platform-admin.applications': () => import('./pages/applications/index.vue'),
     'platform-admin.menus': () => import('./pages/menus/index.vue'),

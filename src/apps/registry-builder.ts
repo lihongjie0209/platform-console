@@ -29,6 +29,7 @@ export function createApplicationRegistry(manifests: readonly ApplicationManifes
       manifests.map(manifest => ({
         code: manifest.code,
         name: manifest.name,
+        category: manifest.category,
         pages: Object.freeze(Object.keys(manifest.pages))
       }))
     )

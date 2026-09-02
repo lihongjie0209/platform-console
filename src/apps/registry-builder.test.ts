@@ -9,8 +9,18 @@ test('application registry rejects duplicate application codes', () => {
   assert.throws(
     () =>
       createApplicationRegistry([
-        { code: 'orders', name: 'Orders', pages: { 'orders.list': loader } },
-        { code: 'orders', name: 'Duplicate', pages: { 'orders.detail': loader } }
+        {
+          code: 'orders',
+          name: 'Orders',
+          category: 'business',
+          pages: { 'orders.list': loader }
+        },
+        {
+          code: 'orders',
+          name: 'Duplicate',
+          category: 'business',
+          pages: { 'orders.detail': loader }
+        }
       ]),
     /Duplicate or empty application code/
   );
@@ -18,17 +28,37 @@ test('application registry rejects duplicate application codes', () => {
 
 test('application registry rejects pages outside their application namespace', () => {
   assert.throws(
-    () => createApplicationRegistry([{ code: 'orders', name: 'Orders', pages: { 'billing.list': loader } }]),
+    () =>
+      createApplicationRegistry([
+        {
+          code: 'orders',
+          name: 'Orders',
+          category: 'business',
+          pages: { 'billing.list': loader }
+        }
+      ]),
     /outside application namespace/
   );
 });
 
 test('application registry exposes immutable page ownership metadata', () => {
   const registry = createApplicationRegistry([
-    { code: 'orders', name: 'Orders', pages: { 'orders.list': loader, 'orders.detail': loader } }
+    {
+      code: 'orders',
+      name: 'Orders',
+      category: 'business',
+      pages: { 'orders.list': loader, 'orders.detail': loader }
+    }
   ]);
 
-  assert.deepEqual(registry.modules, [{ code: 'orders', name: 'Orders', pages: ['orders.list', 'orders.detail'] }]);
+  assert.deepEqual(registry.modules, [
+    {
+      code: 'orders',
+      name: 'Orders',
+      category: 'business',
+      pages: ['orders.list', 'orders.detail']
+    }
+  ]);
   assert.equal(registry.pageLoaders.get('orders.list'), loader);
   assert.equal(Object.isFrozen(registry.modules), true);
   assert.equal(Object.isFrozen(registry.modules[0]?.pages), true);

@@ -65,6 +65,10 @@ export function pageUsesApplicationNamespace(pageKey: string, applicationCode: s
 
 export const applicationModules = registry.modules;
 
+export function applicationModuleFor(applicationCode: string) {
+  return applicationModules.find(module => module.code === applicationCode.trim());
+}
+
 const pageComponents = new Map<string, Component>();
 
 export function pageBelongsToApplication(pageKey: string, applicationCode: string) {

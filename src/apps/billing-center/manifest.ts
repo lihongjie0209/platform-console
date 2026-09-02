@@ -2,6 +2,7 @@ import type { ApplicationManifest } from '../types';
 export const billingCenterManifest = {
   code: 'billing-center',
   name: '计费中心',
+  category: 'commerce',
   pages: {
     'billing-center.plans': () => import('./pages/plans/index.vue'),
     'billing-center.subscriptions': () => import('./pages/subscriptions/index.vue'),
