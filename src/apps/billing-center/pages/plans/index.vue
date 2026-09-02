@@ -12,6 +12,8 @@ const canRead = computed(() => platformStore.hasPermission({ scope: 'platform', 
 const canDelete = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'billing.plan.delete' }));
 const rows = ref<Plan[]>([]);
 const total = ref(0);
+const page = ref(1);
+const pageSize = ref(20);
 const status = ref('');
 const keyword = ref('');
 const visible = ref(false);
@@ -44,11 +46,15 @@ async function load() {
   const v = await listPlans({
     status: status.value,
     keyword: keyword.value,
-    page: 1,
-    pageSize: 100
+    page: page.value,
+    pageSize: pageSize.value
   });
   rows.value = v.items || [];
   total.value = v.total || 0;
+}
+function search() {
+  page.value = 1;
+  load();
 }
 function open(v?: Plan) {
   if ((v && !canUpdate.value) || (!v && !canCreate.value)) return;
@@ -140,7 +146,7 @@ onMounted(load);
     <ElForm inline>
       <ElFormItem label="搜索"><ElInput v-model="keyword" /></ElFormItem>
       <ElFormItem label="状态"><ElInput v-model="status" /></ElFormItem>
-      <ElButton @click="load">查询</ElButton>
+      <ElButton @click="search">查询</ElButton>
     </ElForm>
     <ElTable :data="rows" border>
       <ElTableColumn prop="code" label="编码" />
@@ -156,7 +162,17 @@ onMounted(load);
         </template>
       </ElTableColumn>
     </ElTable>
-    <div class="mt-12px">共 {{ total }} 条</div>
+    <div class="mt-16px flex justify-end">
+      <ElPagination
+        v-model:current-page="page"
+        v-model:page-size="pageSize"
+        :total="total"
+        :page-sizes="[20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        @current-change="load"
+        @size-change="search"
+      />
+    </div>
   </ElCard>
   <ElDialog v-model="visible" :title="editing ? '编辑套餐' : '新建套餐'">
     <ElForm label-width="110px">

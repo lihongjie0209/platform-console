@@ -16,10 +16,13 @@ const range = ref<[string, string]>();
 const granularity = ref('day');
 const dimensions = ref('{}');
 const rows = ref<UsagePoint[]>([]);
+const total = ref(0);
+const page = ref(1);
+const pageSize = ref(20);
 const totalQuantity = ref(0);
 const loading = ref(false);
 const searchGuard = createLatestRequestGuard();
-async function search() {
+async function load() {
   if (!scopeReady.value || !range.value || !meterCode.value.trim()) return;
   const request = searchGuard.begin();
   loading.value = true;
@@ -32,11 +35,12 @@ async function search() {
       endAt: range.value[1],
       dimensions: parseJSONObject(dimensions.value, '维度') as Record<string, string>,
       granularity: granularity.value,
-      page: 1,
-      pageSize: 100
+      page: page.value,
+      pageSize: pageSize.value
     });
     if (searchGuard.isCurrent(request)) {
       rows.value = v.items || [];
+      total.value = v.total || 0;
       totalQuantity.value = v.total_quantity || 0;
     }
   } catch (e) {
@@ -45,9 +49,15 @@ async function search() {
     if (searchGuard.isCurrent(request)) loading.value = false;
   }
 }
+function search() {
+  page.value = 1;
+  load();
+}
 watch([tenantID, applicationID], () => {
   searchGuard.invalidate();
   rows.value = [];
+  total.value = 0;
+  page.value = 1;
   totalQuantity.value = 0;
   loading.value = false;
 });
@@ -84,5 +94,16 @@ watch([tenantID, applicationID], () => {
         <template #default="{ row }">{{ JSON.stringify(row.dimensions || {}) }}</template>
       </ElTableColumn>
     </ElTable>
+    <div class="mt-16px flex justify-end">
+      <ElPagination
+        v-model:current-page="page"
+        v-model:page-size="pageSize"
+        :total="total"
+        :page-sizes="[20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        @current-change="load"
+        @size-change="search"
+      />
+    </div>
   </ElCard>
 </template>

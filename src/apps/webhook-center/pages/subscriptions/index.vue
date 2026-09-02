@@ -12,6 +12,9 @@ const applicationID = computed(() => store.selectedApplicationId);
 const applicationName = computed(() => store.selectedApplication?.name || '当前应用');
 const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const rows = ref<WebhookSubscription[]>([]);
+const total = ref(0);
+const page = ref(1);
+const pageSize = ref(20);
 const status = ref('');
 const search = ref('');
 const visible = ref(false);
@@ -39,15 +42,25 @@ async function load() {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
     rows.value = [];
+    total.value = 0;
     return;
   }
   const v = await listSubscriptions({
     tenantID: tenantID.value,
     applicationID: applicationID.value,
     status: status.value,
-    search: search.value
+    search: search.value,
+    page: page.value,
+    pageSize: pageSize.value
   });
-  if (loadGuard.isCurrent(request)) rows.value = v.items || [];
+  if (loadGuard.isCurrent(request)) {
+    rows.value = v.items || [];
+    total.value = v.page.total || 0;
+  }
+}
+function applyFilters() {
+  page.value = 1;
+  load();
 }
 function open(v?: WebhookSubscription) {
   if ((v && !canUpdate.value) || (!v && !canCreate.value)) return;
@@ -112,6 +125,8 @@ async function test(v: WebhookSubscription) {
 }
 watch([tenantID, applicationID], () => {
   rows.value = [];
+  total.value = 0;
+  page.value = 1;
   visible.value = false;
   editing.value = undefined;
   secret.value = '';
@@ -152,7 +167,7 @@ onMounted(load);
       <ElForm v-if="canTest" inline>
         <ElFormItem label="搜索"><ElInput v-model="search" /></ElFormItem>
         <ElFormItem label="状态"><ElInput v-model="status" /></ElFormItem>
-        <ElButton @click="load">查询</ElButton>
+        <ElButton @click="applyFilters">查询</ElButton>
       </ElForm>
       <ElForm inline>
         <ElFormItem label="测试负载"><ElInput v-model="testPayload" class="w-360px" /></ElFormItem>
@@ -171,6 +186,17 @@ onMounted(load);
           </template>
         </ElTableColumn>
       </ElTable>
+      <div class="mt-16px flex justify-end">
+        <ElPagination
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @current-change="load"
+          @size-change="applyFilters"
+        />
+      </div>
     </template>
   </ElCard>
   <ElDialog v-model="visible" :title="editing ? '编辑订阅' : '新建订阅'">

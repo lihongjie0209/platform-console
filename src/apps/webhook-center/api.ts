@@ -32,7 +32,14 @@ async function unwrap<T>(value: PromiseLike<{ data: T | null; error: unknown }>)
   if (data === null) throw new Error('webhook service returned an empty response');
   return data;
 }
-export const listSubscriptions = (input: { tenantID: string; applicationID: string; status: string; search: string }) =>
+export const listSubscriptions = (input: {
+  tenantID: string;
+  applicationID: string;
+  status: string;
+  search: string;
+  page: number;
+  pageSize: number;
+}) =>
   unwrap<PageBody<WebhookSubscription>>(
     request({
       url: '/api/v1/webhooks/subscriptions/list',
@@ -41,7 +48,7 @@ export const listSubscriptions = (input: { tenantID: string; applicationID: stri
         ...applicationScope(input.tenantID, input.applicationID),
         status: input.status,
         search: input.search,
-        page: { page: 1, page_size: 100 }
+        page: { page: input.page, page_size: input.pageSize }
       }
     })
   );
@@ -125,6 +132,8 @@ export const listDeliveries = (input: {
   applicationID: string;
   subscriptionID: string;
   status: string;
+  page: number;
+  pageSize: number;
 }) =>
   unwrap<PageBody<WebhookDelivery>>(
     request({
@@ -134,7 +143,7 @@ export const listDeliveries = (input: {
         ...applicationScope(input.tenantID, input.applicationID),
         subscription_id: input.subscriptionID,
         status: input.status,
-        page: { page: 1, page_size: 100 }
+        page: { page: input.page, page_size: input.pageSize }
       }
     })
   );

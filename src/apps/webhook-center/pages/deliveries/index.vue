@@ -11,6 +11,9 @@ const applicationID = computed(() => store.selectedApplicationId);
 const applicationName = computed(() => store.selectedApplication?.name || '当前应用');
 const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicationID.value));
 const rows = ref<WebhookDelivery[]>([]);
+const total = ref(0);
+const page = ref(1);
+const pageSize = ref(20);
 const status = ref('');
 const subscriptionID = ref('');
 const detail = ref<WebhookDelivery>();
@@ -20,6 +23,7 @@ async function load() {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
     rows.value = [];
+    total.value = 0;
     detail.value = undefined;
     return;
   }
@@ -27,9 +31,18 @@ async function load() {
     tenantID: tenantID.value,
     applicationID: applicationID.value,
     subscriptionID: subscriptionID.value,
-    status: status.value
+    status: status.value,
+    page: page.value,
+    pageSize: pageSize.value
   });
-  if (loadGuard.isCurrent(request)) rows.value = v.items || [];
+  if (loadGuard.isCurrent(request)) {
+    rows.value = v.items || [];
+    total.value = v.page.total || 0;
+  }
+}
+function applyFilters() {
+  page.value = 1;
+  load();
 }
 async function replay(v: WebhookDelivery) {
   if (!canReplay.value) return;
@@ -38,6 +51,8 @@ async function replay(v: WebhookDelivery) {
 }
 watch([tenantID, applicationID], () => {
   rows.value = [];
+  total.value = 0;
+  page.value = 1;
   detail.value = undefined;
   load();
 });
@@ -57,7 +72,7 @@ onMounted(load);
       <ElForm inline>
         <ElFormItem label="订阅 ID"><ElInput v-model="subscriptionID" /></ElFormItem>
         <ElFormItem label="状态"><ElInput v-model="status" /></ElFormItem>
-        <ElButton @click="load">查询</ElButton>
+        <ElButton @click="applyFilters">查询</ElButton>
       </ElForm>
       <ElTable :data="rows" border>
         <ElTableColumn prop="event_subject" label="事件" min-width="220" />
@@ -74,6 +89,17 @@ onMounted(load);
           </template>
         </ElTableColumn>
       </ElTable>
+      <div class="mt-16px flex justify-end">
+        <ElPagination
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @current-change="load"
+          @size-change="applyFilters"
+        />
+      </div>
     </template>
   </ElCard>
   <ElDrawer :model-value="Boolean(detail)" title="投递详情" size="600px" @closed="detail = undefined">

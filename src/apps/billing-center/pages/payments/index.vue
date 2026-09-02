@@ -19,6 +19,9 @@ const status = ref('');
 const loading = ref(false);
 const payments = ref<PaymentAttempt[]>([]);
 const refunds = ref<Refund[]>([]);
+const total = ref(0);
+const page = ref(1);
+const pageSize = ref(20);
 const paymentDialogVisible = ref(false);
 const refundDialogVisible = ref(false);
 const selectedPayment = ref<PaymentAttempt>();
@@ -33,6 +36,7 @@ async function load() {
   if (!scopeReady.value) {
     payments.value = [];
     refunds.value = [];
+    total.value = 0;
     loading.value = false;
     return;
   }
@@ -43,23 +47,33 @@ async function load() {
         tenantID: tenantID.value,
         applicationID: applicationID.value,
         status: status.value,
-        page: 1,
-        pageSize: 100
+        page: page.value,
+        pageSize: pageSize.value
       });
-      if (loadGuard.isCurrent(request)) payments.value = result.items || [];
+      if (loadGuard.isCurrent(request)) {
+        payments.value = result.items || [];
+        total.value = result.total || 0;
+      }
     } else {
       const result = await listRefunds({
         tenantID: tenantID.value,
         applicationID: applicationID.value,
         status: status.value,
-        page: 1,
-        pageSize: 100
+        page: page.value,
+        pageSize: pageSize.value
       });
-      if (loadGuard.isCurrent(request)) refunds.value = result.items || [];
+      if (loadGuard.isCurrent(request)) {
+        refunds.value = result.items || [];
+        total.value = result.total || 0;
+      }
     }
   } finally {
     if (loadGuard.isCurrent(request)) loading.value = false;
   }
+}
+function search() {
+  page.value = 1;
+  load();
 }
 
 function openPaymentDialog() {
@@ -123,6 +137,8 @@ async function submitRefund() {
 watch([tenantID, applicationID], () => {
   payments.value = [];
   refunds.value = [];
+  total.value = 0;
+  page.value = 1;
   selectedPayment.value = undefined;
   paymentDialogVisible.value = false;
   refundDialogVisible.value = false;
@@ -130,6 +146,8 @@ watch([tenantID, applicationID], () => {
 });
 watch(activeTab, () => {
   status.value = '';
+  page.value = 1;
+  total.value = 0;
   load();
 });
 onMounted(load);
@@ -157,9 +175,9 @@ onMounted(load);
       </ElTabs>
       <ElForm inline>
         <ElFormItem label="状态">
-          <ElInput v-model="status" clearable placeholder="如 succeeded、failed" @keyup.enter="load" />
+          <ElInput v-model="status" clearable placeholder="如 succeeded、failed" @keyup.enter="search" />
         </ElFormItem>
-        <ElButton :loading="loading" @click="load">查询</ElButton>
+        <ElButton :loading="loading" @click="search">查询</ElButton>
       </ElForm>
 
       <ElTable v-if="activeTab === 'payments'" v-loading="loading" :data="payments" border>
@@ -194,6 +212,17 @@ onMounted(load);
         <ElTableColumn prop="reason" label="原因" min-width="180" show-overflow-tooltip />
         <ElTableColumn prop="created_at" label="创建时间" min-width="180" :formatter="formatPlatformTableDateTime" />
       </ElTable>
+      <div class="mt-16px flex justify-end">
+        <ElPagination
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @current-change="load"
+          @size-change="search"
+        />
+      </div>
     </template>
   </ElCard>
 

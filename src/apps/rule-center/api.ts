@@ -86,7 +86,7 @@ export function saveRuleSet(
     })
   );
 }
-export const listRuleVersions = (value: RuleSet) =>
+export const listRuleVersions = (value: RuleSet, page: number, pageSize: number) =>
   unwrap<Page<RuleVersion>>(
     request({
       url: '/api/v1/rule-versions/list',
@@ -94,8 +94,8 @@ export const listRuleVersions = (value: RuleSet) =>
       data: {
         ...applicationScope(value.tenant_id, value.application_id),
         rule_set_id: value.id,
-        page: 1,
-        page_size: 100
+        page,
+        page_size: pageSize
       }
     })
   );
