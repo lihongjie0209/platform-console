@@ -15,7 +15,12 @@ import {
   publishMenus,
   upsertMenu
 } from '../../api';
-import { buildMenuTree, descendantMenuIDs, findMenuRouteConflict } from '../../menu-tree';
+import {
+  buildMenuTree,
+  descendantMenuIDs,
+  findMenuRouteConflict,
+  isApplicationDefaultRouteValid
+} from '../../menu-tree';
 
 defineOptions({ name: 'PlatformAdminMenus' });
 
@@ -59,6 +64,13 @@ const applicationPageOptions = computed(() =>
 );
 const selectedTenantID = computed(() => platformStore.selectedTenantId);
 const forbiddenParentIDs = computed(() => (form.id ? descendantMenuIDs(menus.value, form.id) : new Set<string>()));
+const defaultRouteValid = computed(() =>
+  isApplicationDefaultRouteValid(
+    String(selectedApplication.value?.code || ''),
+    String(selectedApplication.value?.default_route || ''),
+    menus.value
+  )
+);
 
 const rules: FormRules<MenuForm> = {
   code: [{ required: true, message: '请输入菜单编码', trigger: 'blur' }],
@@ -245,6 +257,10 @@ async function removeMenu(menu: ApplicationMenu) {
 
 async function publish() {
   if (!applicationID.value) return;
+  if (!defaultRouteValid.value) {
+    window.$message?.warning('应用默认路由必须指向当前草稿中的启用叶子菜单或应用概览');
+    return;
+  }
   publishing.value = true;
   try {
     const application = await getApplication(applicationID.value);
@@ -291,9 +307,13 @@ onMounted(async () => {
     <ElAlert
       v-if="selectedApplication"
       class="mb-16px"
-      type="info"
+      :type="defaultRouteValid ? 'info' : 'warning'"
       :closable="false"
-      :title="`当前应用：${selectedApplication.name}，已发布版本：${selectedApplication.published_release || 0}`"
+      :title="
+        defaultRouteValid
+          ? `当前应用：${selectedApplication.name}，已发布版本：${selectedApplication.published_release || 0}`
+          : `默认路由 ${selectedApplication.default_route} 不是启用叶子菜单，发布前请先修正应用配置或菜单草稿`
+      "
     />
     <ElEmpty v-if="!applicationID" description="请先创建或选择应用" />
     <ElTree

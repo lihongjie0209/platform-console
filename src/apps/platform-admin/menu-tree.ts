@@ -6,6 +6,7 @@ export interface ApplicationMenuNode extends ApplicationMenu {
 
 export interface MenuRouteCandidate {
   id?: string;
+  parent_id?: string;
   code?: string;
   type?: string;
   route?: string;
@@ -54,6 +55,27 @@ export function findMenuRouteConflict(
       normalizedMenuRoute(applicationCode, menu) === path
   );
   return conflicting ? { path, menuCode: String(conflicting.code || conflicting.id || '') } : undefined;
+}
+
+export function isApplicationDefaultRouteValid(
+  applicationCode: string,
+  defaultRoute: string,
+  menus: MenuRouteCandidate[]
+) {
+  const configured = defaultRoute.trim();
+  if (!configured) return true;
+
+  const scope = `/apps/${routeSegment(applicationCode)}`;
+  const candidate = configured.startsWith(`${scope}/`) ? configured : `${scope}/${configured.replace(/^\/+/, '')}`;
+  if (candidate === `${scope}/overview`) return true;
+
+  const activeMenus = menus.filter(
+    menu => (menu.status === undefined || menu.status === '' || menu.status === 'active') && menu.type !== 'action'
+  );
+  const parentIDs = new Set(activeMenus.map(menu => String(menu.parent_id || '')).filter(Boolean));
+  return activeMenus.some(
+    menu => !parentIDs.has(String(menu.id || '')) && normalizedMenuRoute(applicationCode, menu) === candidate
+  );
 }
 
 export function buildMenuTree(items: ApplicationMenu[]): ApplicationMenuNode[] {

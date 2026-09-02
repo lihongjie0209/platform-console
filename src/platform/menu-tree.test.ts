@@ -5,6 +5,7 @@ import {
   buildMenuTree,
   descendantMenuIDs,
   findMenuRouteConflict,
+  isApplicationDefaultRouteValid,
   normalizedMenuRoute
 } from '../apps/platform-admin/menu-tree';
 
@@ -74,4 +75,19 @@ test('menu route conflicts use the final application URL namespace', () => {
     }),
     { path: '/apps/billing-center', menuCode: '__application__' }
   );
+});
+
+test('application default routes target an active leaf or the built-in overview', () => {
+  const values = [
+    { id: 'settings', code: 'settings', type: 'directory', route: 'settings', status: 'active' },
+    { id: 'plans', parent_id: 'settings', code: 'plans', type: 'page', route: 'plans', status: 'active' },
+    { id: 'legacy', code: 'legacy', type: 'page', route: 'legacy', status: 'disabled' }
+  ];
+  assert.equal(isApplicationDefaultRouteValid('billing-center', '', values), true);
+  assert.equal(isApplicationDefaultRouteValid('billing-center', 'plans', values), true);
+  assert.equal(isApplicationDefaultRouteValid('billing-center', '/apps/billing-center/plans', values), true);
+  assert.equal(isApplicationDefaultRouteValid('billing-center', '/apps/billing-center/overview', values), true);
+  assert.equal(isApplicationDefaultRouteValid('billing-center', 'settings', values), false);
+  assert.equal(isApplicationDefaultRouteValid('billing-center', 'legacy', values), false);
+  assert.equal(isApplicationDefaultRouteValid('billing-center', 'missing', values), false);
 });
