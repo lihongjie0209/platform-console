@@ -15,6 +15,19 @@ export type ExportJob = ExportContract['schemas']['httptransport.ExportJobBody']
   progress_percent: number;
   version: number;
 };
+export type ExportDataset = ExportContract['schemas']['httptransport.ExportDatasetSummaryBody'] & {
+  provider_service: string;
+  code: string;
+  title: string;
+  formats: string[];
+  healthy_instances: number;
+};
+export type ExportDatasetDescriptor = ExportContract['schemas']['httptransport.ExportDatasetDescriptorBody'] & {
+  code: string;
+  title: string;
+  formats: string[];
+  columns: Array<{ key?: string; title?: string; type?: string; format?: string; sensitive?: boolean }>;
+};
 interface Page<T> {
   items: T[];
   total: number;
@@ -39,6 +52,31 @@ export const listExports = (input: { tenantID: string; applicationID: string; st
         dataset_code: input.datasetCode,
         page: 1,
         page_size: 100
+      }
+    })
+  );
+export const listExportDatasets = (tenantID: string, applicationID: string, search = '') =>
+  unwrap<Page<ExportDataset>>(
+    request({
+      url: '/api/v1/exports/datasets/list',
+      method: 'post',
+      data: { ...applicationScope(tenantID, applicationID), search, page: 1, page_size: 100 }
+    })
+  );
+export const describeExportDataset = (input: {
+  tenantID: string;
+  applicationID: string;
+  providerService: string;
+  datasetCode: string;
+}) =>
+  unwrap<ExportDatasetDescriptor>(
+    request({
+      url: '/api/v1/exports/datasets/describe',
+      method: 'post',
+      data: {
+        ...applicationScope(input.tenantID, input.applicationID),
+        provider_service: input.providerService,
+        dataset_code: input.datasetCode
       }
     })
   );

@@ -3,8 +3,17 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { parseJSONObject } from '@/platform/json';
-import type { ExportJob } from '../../api';
-import { cancelExport, createExport, downloadExport, listExports, retryExport } from '../../api';
+import type { ExportDataset, ExportDatasetDescriptor, ExportJob } from '../../api';
+import {
+  cancelExport,
+  createExport,
+  describeExportDataset,
+  downloadExport,
+  listExportDatasets,
+  listExports,
+  retryExport
+} from '../../api';
+import { datasetKey, descriptorDefaults, findDataset } from '../../export-form';
 defineOptions({ name: 'ExportCenterJobs' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
@@ -15,8 +24,13 @@ const rows = ref<ExportJob[]>([]);
 const status = ref('');
 const datasetCode = ref('');
 const visible = ref(false);
-const form = reactive({ datasetCode: '', providerService: '', format: 'csv', filename: '', query: '{}', columns: '' });
+const datasets = ref<ExportDataset[]>([]);
+const descriptor = ref<ExportDatasetDescriptor>();
+const catalogLoading = ref(false);
+const form = reactive({ datasetKey: '', format: '', filename: '', query: '{}', columns: [] as string[] });
 const loadGuard = createLatestRequestGuard();
+const catalogGuard = createLatestRequestGuard();
+const descriptorGuard = createLatestRequestGuard();
 async function load() {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
@@ -31,21 +45,52 @@ async function load() {
   });
   if (loadGuard.isCurrent(request)) rows.value = v.items || [];
 }
+async function openCreate() {
+  visible.value = true;
+  form.datasetKey = '';
+  form.format = '';
+  form.columns = [];
+  descriptor.value = undefined;
+  const request = catalogGuard.begin();
+  catalogLoading.value = true;
+  try {
+    const value = await listExportDatasets(tenantID.value, applicationID.value);
+    if (catalogGuard.isCurrent(request)) datasets.value = value.items || [];
+  } finally {
+    if (catalogGuard.isCurrent(request)) catalogLoading.value = false;
+  }
+}
+async function selectDataset() {
+  const selected = findDataset(datasets.value, form.datasetKey);
+  descriptor.value = undefined;
+  if (!selected) return;
+  const request = descriptorGuard.begin();
+  const value = await describeExportDataset({
+    tenantID: tenantID.value,
+    applicationID: applicationID.value,
+    providerService: selected.provider_service,
+    datasetCode: selected.code
+  });
+  if (!descriptorGuard.isCurrent(request)) return;
+  descriptor.value = value;
+  const defaults = descriptorDefaults(value);
+  form.format = defaults.format;
+  form.columns = defaults.columns;
+}
 async function create() {
   if (!scopeReady.value) return;
+  const selected = findDataset(datasets.value, form.datasetKey);
+  if (!selected || !descriptor.value) return;
   try {
     await createExport({
       tenantID: tenantID.value,
       applicationID: applicationID.value,
-      datasetCode: form.datasetCode,
-      providerService: form.providerService,
+      datasetCode: selected.code,
+      providerService: selected.provider_service,
       format: form.format,
       filename: form.filename,
       query: parseJSONObject(form.query, '查询条件'),
       columns: form.columns
-        .split(',')
-        .map(v => v.trim())
-        .filter(Boolean)
     });
     visible.value = false;
     await load();
@@ -66,6 +111,10 @@ async function action(job: ExportJob, type: 'cancel' | 'retry' | 'download') {
 watch([tenantID, applicationID], () => {
   visible.value = false;
   rows.value = [];
+  datasets.value = [];
+  descriptor.value = undefined;
+  catalogGuard.invalidate();
+  descriptorGuard.invalidate();
   load();
 });
 onMounted(load);
@@ -79,7 +128,7 @@ onMounted(load);
           <h2 class="m-0">数据导出</h2>
           <p class="mb-0 text-#999">为 {{ applicationName }} 异步生成导出文件，成功后签发短时下载地址。</p>
         </div>
-        <ElButton type="primary" :disabled="!scopeReady" @click="visible = true">创建导出</ElButton>
+        <ElButton type="primary" :disabled="!scopeReady" @click="openCreate">创建导出</ElButton>
       </div>
     </template>
     <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" :closable="false" />
@@ -119,20 +168,34 @@ onMounted(load);
   </ElCard>
   <ElDialog v-model="visible" title="创建导出">
     <ElForm label-width="110px">
-      <ElFormItem label="数据集编码"><ElInput v-model="form.datasetCode" /></ElFormItem>
-      <ElFormItem label="提供服务"><ElInput v-model="form.providerService" /></ElFormItem>
+      <ElFormItem label="数据集">
+        <ElSelect v-model="form.datasetKey" class="w-full" filterable :loading="catalogLoading" @change="selectDataset">
+          <ElOption
+            v-for="item in datasets"
+            :key="datasetKey(item)"
+            :value="datasetKey(item)"
+            :label="`${item.title}（${item.provider_service}）`"
+          />
+        </ElSelect>
+      </ElFormItem>
       <ElFormItem label="格式">
         <ElSelect v-model="form.format">
-          <ElOption v-for="v in ['csv', 'jsonl', 'xlsx']" :key="v" :label="v" :value="v" />
+          <ElOption v-for="v in descriptor?.formats || []" :key="v" :label="v" :value="v" />
         </ElSelect>
       </ElFormItem>
       <ElFormItem label="文件名"><ElInput v-model="form.filename" /></ElFormItem>
       <ElFormItem label="查询 JSON"><ElInput v-model="form.query" type="textarea" :rows="6" /></ElFormItem>
-      <ElFormItem label="选择列"><ElInput v-model="form.columns" placeholder="逗号分隔；留空表示全部" /></ElFormItem>
+      <ElFormItem v-if="descriptor" label="选择列">
+        <ElCheckboxGroup v-model="form.columns">
+          <ElCheckbox v-for="column in descriptor.columns" :key="column.key" :value="column.key">
+            {{ column.title || column.key }}
+          </ElCheckbox>
+        </ElCheckboxGroup>
+      </ElFormItem>
     </ElForm>
     <template #footer>
       <ElButton @click="visible = false">取消</ElButton>
-      <ElButton type="primary" @click="create">创建</ElButton>
+      <ElButton type="primary" :disabled="!descriptor || !form.format" @click="create">创建</ElButton>
     </template>
   </ElDialog>
 </template>

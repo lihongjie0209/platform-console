@@ -90,6 +90,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exports/datasets/describe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Describe an export dataset available to an application */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Dataset selector */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.DescribeExportDatasetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ExportDatasetDescriptorBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exports/datasets/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List export datasets available to an application */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Application scope and search */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListExportDatasetsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ExportDatasetPageBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exports/download": {
         parameters: {
             query?: never;
@@ -466,11 +552,46 @@ export interface components {
             selected_columns?: string[];
             tenant_id?: string;
         };
+        "httptransport.DescribeExportDatasetRequest": {
+            application_id?: string;
+            dataset_code?: string;
+            provider_service?: string;
+            tenant_id?: string;
+        };
         "httptransport.DownloadExportRequest": {
             application_id?: string;
             id?: string;
             tenant_id?: string;
             ttl_seconds?: number;
+        };
+        "httptransport.ExportColumnBody": {
+            format?: string;
+            key?: string;
+            sensitive?: boolean;
+            title?: string;
+            type?: string;
+        };
+        "httptransport.ExportDatasetDescriptorBody": {
+            code?: string;
+            columns?: components["schemas"]["httptransport.ExportColumnBody"][];
+            estimated_rows?: number;
+            formats?: string[];
+            supports_snapshot?: boolean;
+            title?: string;
+        };
+        "httptransport.ExportDatasetPageBody": {
+            items?: components["schemas"]["httptransport.ExportDatasetSummaryBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
+        "httptransport.ExportDatasetSummaryBody": {
+            code?: string;
+            formats?: string[];
+            healthy_instances?: number;
+            provider_service?: string;
+            supports_snapshot?: boolean;
+            title?: string;
         };
         "httptransport.ExportDownloadBody": {
             checksum?: string;
@@ -520,6 +641,13 @@ export interface components {
         "httptransport.GetExportRequest": {
             application_id?: string;
             id?: string;
+            tenant_id?: string;
+        };
+        "httptransport.ListExportDatasetsRequest": {
+            application_id?: string;
+            page?: number;
+            page_size?: number;
+            search?: string;
             tenant_id?: string;
         };
         "httptransport.ListExportsRequest": {
