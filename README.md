@@ -35,6 +35,7 @@ pnpm check:contracts
 pnpm check:application-boundaries
 pnpm check:application-chunks # requires pnpm build first
 pnpm check:application-scope
+pnpm check:bounded-collections
 pnpm check:product-surface
 docker build -f docker/Dockerfile -t platform-console .
 ```

@@ -36,6 +36,7 @@
     "check:application-boundaries": "node scripts/check-application-boundaries.mjs",
     "check:application-chunks": "node scripts/check-application-chunks.mjs",
     "check:application-scope": "node scripts/check-application-scope.mjs",
+    "check:bounded-collections": "node scripts/check-bounded-collections.mjs",
     "check:contracts": "node scripts/check-contract-types.mjs",
     "check:product-surface": "node scripts/check-product-surface.mjs",
     "check:runtime-config": "node scripts/check-runtime-config.mjs",
