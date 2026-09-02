@@ -56,4 +56,30 @@ const violations = (
   )
 ).flat(2);
 
-assert.deepEqual(violations, [], `cross-application imports are forbidden:\n${violations.join('\n')}`);
+const shellFiles = (await sourceFiles(path.join(projectRoot, 'src'))).filter(
+  sourceFile =>
+    !path
+      .relative(applicationsRoot, sourceFile)
+      .split(path.sep)
+      .every(segment => segment !== '..')
+);
+const shellViolations = (
+  await Promise.all(
+    shellFiles.map(async sourceFile => {
+      const source = await readFile(sourceFile, 'utf8');
+      return Array.from(source.matchAll(/(?:from\s*|import\s*(?:\(\s*)?)["']([^"']+)["']/g), match => {
+        const target = targetApplication(sourceFile, match[1]);
+        return target ? `${path.relative(projectRoot, sourceFile)} imports application ${target}: ${match[1]}` : '';
+      }).filter(Boolean);
+    })
+  )
+).flat();
+
+assert.deepEqual(
+  [...violations, ...shellViolations],
+  [],
+  `application internals may be imported only by their own application or the src/apps composition layer:\n${[
+    ...violations,
+    ...shellViolations
+  ].join('\n')}`
+);

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applicationCodeError, parseJSONObject, parseJSONRecord } from '../apps/platform-admin/metadata';
+import { applicationCodeError, parseJSONObject, parseJSONRecord } from './metadata';
 
 test('parseJSONObject accepts metadata objects without double encoding', () => {
   assert.deepEqual(parseJSONObject('{"owner":"platform"}'), { owner: 'platform' });

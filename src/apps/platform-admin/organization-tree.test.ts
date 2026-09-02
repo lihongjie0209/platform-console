@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildOrganizationTree, descendantOrganizationIDs } from '../apps/platform-admin/organization-tree';
+import { buildOrganizationTree, descendantOrganizationIDs } from './organization-tree';
 
 const items = [
   { id: 'child', parent_id: 'root', code: 'child', path: '/root/child/' },

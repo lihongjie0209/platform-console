@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { ApplicationMenu } from '../apps/platform-admin/api';
+import type { ApplicationMenu } from './api';
 import {
   buildMenuTree,
   descendantMenuIDs,
   findMenuRouteConflict,
   isApplicationDefaultRouteValid,
   normalizedMenuRoute
-} from '../apps/platform-admin/menu-tree';
+} from './menu-tree';
 
 const menus = [
   { id: 'child', parent_id: 'root', sort_order: 2, code: 'child' },
