@@ -3,7 +3,8 @@ import type { components as AuthorizationContract } from '@/service/contracts/ge
 import type { components as IdentityContract } from '@/service/contracts/generated/identity';
 import type { components as TenantContract } from '@/service/contracts/generated/tenant';
 import { platformRequest } from '@/service/request';
-import { parseJSONObject, parseJSONRecord } from './metadata';
+import type { ApplicationCategory } from '../types';
+import { applicationMetadata, parseJSONRecord } from './metadata';
 
 export type Application = ApplicationContract['schemas']['httptransport.ApplicationBody'] & Record<string, unknown>;
 export type ApplicationMenu = ApplicationContract['schemas']['httptransport.MenuBody'] & Record<string, unknown>;
@@ -300,6 +301,7 @@ export interface ApplicationForm extends Record<string, unknown> {
   default_route: string;
   sort_order: number;
   status: string;
+  category: ApplicationCategory;
   metadata_json: string;
   version: number;
 }
@@ -348,7 +350,7 @@ export async function createApplication(form: ApplicationForm) {
         icon: form.icon,
         default_route: form.default_route,
         sort_order: form.sort_order,
-        metadata_json: parseJSONObject(form.metadata_json)
+        metadata_json: applicationMetadata(form.metadata_json, form.category)
       }
     })
   );
@@ -367,7 +369,7 @@ export async function updateApplication(id: string, form: ApplicationForm) {
         default_route: form.default_route,
         sort_order: form.sort_order,
         status: form.status,
-        metadata_json: parseJSONObject(form.metadata_json),
+        metadata_json: applicationMetadata(form.metadata_json, form.category),
         version: form.version
       }
     })

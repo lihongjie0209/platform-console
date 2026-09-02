@@ -4,7 +4,12 @@ import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business'
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
 import type { Application, ApplicationForm } from '../../api';
 import { createApplication, getApplication, listApplications, updateApplication } from '../../api';
-import { applicationCodeError, parseJSONObject } from '../../metadata';
+import {
+  applicationCategoryFromMetadata,
+  applicationCategoryOptions,
+  applicationCodeError,
+  parseJSONObject
+} from '../../metadata';
 
 defineOptions({ name: 'PlatformAdminApplications' });
 
@@ -23,6 +28,7 @@ function emptyForm(): ApplicationForm {
     default_route: '',
     sort_order: 0,
     status: 'draft',
+    category: 'business',
     metadata_json: '{}',
     version: 0
   };
@@ -71,6 +77,7 @@ const config: BizCrudConfig<Application, ApplicationQuery, ApplicationForm, stri
     { prop: 'code', label: '应用编码', minWidth: 150 },
     { prop: 'name', label: '应用名称', minWidth: 150 },
     { prop: 'description', label: '描述', minWidth: 200, showOverflowTooltip: true },
+    { prop: 'category', label: '应用分类', width: 130, slot: 'category' },
     { prop: 'default_route', label: '默认路由', minWidth: 160 },
     { prop: 'published_release', label: '已发布版本', width: 125 },
     { prop: 'status', label: '状态', width: 100, slot: 'status' },
@@ -95,6 +102,13 @@ const config: BizCrudConfig<Application, ApplicationQuery, ApplicationForm, stri
       { key: 'icon', label: 'Iconify 图标' },
       { key: 'default_route', label: '默认路由', placeholder: '例如 applications' },
       { key: 'sort_order', label: '排序', type: 'number', props: { min: 0 } },
+      {
+        key: 'category',
+        label: '应用分类',
+        type: 'select',
+        options: [...applicationCategoryOptions],
+        rules: [{ required: true, message: '请选择应用分类' }]
+      },
       {
         key: 'status',
         label: '状态',
@@ -123,11 +137,16 @@ const config: BizCrudConfig<Application, ApplicationQuery, ApplicationForm, stri
       strategy: 'all'
     }
   },
-  mapRowToForm: row => ({
-    ...emptyForm(),
-    ...row,
-    metadata_json: typeof row.metadata_json === 'string' ? row.metadata_json : JSON.stringify(row.metadata_json || {})
-  })
+  mapRowToForm: row => {
+    const metadataJSON =
+      typeof row.metadata_json === 'string' ? row.metadata_json : JSON.stringify(row.metadata_json || {});
+    return {
+      ...emptyForm(),
+      ...row,
+      category: applicationCategoryFromMetadata(metadataJSON),
+      metadata_json: metadataJSON
+    };
+  }
 };
 
 const adapter: BizCrudAdapter<Application, ApplicationQuery, ApplicationForm, string> = {
@@ -148,12 +167,21 @@ function statusType(status?: string) {
   if (status === 'disabled' || status === 'archived') return 'danger';
   return 'info';
 }
+
+function categoryLabel(metadata?: unknown) {
+  const value = typeof metadata === 'string' ? metadata : JSON.stringify(metadata || {});
+  const category = applicationCategoryFromMetadata(value);
+  return applicationCategoryOptions.find(option => option.value === category)?.label || '业务应用';
+}
 </script>
 
 <template>
   <BizCrudPage :config="config" :adapter="adapter">
     <template #cell-status="{ row }">
       <BizStatusTag :label="String(row.status || '-')" :type="statusType(row.status)" />
+    </template>
+    <template #cell-category="{ row }">
+      <ElTag effect="plain">{{ categoryLabel(row.metadata_json) }}</ElTag>
     </template>
     <template #cell-actions="{ row, edit, canEdit }">
       <BizRowActions :can-edit="canEdit" :can-delete="false" @edit="edit(row)" />
