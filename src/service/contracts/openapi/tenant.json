@@ -43,7 +43,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/tenant.Group"
+                                                    "$ref": "#/components/schemas/httptransport.GroupBody"
                                                 }
                                             }
                                         }
@@ -83,7 +83,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.GroupsResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -119,7 +131,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.AddGroupMemberResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -155,7 +179,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.RemoveGroupMemberResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -247,7 +283,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/tenant.Group"
+                                                    "$ref": "#/components/schemas/httptransport.GroupBody"
                                                 }
                                             }
                                         }
@@ -287,7 +323,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.AcceptInvitationResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -379,7 +427,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/tenant.InvitationPage"
+                                                    "$ref": "#/components/schemas/httptransport.InvitationPageBody"
                                                 }
                                             }
                                         }
@@ -427,7 +475,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/tenant.Invitation"
+                                                    "$ref": "#/components/schemas/httptransport.InvitationBody"
                                                 }
                                             }
                                         }
@@ -486,6 +534,54 @@
                 }
             }
         },
+        "/api/v1/memberships/add": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "memberships"
+                ],
+                "summary": "Add a tenant membership",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.AddMembershipRequest"
+                            }
+                        }
+                    },
+                    "description": "Membership",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.MembershipBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/memberships/list": {
             "post": {
                 "security": [
@@ -522,7 +618,55 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/tenant.MembershipPage"
+                                                    "$ref": "#/components/schemas/httptransport.MembershipPageBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/memberships/update": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "memberships"
+                ],
+                "summary": "Update a tenant membership using optimistic locking",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.UpdateMembershipRequest"
+                            }
+                        }
+                    },
+                    "description": "Membership and current version",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.MembershipBody"
                                                 }
                                             }
                                         }
@@ -570,7 +714,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/tenant.OrganizationUnit"
+                                                    "$ref": "#/components/schemas/httptransport.OrganizationUnitBody"
                                                 }
                                             }
                                         }
@@ -618,7 +762,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/tenant.OrganizationUnit"
+                                                    "$ref": "#/components/schemas/httptransport.OrganizationUnitBody"
                                                 }
                                             }
                                         }
@@ -666,10 +810,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "$ref": "#/components/schemas/tenant.OrganizationUnit"
-                                                    }
+                                                    "$ref": "#/components/schemas/httptransport.OrganizationUnitsResponseBody"
                                                 }
                                             }
                                         }
@@ -717,7 +858,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/tenant.OrganizationUnit"
+                                                    "$ref": "#/components/schemas/httptransport.OrganizationUnitBody"
                                                 }
                                             }
                                         }
@@ -757,7 +898,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.ConsumeQuotaResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -801,7 +954,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/tenant.Quota"
+                                                    "$ref": "#/components/schemas/httptransport.QuotaBody"
                                                 }
                                             }
                                         }
@@ -849,7 +1002,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/tenant.QuotaPage"
+                                                    "$ref": "#/components/schemas/httptransport.QuotaPageBody"
                                                 }
                                             }
                                         }
@@ -897,7 +1050,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/tenant.Quota"
+                                                    "$ref": "#/components/schemas/httptransport.QuotaBody"
                                                 }
                                             }
                                         }
@@ -937,7 +1090,67 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.CreateTenantResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/tenants/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "tenants"
+                ],
+                "summary": "Get a tenant",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GetTenantRequest"
+                            }
+                        }
+                    },
+                    "description": "Tenant",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.TenantBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -973,7 +1186,67 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.TenantPageBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/tenants/list-by-user": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "memberships"
+                ],
+                "summary": "List tenant memberships for a user",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.ListUserTenantsRequest"
+                            }
+                        }
+                    },
+                    "description": "User and pagination",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.TenantPageBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -1009,7 +1282,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.CreateTenantResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -1078,6 +1363,54 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/tenants/update": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "tenants"
+                ],
+                "summary": "Update a tenant using optimistic locking",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.UpdateTenantRequest"
+                            }
+                        }
+                    },
+                    "description": "Tenant and current version",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.TenantBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -1281,6 +1614,43 @@
                     }
                 }
             },
+            "httptransport.AcceptInvitationResponseBody": {
+                "type": "object",
+                "properties": {
+                    "invitation": {
+                        "$ref": "#/components/schemas/httptransport.InvitationBody"
+                    },
+                    "membership": {
+                        "$ref": "#/components/schemas/httptransport.MembershipBody"
+                    }
+                }
+            },
+            "httptransport.AddGroupMemberResponseBody": {
+                "type": "object",
+                "properties": {
+                    "added": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "httptransport.AddMembershipRequest": {
+                "type": "object",
+                "required": [
+                    "tenant_id",
+                    "user_id"
+                ],
+                "properties": {
+                    "primary_organization_unit_id": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    },
+                    "user_id": {
+                        "type": "string"
+                    }
+                }
+            },
             "httptransport.ConsumeQuotaRequest": {
                 "type": "object",
                 "required": [
@@ -1297,6 +1667,17 @@
                     },
                     "tenant_id": {
                         "type": "string"
+                    }
+                }
+            },
+            "httptransport.ConsumeQuotaResponseBody": {
+                "type": "object",
+                "properties": {
+                    "allowed": {
+                        "type": "boolean"
+                    },
+                    "quota": {
+                        "$ref": "#/components/schemas/httptransport.QuotaBody"
                     }
                 }
             },
@@ -1342,7 +1723,7 @@
                 "type": "object",
                 "properties": {
                     "invitation": {
-                        "$ref": "#/components/schemas/tenant.Invitation"
+                        "$ref": "#/components/schemas/httptransport.InvitationBody"
                     },
                     "token": {
                         "type": "string"
@@ -1390,6 +1771,17 @@
                     }
                 }
             },
+            "httptransport.CreateTenantResponseBody": {
+                "type": "object",
+                "properties": {
+                    "owner_membership": {
+                        "$ref": "#/components/schemas/httptransport.MembershipBody"
+                    },
+                    "tenant": {
+                        "$ref": "#/components/schemas/httptransport.TenantBody"
+                    }
+                }
+            },
             "httptransport.GetOrganizationUnitRequest": {
                 "type": "object",
                 "required": [
@@ -1416,6 +1808,87 @@
                     }
                 }
             },
+            "httptransport.GetTenantRequest": {
+                "type": "object",
+                "required": [
+                    "tenant_id"
+                ],
+                "properties": {
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.GroupBody": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.GroupMemberBody": {
+                "type": "object",
+                "properties": {
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "group_id": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "membership_id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
             "httptransport.GroupMemberRequest": {
                 "type": "object",
                 "required": [
@@ -1437,8 +1910,77 @@
                     "group_members": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/tenant.GroupMember"
+                            "$ref": "#/components/schemas/httptransport.GroupMemberBody"
                         }
+                    }
+                }
+            },
+            "httptransport.GroupsResponseBody": {
+                "type": "object",
+                "properties": {
+                    "groups": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.GroupBody"
+                        }
+                    }
+                }
+            },
+            "httptransport.InvitationBody": {
+                "type": "object",
+                "properties": {
+                    "accepted_by_user_id": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "expires_at": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.InvitationPageBody": {
+                "type": "object",
+                "properties": {
+                    "invitations": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.InvitationBody"
+                        }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "total": {
+                        "type": "integer"
                     }
                 }
             },
@@ -1552,11 +2094,190 @@
                     }
                 }
             },
+            "httptransport.ListUserTenantsRequest": {
+                "type": "object",
+                "required": [
+                    "user_id"
+                ],
+                "properties": {
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "user_id": {
+                        "type": "string"
+                    }
+                }
+            },
             "httptransport.MeResponseBody": {
                 "type": "object",
                 "properties": {
                     "subject": {
                         "type": "string"
+                    }
+                }
+            },
+            "httptransport.MembershipBody": {
+                "type": "object",
+                "properties": {
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "joined_at": {
+                        "type": "string"
+                    },
+                    "primary_organization_unit_id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "user_id": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.MembershipPageBody": {
+                "type": "object",
+                "properties": {
+                    "memberships": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.MembershipBody"
+                        }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "total": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.OrganizationUnitBody": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "parent_id": {
+                        "type": "string"
+                    },
+                    "path": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.OrganizationUnitsResponseBody": {
+                "type": "object",
+                "properties": {
+                    "organization_units": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.OrganizationUnitBody"
+                        }
+                    }
+                }
+            },
+            "httptransport.QuotaBody": {
+                "type": "object",
+                "properties": {
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "key": {
+                        "type": "string"
+                    },
+                    "limit": {
+                        "type": "integer"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "used": {
+                        "type": "integer"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.QuotaPageBody": {
+                "type": "object",
+                "properties": {
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "quotas": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.QuotaBody"
+                        }
+                    },
+                    "total": {
+                        "type": "integer"
                     }
                 }
             },
@@ -1576,6 +2297,14 @@
                     },
                     "version": {
                         "type": "integer"
+                    }
+                }
+            },
+            "httptransport.RemoveGroupMemberResponseBody": {
+                "type": "object",
+                "properties": {
+                    "removed": {
+                        "type": "boolean"
                     }
                 }
             },
@@ -1663,6 +2392,58 @@
                     }
                 }
             },
+            "httptransport.TenantBody": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "created_by": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    },
+                    "updated_by": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.TenantPageBody": {
+                "type": "object",
+                "properties": {
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "tenants": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.TenantBody"
+                        }
+                    },
+                    "total": {
+                        "type": "integer"
+                    }
+                }
+            },
             "httptransport.UpdateGroupRequest": {
                 "type": "object",
                 "required": [
@@ -1676,6 +2457,31 @@
                         "type": "string"
                     },
                     "name": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.UpdateMembershipRequest": {
+                "type": "object",
+                "required": [
+                    "membership_id",
+                    "status",
+                    "version"
+                ],
+                "properties": {
+                    "membership_id": {
+                        "type": "string"
+                    },
+                    "primary_organization_unit_id": {
+                        "type": "string"
+                    },
+                    "reason": {
                         "type": "string"
                     },
                     "status": {
@@ -1712,57 +2518,19 @@
                     }
                 }
             },
-            "tenant.Group": {
+            "httptransport.UpdateTenantRequest": {
                 "type": "object",
+                "required": [
+                    "name",
+                    "status",
+                    "tenant_id",
+                    "version"
+                ],
                 "properties": {
-                    "code": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "created_by": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
                     "name": {
                         "type": "string"
                     },
-                    "status": {
-                        "type": "string"
-                    },
-                    "tenant_id": {
-                        "type": "string"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    },
-                    "updated_by": {
-                        "type": "string"
-                    },
-                    "version": {
-                        "type": "integer"
-                    }
-                }
-            },
-            "tenant.GroupMember": {
-                "type": "object",
-                "properties": {
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "created_by": {
-                        "type": "string"
-                    },
-                    "group_id": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "membership_id": {
+                    "reason": {
                         "type": "string"
                     },
                     "status": {
@@ -1771,222 +2539,7 @@
                     "tenant_id": {
                         "type": "string"
                     },
-                    "updated_at": {
-                        "type": "string"
-                    },
-                    "updated_by": {
-                        "type": "string"
-                    },
                     "version": {
-                        "type": "integer"
-                    }
-                }
-            },
-            "tenant.Invitation": {
-                "type": "object",
-                "properties": {
-                    "accepted_by_user_id": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "created_by": {
-                        "type": "string"
-                    },
-                    "email": {
-                        "type": "string"
-                    },
-                    "expires_at": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "status": {
-                        "type": "string"
-                    },
-                    "tenant_id": {
-                        "type": "string"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    },
-                    "updated_by": {
-                        "type": "string"
-                    },
-                    "version": {
-                        "type": "integer"
-                    }
-                }
-            },
-            "tenant.InvitationPage": {
-                "type": "object",
-                "properties": {
-                    "invitations": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/tenant.Invitation"
-                        }
-                    },
-                    "page": {
-                        "type": "integer"
-                    },
-                    "page_size": {
-                        "type": "integer"
-                    },
-                    "total": {
-                        "type": "integer"
-                    }
-                }
-            },
-            "tenant.Membership": {
-                "type": "object",
-                "properties": {
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "created_by": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "joined_at": {
-                        "type": "string"
-                    },
-                    "primary_organization_unit_id": {
-                        "type": "string"
-                    },
-                    "status": {
-                        "type": "string"
-                    },
-                    "tenant_id": {
-                        "type": "string"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    },
-                    "updated_by": {
-                        "type": "string"
-                    },
-                    "user_id": {
-                        "type": "string"
-                    },
-                    "version": {
-                        "type": "integer"
-                    }
-                }
-            },
-            "tenant.MembershipPage": {
-                "type": "object",
-                "properties": {
-                    "memberships": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/tenant.Membership"
-                        }
-                    },
-                    "page": {
-                        "type": "integer"
-                    },
-                    "page_size": {
-                        "type": "integer"
-                    },
-                    "total": {
-                        "type": "integer"
-                    }
-                }
-            },
-            "tenant.OrganizationUnit": {
-                "type": "object",
-                "properties": {
-                    "code": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "created_by": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "parent_id": {
-                        "type": "string"
-                    },
-                    "path": {
-                        "type": "string"
-                    },
-                    "status": {
-                        "type": "string"
-                    },
-                    "tenant_id": {
-                        "type": "string"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    },
-                    "updated_by": {
-                        "type": "string"
-                    },
-                    "version": {
-                        "type": "integer"
-                    }
-                }
-            },
-            "tenant.Quota": {
-                "type": "object",
-                "properties": {
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "created_by": {
-                        "type": "string"
-                    },
-                    "key": {
-                        "type": "string"
-                    },
-                    "limit": {
-                        "type": "integer"
-                    },
-                    "tenant_id": {
-                        "type": "string"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    },
-                    "updated_by": {
-                        "type": "string"
-                    },
-                    "used": {
-                        "type": "integer"
-                    },
-                    "version": {
-                        "type": "integer"
-                    }
-                }
-            },
-            "tenant.QuotaPage": {
-                "type": "object",
-                "properties": {
-                    "page": {
-                        "type": "integer"
-                    },
-                    "page_size": {
-                        "type": "integer"
-                    },
-                    "quotas": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/tenant.Quota"
-                        }
-                    },
-                    "total": {
                         "type": "integer"
                     }
                 }

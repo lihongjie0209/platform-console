@@ -35,7 +35,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["tenant.Group"];
+                            body?: components["schemas"]["httptransport.GroupBody"];
                         };
                     };
                 };
@@ -77,7 +77,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.GroupsResponseBody"];
+                        };
                     };
                 };
             };
@@ -118,7 +120,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.AddGroupMemberResponseBody"];
+                        };
                     };
                 };
             };
@@ -159,7 +163,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RemoveGroupMemberResponseBody"];
+                        };
                     };
                 };
             };
@@ -244,7 +250,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["tenant.Group"];
+                            body?: components["schemas"]["httptransport.GroupBody"];
                         };
                     };
                 };
@@ -286,7 +292,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.AcceptInvitationResponseBody"];
+                        };
                     };
                 };
             };
@@ -371,7 +379,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["tenant.InvitationPage"];
+                            body?: components["schemas"]["httptransport.InvitationPageBody"];
                         };
                     };
                 };
@@ -414,7 +422,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["tenant.Invitation"];
+                            body?: components["schemas"]["httptransport.InvitationBody"];
                         };
                     };
                 };
@@ -473,6 +481,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/memberships/add": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a tenant membership */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Membership */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.AddMembershipRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.MembershipBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/memberships/list": {
         parameters: {
             query?: never;
@@ -504,7 +555,50 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["tenant.MembershipPage"];
+                            body?: components["schemas"]["httptransport.MembershipPageBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memberships/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update a tenant membership using optimistic locking */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Membership and current version */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.UpdateMembershipRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.MembershipBody"];
                         };
                     };
                 };
@@ -547,7 +641,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["tenant.OrganizationUnit"];
+                            body?: components["schemas"]["httptransport.OrganizationUnitBody"];
                         };
                     };
                 };
@@ -590,7 +684,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["tenant.OrganizationUnit"];
+                            body?: components["schemas"]["httptransport.OrganizationUnitBody"];
                         };
                     };
                 };
@@ -633,7 +727,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["tenant.OrganizationUnit"][];
+                            body?: components["schemas"]["httptransport.OrganizationUnitsResponseBody"];
                         };
                     };
                 };
@@ -676,7 +770,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["tenant.OrganizationUnit"];
+                            body?: components["schemas"]["httptransport.OrganizationUnitBody"];
                         };
                     };
                 };
@@ -718,7 +812,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ConsumeQuotaResponseBody"];
+                        };
                     };
                 };
             };
@@ -760,7 +856,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["tenant.Quota"];
+                            body?: components["schemas"]["httptransport.QuotaBody"];
                         };
                     };
                 };
@@ -803,7 +899,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["tenant.QuotaPage"];
+                            body?: components["schemas"]["httptransport.QuotaPageBody"];
                         };
                     };
                 };
@@ -846,7 +942,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["tenant.Quota"];
+                            body?: components["schemas"]["httptransport.QuotaBody"];
                         };
                     };
                 };
@@ -888,7 +984,52 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.CreateTenantResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a tenant */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Tenant */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetTenantRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.TenantBody"];
+                        };
                     };
                 };
             };
@@ -929,7 +1070,52 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.TenantPageBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/list-by-user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List tenant memberships for a user */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description User and pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListUserTenantsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.TenantPageBody"];
+                        };
                     };
                 };
             };
@@ -970,7 +1156,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.CreateTenantResponseBody"];
+                        };
                     };
                 };
             };
@@ -1032,6 +1220,49 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update a tenant using optimistic locking */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Tenant and current version */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.UpdateTenantRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.TenantBody"];
+                        };
                     };
                 };
             };
@@ -1191,10 +1422,26 @@ export interface components {
         "httptransport.AcceptInvitationRequest": {
             token: string;
         };
+        "httptransport.AcceptInvitationResponseBody": {
+            invitation?: components["schemas"]["httptransport.InvitationBody"];
+            membership?: components["schemas"]["httptransport.MembershipBody"];
+        };
+        "httptransport.AddGroupMemberResponseBody": {
+            added?: boolean;
+        };
+        "httptransport.AddMembershipRequest": {
+            primary_organization_unit_id?: string;
+            tenant_id: string;
+            user_id: string;
+        };
         "httptransport.ConsumeQuotaRequest": {
             amount: number;
             key: string;
             tenant_id: string;
+        };
+        "httptransport.ConsumeQuotaResponseBody": {
+            allowed?: boolean;
+            quota?: components["schemas"]["httptransport.QuotaBody"];
         };
         "httptransport.CreateGroupRequest": {
             code: string;
@@ -1207,7 +1454,7 @@ export interface components {
             tenant_id: string;
         };
         "httptransport.CreateInvitationResponseBody": {
-            invitation?: components["schemas"]["tenant.Invitation"];
+            invitation?: components["schemas"]["httptransport.InvitationBody"];
             token?: string;
         };
         "httptransport.CreateOrganizationUnitRequest": {
@@ -1221,6 +1468,10 @@ export interface components {
             name: string;
             owner_user_id: string;
         };
+        "httptransport.CreateTenantResponseBody": {
+            owner_membership?: components["schemas"]["httptransport.MembershipBody"];
+            tenant?: components["schemas"]["httptransport.TenantBody"];
+        };
         "httptransport.GetOrganizationUnitRequest": {
             organization_unit_id: string;
         };
@@ -1228,12 +1479,61 @@ export interface components {
             key: string;
             tenant_id: string;
         };
+        "httptransport.GetTenantRequest": {
+            tenant_id: string;
+        };
+        "httptransport.GroupBody": {
+            code?: string;
+            created_at?: string;
+            created_by?: string;
+            id?: string;
+            name?: string;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
+        "httptransport.GroupMemberBody": {
+            created_at?: string;
+            created_by?: string;
+            group_id?: string;
+            id?: string;
+            membership_id?: string;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
         "httptransport.GroupMemberRequest": {
             group_id: string;
             membership_id: string;
         };
         "httptransport.GroupMembersResponseBody": {
-            group_members?: components["schemas"]["tenant.GroupMember"][];
+            group_members?: components["schemas"]["httptransport.GroupMemberBody"][];
+        };
+        "httptransport.GroupsResponseBody": {
+            groups?: components["schemas"]["httptransport.GroupBody"][];
+        };
+        "httptransport.InvitationBody": {
+            accepted_by_user_id?: string;
+            created_at?: string;
+            created_by?: string;
+            email?: string;
+            expires_at?: string;
+            id?: string;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
+        "httptransport.InvitationPageBody": {
+            invitations?: components["schemas"]["httptransport.InvitationBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
         };
         "httptransport.ListGroupMembersRequest": {
             group_id: string;
@@ -1268,13 +1568,74 @@ export interface components {
             page_size?: number;
             status?: string;
         };
+        "httptransport.ListUserTenantsRequest": {
+            page?: number;
+            page_size?: number;
+            user_id: string;
+        };
         "httptransport.MeResponseBody": {
             subject?: string;
+        };
+        "httptransport.MembershipBody": {
+            created_at?: string;
+            created_by?: string;
+            id?: string;
+            joined_at?: string;
+            primary_organization_unit_id?: string;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            user_id?: string;
+            version?: number;
+        };
+        "httptransport.MembershipPageBody": {
+            memberships?: components["schemas"]["httptransport.MembershipBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
+        "httptransport.OrganizationUnitBody": {
+            code?: string;
+            created_at?: string;
+            created_by?: string;
+            id?: string;
+            name?: string;
+            parent_id?: string;
+            path?: string;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
+        "httptransport.OrganizationUnitsResponseBody": {
+            organization_units?: components["schemas"]["httptransport.OrganizationUnitBody"][];
+        };
+        "httptransport.QuotaBody": {
+            created_at?: string;
+            created_by?: string;
+            key?: string;
+            limit?: number;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            used?: number;
+            version?: number;
+        };
+        "httptransport.QuotaPageBody": {
+            page?: number;
+            page_size?: number;
+            quotas?: components["schemas"]["httptransport.QuotaBody"][];
+            total?: number;
         };
         "httptransport.RemoveGroupMemberRequest": {
             group_id: string;
             membership_id: string;
             version: number;
+        };
+        "httptransport.RemoveGroupMemberResponseBody": {
+            removed?: boolean;
         };
         "httptransport.Response": {
             body?: unknown;
@@ -1302,9 +1663,33 @@ export interface components {
             tenant_id: string;
             version?: number;
         };
+        "httptransport.TenantBody": {
+            code?: string;
+            created_at?: string;
+            created_by?: string;
+            id?: string;
+            name?: string;
+            status?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
+        "httptransport.TenantPageBody": {
+            page?: number;
+            page_size?: number;
+            tenants?: components["schemas"]["httptransport.TenantBody"][];
+            total?: number;
+        };
         "httptransport.UpdateGroupRequest": {
             group_id: string;
             name: string;
+            status: string;
+            version: number;
+        };
+        "httptransport.UpdateMembershipRequest": {
+            membership_id: string;
+            primary_organization_unit_id?: string;
+            reason?: string;
             status: string;
             version: number;
         };
@@ -1315,98 +1700,12 @@ export interface components {
             status: string;
             version: number;
         };
-        "tenant.Group": {
-            code?: string;
-            created_at?: string;
-            created_by?: string;
-            id?: string;
-            name?: string;
-            status?: string;
-            tenant_id?: string;
-            updated_at?: string;
-            updated_by?: string;
-            version?: number;
-        };
-        "tenant.GroupMember": {
-            created_at?: string;
-            created_by?: string;
-            group_id?: string;
-            id?: string;
-            membership_id?: string;
-            status?: string;
-            tenant_id?: string;
-            updated_at?: string;
-            updated_by?: string;
-            version?: number;
-        };
-        "tenant.Invitation": {
-            accepted_by_user_id?: string;
-            created_at?: string;
-            created_by?: string;
-            email?: string;
-            expires_at?: string;
-            id?: string;
-            status?: string;
-            tenant_id?: string;
-            updated_at?: string;
-            updated_by?: string;
-            version?: number;
-        };
-        "tenant.InvitationPage": {
-            invitations?: components["schemas"]["tenant.Invitation"][];
-            page?: number;
-            page_size?: number;
-            total?: number;
-        };
-        "tenant.Membership": {
-            created_at?: string;
-            created_by?: string;
-            id?: string;
-            joined_at?: string;
-            primary_organization_unit_id?: string;
-            status?: string;
-            tenant_id?: string;
-            updated_at?: string;
-            updated_by?: string;
-            user_id?: string;
-            version?: number;
-        };
-        "tenant.MembershipPage": {
-            memberships?: components["schemas"]["tenant.Membership"][];
-            page?: number;
-            page_size?: number;
-            total?: number;
-        };
-        "tenant.OrganizationUnit": {
-            code?: string;
-            created_at?: string;
-            created_by?: string;
-            id?: string;
-            name?: string;
-            parent_id?: string;
-            path?: string;
-            status?: string;
-            tenant_id?: string;
-            updated_at?: string;
-            updated_by?: string;
-            version?: number;
-        };
-        "tenant.Quota": {
-            created_at?: string;
-            created_by?: string;
-            key?: string;
-            limit?: number;
-            tenant_id?: string;
-            updated_at?: string;
-            updated_by?: string;
-            used?: number;
-            version?: number;
-        };
-        "tenant.QuotaPage": {
-            page?: number;
-            page_size?: number;
-            quotas?: components["schemas"]["tenant.Quota"][];
-            total?: number;
+        "httptransport.UpdateTenantRequest": {
+            name: string;
+            reason?: string;
+            status: string;
+            tenant_id: string;
+            version: number;
         };
     };
     responses: never;
