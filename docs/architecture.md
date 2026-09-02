@@ -4,6 +4,8 @@
 
 Feature pages are split by application namespace (`platform-admin`, `audit-center`, `config-center`, `notification-center`, and later business applications). Each module owns its API adapter, pages, and `manifest.ts` page allowlist while sharing only the shell, authentication, request client, and reusable UI primitives. The central registry only aggregates manifests and rejects duplicate application codes or page keys outside the owning namespace; adding a page never requires placing its loader in a global service-oriented switch.
 
+The shell view surface is intentionally small: login, error pages, the application launcher, personal center, and the generic application host. Scaffold demonstrations are not shipped as hidden routes or dormant chunks. CI checks this allowlist and prevents demo-only dependencies from returning during upstream scaffold updates.
+
 ## Trust boundary
 
 The browser calls public HTTP APIs on the service subdomains directly. It uses the Identity service JSON login and refresh APIs, retaining tokens in `sessionStorage`; private gRPC, PSK and service credentials never enter this application. Every browser-facing service must allow the console origin through its CORS allowlist.

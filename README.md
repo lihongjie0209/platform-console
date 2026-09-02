@@ -11,6 +11,7 @@
 - 按应用边界拆分的平台管理、审计、配置、通知、文件、调度、数据字典、服务注册、API 文档、工作流、搜索、计量、计费、规则、数据导入、数据导出和 Webhook 管理模块；
 - 可在容器启动时注入的服务地址配置；
 - Swagger 2 → OpenAPI 3 → TypeScript 契约生成与 CI 一致性检查。
+- 生产源码不包含脚手架演示页面；壳层只保留登录、错误页、应用选择、个人中心和动态应用承载页。
 
 ## 本地开发
 
@@ -31,6 +32,8 @@ pnpm test
 pnpm build
 pnpm generate:contracts
 pnpm check:contracts
+pnpm check:application-scope
+pnpm check:product-surface
 docker build -f docker/Dockerfile -t platform-console .
 ```
 
