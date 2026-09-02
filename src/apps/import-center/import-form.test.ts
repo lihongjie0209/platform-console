@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { importDatasetKey, selectedImportDataset, supportedImportFormat } from './import-form';
+import { importDatasetKey, importTemplateCSV, selectedImportDataset, supportedImportFormat } from './import-form';
 
 const dataset = {
   provider_service: 'billing-service',
@@ -23,4 +23,15 @@ test('import format remains valid for the selected provider capability', () => {
   assert.equal(supportedImportFormat(dataset, 'xlsx'), 'xlsx');
   assert.equal(supportedImportFormat(dataset, 'jsonl'), 'csv');
   assert.equal(supportedImportFormat(undefined, 'csv'), '');
+});
+
+test('CSV template follows provider column order and escapes examples', () => {
+  assert.equal(
+    importTemplateCSV([
+      { key: 'code', example: 'basic' },
+      { key: 'name', example: 'Basic, "Monthly"' }
+    ]),
+    'code,name\r\nbasic,"Basic, ""Monthly"""\r\n'
+  );
+  assert.equal(importTemplateCSV([{ key: 'id' }]), 'id\r\n');
 });

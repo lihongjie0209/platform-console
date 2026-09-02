@@ -16,7 +16,7 @@ import {
   putImportFile,
   retryImport
 } from '../../api';
-import { importDatasetKey, selectedImportDataset, supportedImportFormat } from '../../import-form';
+import { importDatasetKey, importTemplateCSV, selectedImportDataset, supportedImportFormat } from '../../import-form';
 defineOptions({ name: 'ImportCenterJobs' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
@@ -109,6 +109,16 @@ async function changeDataset() {
     }
   }
 }
+function downloadTemplate() {
+  if (!descriptor.value) return;
+  const content = `\uFEFF${importTemplateCSV(descriptor.value.columns)}`;
+  const url = URL.createObjectURL(new Blob([content], { type: 'text/csv;charset=utf-8' }));
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `${descriptor.value.code}-template.csv`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
 async function action(job: ImportJob, type: 'confirm' | 'cancel' | 'retry' | 'report') {
   if (type === 'confirm') await confirmImport(job);
   if (type === 'cancel') await cancelImport(job);
@@ -188,12 +198,19 @@ onMounted(load);
           上传并校验
         </ElButton>
       </ElForm>
+      <div v-if="descriptor" class="mb-8px flex-y-center justify-between">
+        <span>字段规范</span>
+        <ElButton link type="primary" @click="downloadTemplate">下载 CSV 模板</ElButton>
+      </div>
       <ElTable v-if="descriptor" :data="descriptor.columns" size="small" border class="mb-16px">
         <ElTableColumn prop="key" label="字段" />
         <ElTableColumn prop="title" label="名称" />
         <ElTableColumn prop="type" label="类型" width="120" />
         <ElTableColumn label="必填" width="80">
           <template #default="{ row }">{{ row.required ? '是' : '否' }}</template>
+        </ElTableColumn>
+        <ElTableColumn label="敏感" width="80">
+          <template #default="{ row }">{{ row.sensitive ? '是' : '否' }}</template>
         </ElTableColumn>
         <ElTableColumn prop="example" label="示例" />
         <ElTableColumn prop="description" label="说明" />
