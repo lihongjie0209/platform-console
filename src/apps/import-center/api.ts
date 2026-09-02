@@ -1,12 +1,22 @@
+import type { components as ImportContract } from '@/service/contracts/generated/import';
 import { platformRequest } from '@/service/request';
 import { applicationScope } from '@/platform/application-context';
-export interface ImportDataset extends Record<string, unknown> {
-  provider_service: string;
-  code: string;
-  title: string;
-  formats: string[];
-  healthy_instances: number;
-}
+export type ImportDataset = ImportContract['schemas']['httptransport.ImportDatasetSummaryBody'] &
+  Record<string, unknown> & {
+    provider_service: string;
+    code: string;
+    title: string;
+    formats: string[];
+    healthy_instances: number;
+  };
+export type ImportColumn = ImportContract['schemas']['httptransport.ImportColumnBody'];
+export type ImportDatasetDescriptor = ImportContract['schemas']['httptransport.ImportDatasetDescriptorBody'] &
+  Record<string, unknown> & {
+    code: string;
+    title: string;
+    formats: string[];
+    columns: ImportColumn[];
+  };
 export interface ImportJob extends Record<string, unknown> {
   id: string;
   tenant_id: string;
@@ -50,6 +60,23 @@ export const listDatasets = (tenantID: string, applicationID: string, search: st
       url: '/api/v1/imports/datasets/list',
       method: 'post',
       data: { ...applicationScope(tenantID, applicationID), search, page: 1, page_size: 100 }
+    })
+  );
+export const describeDataset = (input: {
+  tenantID: string;
+  applicationID: string;
+  providerService: string;
+  datasetCode: string;
+}) =>
+  unwrap<ImportDatasetDescriptor>(
+    request({
+      url: '/api/v1/imports/datasets/describe',
+      method: 'post',
+      data: {
+        ...applicationScope(input.tenantID, input.applicationID),
+        provider_service: input.providerService,
+        dataset_code: input.datasetCode
+      }
     })
   );
 export const listImports = (input: { tenantID: string; applicationID: string; status: string; datasetCode: string }) =>

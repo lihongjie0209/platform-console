@@ -198,7 +198,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ImportDatasetDescriptorBody"];
+                        };
                     };
                 };
             };
@@ -239,7 +241,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ImportDatasetPageBody"];
+                        };
                     };
                 };
             };
@@ -595,6 +599,38 @@ export interface components {
             id?: string;
             tenant_id?: string;
             ttl_seconds?: number;
+        };
+        "httptransport.ImportColumnBody": {
+            description?: string;
+            example?: string;
+            key?: string;
+            required?: boolean;
+            sensitive?: boolean;
+            title?: string;
+            type?: string;
+        };
+        "httptransport.ImportDatasetDescriptorBody": {
+            code?: string;
+            columns?: components["schemas"]["httptransport.ImportColumnBody"][];
+            formats?: string[];
+            max_batch_size?: number;
+            supports_dry_run?: boolean;
+            title?: string;
+        };
+        "httptransport.ImportDatasetPageBody": {
+            items?: components["schemas"]["httptransport.ImportDatasetSummaryBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
+        "httptransport.ImportDatasetSummaryBody": {
+            code?: string;
+            formats?: string[];
+            healthy_instances?: number;
+            max_batch_size?: number;
+            provider_service?: string;
+            supports_dry_run?: boolean;
+            title?: string;
         };
         "httptransport.ImportSelector": {
             application_id?: string;

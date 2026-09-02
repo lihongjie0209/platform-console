@@ -3,12 +3,13 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { sha256Hex } from '@/platform/file';
-import type { ImportDataset, ImportJob } from '../../api';
+import type { ImportDataset, ImportDatasetDescriptor, ImportJob } from '../../api';
 import {
   cancelImport,
   completeImportUpload,
   confirmImport,
   createImport,
+  describeDataset,
   errorReport,
   listDatasets,
   listImports,
@@ -27,12 +28,14 @@ const datasets = ref<ImportDataset[]>([]);
 const status = ref('');
 const datasetCode = ref('');
 const selectedDataset = ref('');
+const descriptor = ref<ImportDatasetDescriptor>();
 const format = ref('');
 const source = ref<File>();
 const uploading = ref(false);
 const fileInputKey = ref(0);
 let loadVersion = 0;
 const uploadGuard = createLatestRequestGuard();
+const descriptorGuard = createLatestRequestGuard();
 async function load() {
   loadVersion += 1;
   const version = loadVersion;
@@ -84,8 +87,27 @@ async function create() {
     if (uploadGuard.isCurrent(request)) uploading.value = false;
   }
 }
-function changeDataset() {
-  format.value = supportedImportFormat(selectedImportDataset(datasets.value, selectedDataset.value), format.value);
+async function changeDataset() {
+  const selected = selectedImportDataset(datasets.value, selectedDataset.value);
+  descriptor.value = undefined;
+  format.value = supportedImportFormat(selected, format.value);
+  if (!selected) return;
+  const request = descriptorGuard.begin();
+  try {
+    const value = await describeDataset({
+      tenantID: tenantID.value,
+      applicationID: applicationID.value,
+      providerService: selected.provider_service,
+      datasetCode: selected.code
+    });
+    if (!descriptorGuard.isCurrent(request)) return;
+    descriptor.value = value;
+    format.value = value.formats.includes(format.value) ? format.value : value.formats[0] || '';
+  } catch (error) {
+    if (descriptorGuard.isCurrent(request)) {
+      window.$message?.error(error instanceof Error ? error.message : '读取数据集规范失败');
+    }
+  }
 }
 async function action(job: ImportJob, type: 'confirm' | 'cancel' | 'retry' | 'report') {
   if (type === 'confirm') await confirmImport(job);
@@ -108,10 +130,12 @@ async function action(job: ImportJob, type: 'confirm' | 'cancel' | 'retry' | 're
 }
 watch([tenantID, applicationID], () => {
   uploadGuard.invalidate();
+  descriptorGuard.invalidate();
   loadVersion += 1;
   rows.value = [];
   datasets.value = [];
   selectedDataset.value = '';
+  descriptor.value = undefined;
   format.value = '';
   source.value = undefined;
   fileInputKey.value += 1;
@@ -164,6 +188,16 @@ onMounted(load);
           上传并校验
         </ElButton>
       </ElForm>
+      <ElTable v-if="descriptor" :data="descriptor.columns" size="small" border class="mb-16px">
+        <ElTableColumn prop="key" label="字段" />
+        <ElTableColumn prop="title" label="名称" />
+        <ElTableColumn prop="type" label="类型" width="120" />
+        <ElTableColumn label="必填" width="80">
+          <template #default="{ row }">{{ row.required ? '是' : '否' }}</template>
+        </ElTableColumn>
+        <ElTableColumn prop="example" label="示例" />
+        <ElTableColumn prop="description" label="说明" />
+      </ElTable>
       <ElForm inline>
         <ElFormItem label="状态"><ElInput v-model="status" /></ElFormItem>
         <ElFormItem label="数据集编码"><ElInput v-model="datasetCode" /></ElFormItem>
