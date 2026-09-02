@@ -21,6 +21,7 @@ export interface PlatformApplication {
   description: string;
   icon: string;
   default_route: string;
+  sort_order?: number;
   status: string;
 }
 

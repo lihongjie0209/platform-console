@@ -12,13 +12,20 @@ export function retainActiveNavigations(applications: PlatformApplication[], nav
 
 export function filterApplications(applications: PlatformApplication[], keyword: string) {
   const normalized = keyword.trim().toLocaleLowerCase();
-  if (!normalized) return applications;
-
-  return applications.filter(application =>
-    [application.name, application.code, application.description].some(text =>
-      text.toLocaleLowerCase().includes(normalized)
+  return applications
+    .filter(
+      application =>
+        !normalized ||
+        [application.name, application.code, application.description].some(text =>
+          text.toLocaleLowerCase().includes(normalized)
+        )
     )
-  );
+    .sort(
+      (left, right) =>
+        (left.sort_order ?? 0) - (right.sort_order ?? 0) ||
+        left.name.localeCompare(right.name, 'zh-CN') ||
+        left.id.localeCompare(right.id)
+    );
 }
 
 export function hasApplicationScope(tenantId: string, applicationId: string) {

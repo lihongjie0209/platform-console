@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/store/modules/auth';
 import { usePlatformStore } from '@/store/modules/platform';
 import { useRouteStore } from '@/store/modules/route';
-import { applicationEntryDecision, applicationNavigationCompatibility } from '@/platform/navigation';
+import { applicationEntryDecision } from '@/platform/navigation';
 import { filterApplications } from '@/platform/application-context';
 import { BizEmptyState, BizPageContainer } from '@/components/business';
 
@@ -20,17 +20,14 @@ const tenantId = ref(platformStore.selectedTenantId);
 const filteredApplications = computed(() => {
   return filterApplications(platformStore.applications, keyword.value);
 });
-const compatibilityByApplication = computed(() => {
+const entryDecisionByApplication = computed(() => {
   return new Map(
-    platformStore.navigations.map(navigation => [
-      navigation.application.id,
-      applicationNavigationCompatibility(navigation)
-    ])
+    platformStore.navigations.map(navigation => [navigation.application.id, applicationEntryDecision(navigation)])
   );
 });
 
-function applicationCompatibility(applicationId: string) {
-  return compatibilityByApplication.value.get(applicationId);
+function applicationEntryState(applicationId: string) {
+  return entryDecisionByApplication.value.get(applicationId) || applicationEntryDecision();
 }
 
 watch(
@@ -114,7 +111,9 @@ async function openApplication(applicationId: string) {
       <ElCol v-for="application in filteredApplications" :key="application.id" :xs="24" :sm="12" :lg="8" :xl="6">
         <button
           class="mb-16px w-full cursor-pointer border-0 bg-transparent p-0 text-left"
-          :class="{ 'cursor-not-allowed opacity-65': applicationCompatibility(application.id)?.usable === false }"
+          :class="{
+            'cursor-not-allowed opacity-65': applicationEntryState(application.id).status !== 'ready'
+          }"
           type="button"
           @click="openApplication(application.id)"
         >
@@ -133,12 +132,12 @@ async function openApplication(applicationId: string) {
                 <div class="mt-3px flex items-center gap-8px text-12px text-gray-400">
                   <span class="truncate">{{ application.code }}</span>
                   <ElTag
-                    v-if="applicationCompatibility(application.id)?.usable === false"
+                    v-if="applicationEntryState(application.id).status !== 'ready'"
                     size="small"
                     type="warning"
                     effect="plain"
                   >
-                    待安装
+                    {{ applicationEntryState(application.id).status === 'unavailable' ? '待安装' : '未发布' }}
                   </ElTag>
                 </div>
                 <p class="mb-0 mt-12px min-h-40px text-13px text-gray-500 leading-20px">

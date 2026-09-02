@@ -28,6 +28,7 @@ const applications: PlatformApplication[] = [
     description: 'Order management',
     icon: '',
     default_route: '',
+    sort_order: 20,
     status: 'active'
   },
   {
@@ -37,6 +38,7 @@ const applications: PlatformApplication[] = [
     description: '',
     icon: '',
     default_route: '',
+    sort_order: 10,
     status: 'disabled'
   }
 ];
@@ -57,6 +59,22 @@ test('application launcher filters search and removes inactive navigation', () =
     retainActiveNavigations(applications, navigations).map(item => item.application.id),
     ['app-a']
   );
+});
+
+test('application launcher uses configured order with a stable name fallback', () => {
+  const ordered = filterApplications(
+    [
+      applications[0],
+      { ...applications[0], id: 'app-c', name: '账户中心', sort_order: 10 },
+      { ...applications[0], id: 'app-d', name: '报表中心', sort_order: 10 }
+    ],
+    ''
+  );
+  assert.deepEqual(
+    ordered.map(item => item.id),
+    ['app-d', 'app-c', 'app-a']
+  );
+  assert.notEqual(ordered, applications);
 });
 
 test('application-scoped pages require both tenant and selected application', () => {
