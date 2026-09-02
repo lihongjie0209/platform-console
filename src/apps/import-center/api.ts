@@ -1,6 +1,7 @@
 import type { components as ImportContract } from '@/service/contracts/generated/import';
 import { platformRequest } from '@/service/request';
 import { applicationScope } from '@/platform/application-context';
+import { catalogSearch } from '@/platform/catalog';
 import { paginationRequest } from '@/platform/pagination';
 export type ImportDataset = ImportContract['schemas']['httptransport.ImportDatasetSummaryBody'] &
   Record<string, unknown> & {
@@ -60,7 +61,7 @@ export const listDatasets = (tenantID: string, applicationID: string, search: st
     request({
       url: '/api/v1/imports/datasets/list',
       method: 'post',
-      data: { ...applicationScope(tenantID, applicationID), search, page: 1, page_size: 100 }
+      data: { ...applicationScope(tenantID, applicationID), search: catalogSearch(search), page: 1, page_size: 100 }
     })
   );
 export const describeDataset = (input: {

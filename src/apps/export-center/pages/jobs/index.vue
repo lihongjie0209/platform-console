@@ -92,11 +92,23 @@ async function openCreate() {
   form.columns = [];
   form.query = {};
   descriptor.value = undefined;
+  await searchDatasets('');
+}
+async function searchDatasets(keyword: string) {
+  if (!scopeReady.value) {
+    datasets.value = [];
+    return;
+  }
   const request = catalogGuard.begin();
   catalogLoading.value = true;
   try {
-    const value = await listExportDatasets(tenantID.value, applicationID.value);
+    const value = await listExportDatasets(tenantID.value, applicationID.value, keyword);
     if (catalogGuard.isCurrent(request)) datasets.value = value.items || [];
+  } catch (error) {
+    if (catalogGuard.isCurrent(request)) {
+      datasets.value = [];
+      window.$message?.error(error instanceof Error ? error.message : '搜索导出数据集失败');
+    }
   } finally {
     if (catalogGuard.isCurrent(request)) catalogLoading.value = false;
   }
@@ -224,7 +236,15 @@ onMounted(load);
   <ElDialog v-model="visible" title="创建导出">
     <ElForm label-width="110px">
       <ElFormItem label="数据集">
-        <ElSelect v-model="form.datasetKey" class="w-full" filterable :loading="catalogLoading" @change="selectDataset">
+        <ElSelect
+          v-model="form.datasetKey"
+          class="w-full"
+          filterable
+          remote
+          :remote-method="searchDatasets"
+          :loading="catalogLoading"
+          @change="selectDataset"
+        >
           <ElOption
             v-for="item in datasets"
             :key="datasetKey(item)"

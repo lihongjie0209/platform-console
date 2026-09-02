@@ -35,34 +35,50 @@ const descriptor = ref<ImportDatasetDescriptor>();
 const format = ref('');
 const source = ref<File>();
 const uploading = ref(false);
+const catalogLoading = ref(false);
 const fileInputKey = ref(0);
 let loadVersion = 0;
 const uploadGuard = createLatestRequestGuard();
 const descriptorGuard = createLatestRequestGuard();
+const catalogGuard = createLatestRequestGuard();
 async function load() {
   loadVersion += 1;
   const version = loadVersion;
   if (!scopeReady.value) {
     rows.value = [];
     total.value = 0;
-    datasets.value = [];
     return;
   }
-  const [v, d] = await Promise.all([
-    listImports({
-      tenantID: tenantID.value,
-      applicationID: applicationID.value,
-      status: status.value,
-      datasetCode: datasetCode.value,
-      page: page.value,
-      pageSize: pageSize.value
-    }),
-    listDatasets(tenantID.value, applicationID.value, '')
-  ]);
+  const v = await listImports({
+    tenantID: tenantID.value,
+    applicationID: applicationID.value,
+    status: status.value,
+    datasetCode: datasetCode.value,
+    page: page.value,
+    pageSize: pageSize.value
+  });
   if (version !== loadVersion) return;
   rows.value = v.items || [];
   total.value = v.total || 0;
-  datasets.value = d.items || [];
+}
+async function searchDatasets(keyword: string) {
+  if (!scopeReady.value) {
+    datasets.value = [];
+    return;
+  }
+  const request = catalogGuard.begin();
+  catalogLoading.value = true;
+  try {
+    const value = await listDatasets(tenantID.value, applicationID.value, keyword);
+    if (catalogGuard.isCurrent(request)) datasets.value = value.items || [];
+  } catch (error) {
+    if (catalogGuard.isCurrent(request)) {
+      datasets.value = [];
+      window.$message?.error(error instanceof Error ? error.message : '搜索导入数据集失败');
+    }
+  } finally {
+    if (catalogGuard.isCurrent(request)) catalogLoading.value = false;
+  }
 }
 function search() {
   page.value = 1;
@@ -156,6 +172,7 @@ async function action(job: ImportJob, type: 'confirm' | 'cancel' | 'retry' | 're
 watch([tenantID, applicationID], () => {
   uploadGuard.invalidate();
   descriptorGuard.invalidate();
+  catalogGuard.invalidate();
   loadVersion += 1;
   rows.value = [];
   page.value = 1;
@@ -168,8 +185,12 @@ watch([tenantID, applicationID], () => {
   fileInputKey.value += 1;
   uploading.value = false;
   load();
+  searchDatasets('');
 });
-onMounted(load);
+onMounted(() => {
+  load();
+  searchDatasets('');
+});
 </script>
 
 <template>
@@ -186,7 +207,15 @@ onMounted(load);
     <template v-else>
       <ElForm inline>
         <ElFormItem label="数据集">
-          <ElSelect v-model="selectedDataset" class="w-260px" @change="changeDataset">
+          <ElSelect
+            v-model="selectedDataset"
+            class="w-260px"
+            filterable
+            remote
+            :remote-method="searchDatasets"
+            :loading="catalogLoading"
+            @change="changeDataset"
+          >
             <ElOption
               v-for="v in datasets"
               :key="importDatasetKey(v)"

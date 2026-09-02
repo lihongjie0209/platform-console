@@ -1,6 +1,7 @@
 import type { components as ExportContract } from '@/service/contracts/generated/data-export';
 import { platformRequest } from '@/service/request';
 import { applicationScope } from '@/platform/application-context';
+import { catalogSearch } from '@/platform/catalog';
 import { paginationRequest } from '@/platform/pagination';
 export type ExportJob = ExportContract['schemas']['httptransport.ExportJobBody'] & {
   id: string;
@@ -76,7 +77,7 @@ export const listExportDatasets = (tenantID: string, applicationID: string, sear
     request({
       url: '/api/v1/exports/datasets/list',
       method: 'post',
-      data: { ...applicationScope(tenantID, applicationID), search, page: 1, page_size: 100 }
+      data: { ...applicationScope(tenantID, applicationID), search: catalogSearch(search), page: 1, page_size: 100 }
     })
   );
 export const describeExportDataset = (input: {
