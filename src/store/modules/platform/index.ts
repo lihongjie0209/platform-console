@@ -24,7 +24,9 @@ import {
   filterNavigationsByPermissions,
   hasAllowedPermission,
   navigationPermissionCodes,
-  retainRunnableApplicationID
+  preferredApplicationEntryPath,
+  retainRunnableApplicationID,
+  runnableApplicationIDForPath
 } from '@/platform/navigation';
 import type { MenuPermissionScope, PermissionRequirement } from '@/platform/navigation';
 import {
@@ -32,6 +34,11 @@ import {
   recentApplicationIDs,
   recordRecentApplication
 } from '@/platform/application-recents';
+import {
+  lastApplicationPath,
+  normalizeApplicationRouteHistory,
+  recordApplicationPath
+} from '@/platform/application-route-history';
 
 async function fetchAllowedNavigationPermissionCodes(tenantId: string, navigations: PublishedNavigation[]) {
   const permissionCodes = navigationPermissionCodes(navigations);
@@ -98,6 +105,7 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
   const navigations = ref<PublishedNavigation[]>([]);
   const allowedPermissionCodes = ref<Record<MenuPermissionScope, string[]>>({ tenant: [], platform: [] });
   const recentApplicationScopes = ref(normalizeRecentApplicationScopes(localStg.get('recentApplicationScopes')));
+  const applicationRouteHistory = ref(normalizeApplicationRouteHistory(localStg.get('applicationRouteHistory')));
   let requestRevision = 0;
   const enqueueTenantSelection = createSerialTaskQueue();
 
@@ -237,6 +245,27 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
     localStg.set('recentApplicationScopes', recentApplicationScopes.value);
   }
 
+  function entryPathForApplication(applicationId: string) {
+    const navigation = navigations.value.find(item => item.application.id === applicationId);
+    const preferredPath = lastApplicationPath(applicationRouteHistory.value, {
+      subject: initializedSubject.value,
+      tenantId: selectedTenantId.value,
+      applicationId
+    });
+    return preferredApplicationEntryPath(navigation, preferredPath || '');
+  }
+
+  function rememberApplicationPath(applicationId: string, path: string) {
+    if (runnableApplicationIDForPath(navigations.value, path) !== applicationId) return;
+    applicationRouteHistory.value = recordApplicationPath(applicationRouteHistory.value, {
+      subject: initializedSubject.value,
+      tenantId: selectedTenantId.value,
+      applicationId,
+      path
+    });
+    localStg.set('applicationRouteHistory', applicationRouteHistory.value);
+  }
+
   function clearTenantSelection() {
     requestRevision += 1;
     selectedTenantId.value = '';
@@ -276,6 +305,8 @@ export const usePlatformStore = defineStore(SetupStoreId.Platform, () => {
     initialize,
     selectTenant,
     selectApplication,
+    entryPathForApplication,
+    rememberApplicationPath,
     resetContext
   };
 });

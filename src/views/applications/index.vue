@@ -98,7 +98,7 @@ async function openApplication(applicationId: string) {
   try {
     platformStore.selectApplication(applicationId);
     routeStore.refreshPlatformRoutes();
-    await router.push(decision.path);
+    await router.push(platformStore.entryPathForApplication(applicationId));
   } catch {
     window.$message?.error('应用授权或发布状态已变化，请重新选择');
     await router.push('/applications');

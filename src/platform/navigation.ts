@@ -243,6 +243,15 @@ export function applicationEntryDecision(navigation?: PublishedNavigation): Appl
   return path ? { status: 'ready', path } : { status: 'unpublished', path: '' };
 }
 
+/** Restores a page only when it remains executable in the current published navigation. */
+export function preferredApplicationEntryPath(navigation: PublishedNavigation | undefined, preferredPath: string) {
+  const decision = applicationEntryDecision(navigation);
+  if (decision.status !== 'ready' || !navigation || !preferredPath) return decision.path;
+  return runnableApplicationIDForPath([navigation], preferredPath) === navigation.application.id
+    ? preferredPath
+    : decision.path;
+}
+
 export function applicationEntryStatusLabel(status: ApplicationEntryStatus) {
   if (status === 'unavailable') return '待安装';
   if (status === 'empty') return '无可用功能';

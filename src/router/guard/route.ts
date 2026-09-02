@@ -61,6 +61,10 @@ export function createRouteGuard(router: Router) {
     // switch route normally
     return handleRouteSwitch(to, from);
   });
+  router.afterEach((to, _from, failure) => {
+    const applicationId = to.meta.applicationId;
+    if (!failure && applicationId) usePlatformStore().rememberApplicationPath(applicationId, to.path);
+  });
 }
 
 function synchronizeApplicationContext(to: RouteLocationNormalized): RouteLocationRaw | undefined {

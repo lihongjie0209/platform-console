@@ -49,7 +49,7 @@ async function handleCommand(command: string) {
   try {
     platformStore.selectApplication(command);
     routeStore.refreshPlatformRoutes();
-    await router.push(decision.path);
+    await router.push(platformStore.entryPathForApplication(command));
   } catch {
     window.$message?.error('应用授权或发布状态已变化，请重新选择');
     await router.push('/applications');

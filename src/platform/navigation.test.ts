@@ -15,6 +15,7 @@ import {
   navigationPermissionCodes,
   navigationToRoutes,
   normalizeMenuPermissionScope,
+  preferredApplicationEntryPath,
   retainRunnableApplicationID,
   runnableApplicationIDForPath,
   safeExternalURL
@@ -615,6 +616,11 @@ test('every application entry point uses the same publication and compatibility 
     status: 'ready',
     path: '/apps/billing-center/overview'
   });
+  assert.equal(preferredApplicationEntryPath(navigation, '/apps/billing-center/plans'), '/apps/billing-center/plans');
+  assert.equal(
+    preferredApplicationEntryPath(navigation, '/apps/billing-center/not-authorized'),
+    '/apps/billing-center/overview'
+  );
   assert.deepEqual(
     applicationEntryDecision({
       ...navigation,
