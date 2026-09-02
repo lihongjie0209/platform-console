@@ -7,6 +7,7 @@ import GlobalLogo from '../global-logo/index.vue';
 import GlobalBreadcrumb from '../global-breadcrumb/index.vue';
 import GlobalSearch from '../global-search/index.vue';
 import ApplicationSwitcher from './components/application-switcher.vue';
+import TenantSwitcher from './components/tenant-switcher.vue';
 import ThemeButton from './components/theme-button.vue';
 import UserAvatar from './components/user-avatar.vue';
 
@@ -37,6 +38,7 @@ const { isFullscreen, toggle } = useFullscreen();
       <GlobalBreadcrumb v-if="!appStore.isMobile" class="ml-12px" />
     </div>
     <div class="h-full flex-y-center justify-end">
+      <TenantSwitcher v-if="!appStore.isMobile" />
       <ApplicationSwitcher v-if="!appStore.isMobile" />
       <GlobalSearch v-if="themeStore.header.globalSearch.visible" />
       <div>

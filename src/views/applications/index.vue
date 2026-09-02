@@ -5,6 +5,7 @@ import type { PlatformApplication } from '@/service/api/platform-navigation';
 import { useAuthStore } from '@/store/modules/auth';
 import { usePlatformStore } from '@/store/modules/platform';
 import { useRouteStore } from '@/store/modules/route';
+import { switchTenantContext } from '@/platform/tenant-switch';
 import {
   applicationEntryDecision,
   applicationEntryStatusLabel,
@@ -69,8 +70,11 @@ watch(
 
 async function changeTenant(value: string) {
   try {
-    await platformStore.selectTenant(value);
-    routeStore.refreshPlatformRoutes();
+    await switchTenantContext(value, {
+      selectTenant: platformStore.selectTenant,
+      refreshRoutes: routeStore.refreshPlatformRoutes,
+      openApplicationLauncher: () => router.push('/applications')
+    });
   } catch (error) {
     tenantId.value = platformStore.selectedTenantId;
     window.$message?.error(error instanceof Error ? error.message : '切换租户失败');
