@@ -2,7 +2,7 @@
 
 `platform-console` is one browser application for platform administration and future business-system modules. It is deliberately a single SPA: shared navigation, authorization handling, UI primitives and deployment configuration live in one release unit.
 
-Feature pages are split by application namespace (`platform-admin`, `audit-center`, `config-center`, `notification-center`, and later business applications). Each module owns its API adapter and pages while sharing only the shell, authentication, request client, and reusable UI primitives.
+Feature pages are split by application namespace (`platform-admin`, `audit-center`, `config-center`, `notification-center`, and later business applications). Each module owns its API adapter, pages, and `manifest.ts` page allowlist while sharing only the shell, authentication, request client, and reusable UI primitives. The central registry only aggregates manifests and rejects duplicate application codes or page keys outside the owning namespace; adding a page never requires placing its loader in a global service-oriented switch.
 
 ## Trust boundary
 
