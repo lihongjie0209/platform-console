@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { hasApplicationScope } from '@/platform/application-context';
+import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import type { WorkflowTask } from '../../api';
 import { claimTask, completeTask, delegateTask, listTasks } from '../../api';
 import { parseJSONObject } from '../../json';
@@ -24,8 +24,15 @@ const completeVisible = ref(false);
 const delegateVisible = ref(false);
 const form = reactive({ decision: 'approved', comment: '', output: '{}' });
 const delegation = reactive({ userID: '', reason: '' });
+const loadGuard = createLatestRequestGuard();
 async function loadData() {
-  if (!scopeReady.value) return;
+  const request = loadGuard.begin();
+  if (!scopeReady.value) {
+    rows.value = [];
+    total.value = 0;
+    loading.value = false;
+    return;
+  }
   loading.value = true;
   try {
     const result = await listTasks({
@@ -37,10 +44,12 @@ async function loadData() {
       page: page.value,
       pageSize: pageSize.value
     });
-    rows.value = result.items || [];
-    total.value = result.total || 0;
+    if (loadGuard.isCurrent(request)) {
+      rows.value = result.items || [];
+      total.value = result.total || 0;
+    }
   } finally {
-    loading.value = false;
+    if (loadGuard.isCurrent(request)) loading.value = false;
   }
 }
 function search() {
@@ -80,7 +89,14 @@ async function delegate() {
   delegateVisible.value = false;
   await loadData();
 }
-watch([tenantID, applicationID], search);
+watch([tenantID, applicationID], () => {
+  rows.value = [];
+  total.value = 0;
+  selected.value = undefined;
+  completeVisible.value = false;
+  delegateVisible.value = false;
+  search();
+});
 onMounted(loadData);
 </script>
 

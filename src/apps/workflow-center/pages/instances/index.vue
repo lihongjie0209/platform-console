@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { hasApplicationScope } from '@/platform/application-context';
+import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import type { WorkflowInstance } from '../../api';
 import { cancelInstance, listInstances, startInstance } from '../../api';
 import { parseJSONObject } from '../../json';
@@ -23,8 +23,15 @@ const visible = ref(false);
 const detail = ref<WorkflowInstance>();
 const detailVisible = ref(false);
 const form = reactive({ definitionKey: '', businessKey: '', title: '', variables: '{}' });
+const loadGuard = createLatestRequestGuard();
 async function loadData() {
-  if (!scopeReady.value) return;
+  const request = loadGuard.begin();
+  if (!scopeReady.value) {
+    rows.value = [];
+    total.value = 0;
+    loading.value = false;
+    return;
+  }
   loading.value = true;
   try {
     const result = await listInstances({
@@ -36,10 +43,12 @@ async function loadData() {
       page: page.value,
       pageSize: pageSize.value
     });
-    rows.value = result.items || [];
-    total.value = result.total || 0;
+    if (loadGuard.isCurrent(request)) {
+      rows.value = result.items || [];
+      total.value = result.total || 0;
+    }
   } finally {
-    loading.value = false;
+    if (loadGuard.isCurrent(request)) loading.value = false;
   }
 }
 function search() {
@@ -79,7 +88,14 @@ function show(row: WorkflowInstance) {
   detail.value = row;
   detailVisible.value = true;
 }
-watch([tenantID, applicationID], search);
+watch([tenantID, applicationID], () => {
+  rows.value = [];
+  total.value = 0;
+  visible.value = false;
+  detail.value = undefined;
+  detailVisible.value = false;
+  search();
+});
 onMounted(loadData);
 </script>
 

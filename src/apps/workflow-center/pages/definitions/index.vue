@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { hasApplicationScope } from '@/platform/application-context';
+import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import type { WorkflowDefinition, WorkflowEdge, WorkflowNode } from '../../api';
 import { changeDefinitionStatus, listDefinitions, saveDefinition } from '../../api';
 import { parseJSONArray } from '../../json';
@@ -22,8 +22,15 @@ const visible = ref(false);
 const saving = ref(false);
 const editing = ref<WorkflowDefinition>();
 const form = reactive({ key: '', name: '', description: '', nodes: '[]', edges: '[]' });
+const loadGuard = createLatestRequestGuard();
 async function loadData() {
-  if (!scopeReady.value) return;
+  const request = loadGuard.begin();
+  if (!scopeReady.value) {
+    rows.value = [];
+    total.value = 0;
+    loading.value = false;
+    return;
+  }
   loading.value = true;
   try {
     const result = await listDefinitions({
@@ -34,10 +41,12 @@ async function loadData() {
       page: page.value,
       pageSize: pageSize.value
     });
-    rows.value = result.items || [];
-    total.value = result.total || 0;
+    if (loadGuard.isCurrent(request)) {
+      rows.value = result.items || [];
+      total.value = result.total || 0;
+    }
   } finally {
-    loading.value = false;
+    if (loadGuard.isCurrent(request)) loading.value = false;
   }
 }
 function search() {
@@ -99,7 +108,13 @@ async function changeStatus(row: WorkflowDefinition, action: 'publish' | 'disabl
   window.$message?.success(action === 'publish' ? '工作流已发布' : '工作流已停用');
   await loadData();
 }
-watch([tenantID, applicationID], search);
+watch([tenantID, applicationID], () => {
+  rows.value = [];
+  total.value = 0;
+  visible.value = false;
+  editing.value = undefined;
+  search();
+});
 onMounted(loadData);
 </script>
 
