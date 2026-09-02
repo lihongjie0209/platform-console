@@ -88,6 +88,10 @@ const config: BizCrudConfig<Role, Query, RoleForm, string> = {
       }
     ]
   },
+  permissions: {
+    create: () => ({ scope: roleScope.value, codes: 'authorization.role.create' }),
+    update: () => ({ scope: roleScope.value, codes: 'authorization.role.update' })
+  },
   mapRowToForm: row => ({ ...emptyForm(), ...row })
 };
 const adapter: BizCrudAdapter<Role, Query, RoleForm, string> = {

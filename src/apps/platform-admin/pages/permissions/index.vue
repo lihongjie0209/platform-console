@@ -95,6 +95,10 @@ const config: BizCrudConfig<Permission, Query, PermissionForm, string> = {
       }
     ]
   },
+  permissions: {
+    create: () => ({ scope: permissionScope.value, codes: 'authorization.permission.create' }),
+    update: () => ({ scope: permissionScope.value, codes: 'authorization.permission.update' })
+  },
   mapRowToForm: row => ({ ...emptyForm(), ...row })
 };
 const adapter: BizCrudAdapter<Permission, Query, PermissionForm, string> = {

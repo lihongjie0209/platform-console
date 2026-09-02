@@ -96,9 +96,9 @@ export interface BizCrudConfig<
     pageSizes?: number[];
   };
   permissions?: {
-    create?: PermissionRequirement;
-    update?: PermissionRequirement;
-    remove?: PermissionRequirement;
+    create?: MaybeRefOrGetter<PermissionRequirement>;
+    update?: MaybeRefOrGetter<PermissionRequirement>;
+    remove?: MaybeRefOrGetter<PermissionRequirement>;
   };
   mapRowToForm?: (row: Row) => Partial<Form>;
   deleteConfirm?: string | (() => string);

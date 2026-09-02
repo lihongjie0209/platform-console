@@ -8,7 +8,7 @@
     Key extends BizCrudKey
   "
 >
-import { computed, nextTick, reactive, ref, shallowRef } from 'vue';
+import { computed, nextTick, reactive, ref, shallowRef, toValue } from 'vue';
 import { useRouter } from 'vue-router';
 import { jsonClone } from '@sa/utils';
 import { usePlatformStore } from '@/store/modules/platform';
@@ -62,13 +62,13 @@ const formTitle = computed(() =>
 );
 const selectedKeys = computed(() => selectedRows.value.map(row => row[props.config.rowKey] as Key));
 const canCreate = computed(
-  () => Boolean(props.adapter.create) && platformStore.hasPermission(props.config.permissions?.create)
+  () => Boolean(props.adapter.create) && platformStore.hasPermission(toValue(props.config.permissions?.create))
 );
 const canUpdate = computed(
-  () => Boolean(props.adapter.update) && platformStore.hasPermission(props.config.permissions?.update)
+  () => Boolean(props.adapter.update) && platformStore.hasPermission(toValue(props.config.permissions?.update))
 );
 const canRemove = computed(
-  () => Boolean(props.adapter.remove) && platformStore.hasPermission(props.config.permissions?.remove)
+  () => Boolean(props.adapter.remove) && platformStore.hasPermission(toValue(props.config.permissions?.remove))
 );
 
 function getColumnKey(column: BizCrudColumn<Row>) {

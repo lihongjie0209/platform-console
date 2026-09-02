@@ -52,6 +52,12 @@ const form = reactive<BindingForm>({
   organization_unit_id: ''
 });
 const tenantID = computed(() => platformStore.selectedTenantId);
+const canCreateBinding = computed(() =>
+  platformStore.hasPermission({ scope: bindingScope.value, codes: 'authorization.binding.create' })
+);
+const canRevokeBinding = computed(() =>
+  platformStore.hasPermission({ scope: bindingScope.value, codes: 'authorization.binding.revoke' })
+);
 const roleByID = computed(() => new Map(roles.value.map(item => [String(item.id), item])));
 const groupByID = computed(() => new Map(groups.value.map(item => [String(item.id), item])));
 const membershipByID = computed(() => new Map(memberships.value.map(item => [String(item.id), item])));
@@ -170,6 +176,7 @@ async function loadCatalogs() {
   organizations.value = organizationItems;
 }
 function openCreate() {
+  if (!canCreateBinding.value) return;
   Object.assign(form, {
     subject_type: bindingScope.value === 'platform' ? 'user' : 'membership',
     subject_id: '',
@@ -180,7 +187,7 @@ function openCreate() {
   dialogVisible.value = true;
 }
 async function submit() {
-  if (!(await formRef.value?.validate())) return;
+  if (!canCreateBinding.value || !(await formRef.value?.validate())) return;
   submitting.value = true;
   try {
     await createMyBinding({ tenantID: tenantID.value, permissionScope: bindingScope.value, form });
@@ -192,6 +199,7 @@ async function submit() {
   }
 }
 async function revoke(row: Binding) {
+  if (!canRevokeBinding.value) return;
   await revokeMyBinding({
     tenantID: tenantID.value,
     permissionScope: bindingScope.value,
@@ -236,7 +244,7 @@ onMounted(() => Promise.all([loadCatalogs(), loadRows()]));
         <div class="flex-y-center gap-8px">
           <ElSegmented v-model="bindingScope" :options="authorizationManagementScopeOptions" />
           <ElButton :loading="loading" @click="loadRows">刷新</ElButton>
-          <ElButton type="primary" :disabled="!tenantID" @click="openCreate">新增绑定</ElButton>
+          <ElButton v-if="canCreateBinding" type="primary" :disabled="!tenantID" @click="openCreate">新增绑定</ElButton>
         </div>
       </div>
     </template>
@@ -257,7 +265,11 @@ onMounted(() => Promise.all([loadCatalogs(), loadRows()]));
         <ElTableColumn prop="version" label="版本" width="90" />
         <ElTableColumn label="操作" width="100" fixed="right">
           <template #default="{ row }">
-            <ElPopconfirm v-if="row.status === 'active'" title="确认撤销该角色绑定？" @confirm="revoke(row)">
+            <ElPopconfirm
+              v-if="canRevokeBinding && row.status === 'active'"
+              title="确认撤销该角色绑定？"
+              @confirm="revoke(row)"
+            >
               <template #reference><ElButton link type="danger">撤销</ElButton></template>
             </ElPopconfirm>
             <span v-else>-</span>
@@ -319,7 +331,7 @@ onMounted(() => Promise.all([loadCatalogs(), loadRows()]));
     </ElForm>
     <template #footer>
       <ElButton @click="dialogVisible = false">取消</ElButton>
-      <ElButton type="primary" :loading="submitting" @click="submit">保存</ElButton>
+      <ElButton v-if="canCreateBinding" type="primary" :loading="submitting" @click="submit">保存</ElButton>
     </template>
   </ElDialog>
 </template>

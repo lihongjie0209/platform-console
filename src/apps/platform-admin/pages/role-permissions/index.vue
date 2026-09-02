@@ -25,6 +25,12 @@ const roleID = ref('');
 const keyword = ref('');
 const assignmentScope = ref<AuthorizationManagementScope>('tenant');
 const tenantID = computed(() => platformStore.selectedTenantId);
+const canGrantPermission = computed(() =>
+  platformStore.hasPermission({ scope: assignmentScope.value, codes: 'authorization.role-permission.grant' })
+);
+const canRevokePermission = computed(() =>
+  platformStore.hasPermission({ scope: assignmentScope.value, codes: 'authorization.role-permission.revoke' })
+);
 const assignmentByPermission = computed(() => new Map(assignments.value.map(item => [item.permission_id, item])));
 const rows = computed(() => {
   const value = keyword.value.trim().toLowerCase();
@@ -73,6 +79,7 @@ async function loadAssignments() {
 }
 
 async function toggle(permission: Permission, enabled: boolean) {
+  if ((enabled && !canGrantPermission.value) || (!enabled && !canRevokePermission.value)) return;
   const assignment = assignmentByPermission.value.get(permission.id);
   changing.value = permission.id;
   try {
@@ -139,10 +146,15 @@ onMounted(loadCatalogs);
       <ElTableColumn label="授权状态" width="130" fixed="right">
         <template #default="{ row }">
           <ElSwitch
+            v-if="canGrantPermission || canRevokePermission"
             :model-value="assignmentByPermission.get(row.id)?.status === 'active'"
             :loading="changing === row.id"
+            :disabled="
+              assignmentByPermission.get(row.id)?.status === 'active' ? !canRevokePermission : !canGrantPermission
+            "
             @change="value => toggle(row, Boolean(value))"
           />
+          <span v-else>-</span>
         </template>
       </ElTableColumn>
     </ElTable>
