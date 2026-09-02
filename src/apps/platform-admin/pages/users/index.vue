@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
+import { useAuthStore } from '@/store/modules/auth';
 import { usePlatformStore } from '@/store/modules/platform';
 import { BizCopyText, BizCrudPage, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
@@ -40,6 +41,7 @@ const emptyForm = (): UserForm => ({
 });
 const editing = (model: Record<string, unknown>) => Number(model.version) > 0;
 const platformStore = usePlatformStore();
+const authStore = useAuthStore();
 const canResetPassword = computed(() =>
   platformStore.hasPermission({ scope: 'platform', codes: 'identity.user.password-reset' })
 );
@@ -208,6 +210,13 @@ async function saveProfile() {
       version: row.version
     });
     Object.assign(row, updated);
+    if (authStore.userInfo.subject === updated.id) {
+      Object.assign(authStore.userInfo, {
+        display_name: updated.display_name,
+        email: updated.email,
+        phone: updated.phone
+      });
+    }
     profileVisible.value = false;
     window.$message?.success('用户资料已更新');
   } finally {
