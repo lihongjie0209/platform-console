@@ -74,6 +74,25 @@ function childrenByParent(menus: ApplicationMenu[], parentID: string) {
   return menus.filter(menu => menu.parent_id === parentID);
 }
 
+function executableMenus(application: PlatformApplication, menus: ApplicationMenu[]) {
+  const keep = new Map<string, boolean>();
+  const isExecutable = (menu: ApplicationMenu): boolean => {
+    const cached = keep.get(menu.id);
+    if (cached !== undefined) return cached;
+
+    // Mark first so malformed cyclic catalog data fails closed instead of recursing forever.
+    keep.set(menu.id, false);
+    const executable =
+      (menu.type === 'page' && pageBelongsToApplication(menu.component, application.code)) ||
+      (menu.type === 'external' && Boolean(safeExternalURL(menu.external_url))) ||
+      (menu.type === 'directory' && childrenByParent(menus, menu.id).some(isExecutable));
+    keep.set(menu.id, executable);
+    return executable;
+  };
+
+  return menus.filter(isExecutable);
+}
+
 function applicationWorkspaceRoute(application: PlatformApplication): ElegantConstRoute {
   return {
     name: `platform_${routeSegment(application.code)}_workspace`,
@@ -102,9 +121,10 @@ function applicationWorkspaceRoute(application: PlatformApplication): ElegantCon
  */
 export function navigationToRoutes(navigation: PublishedNavigation): ElegantConstRoute[] {
   const { application } = navigation;
-  const menus = navigation.menus
-    .filter(menu => menu.status === 'active' && menu.type !== 'action' && menu.type !== 'button')
-    .sort((left, right) => left.sort_order - right.sort_order);
+  const activeMenus = navigation.menus.filter(
+    menu => menu.status === 'active' && menu.type !== 'action' && menu.type !== 'button'
+  );
+  const menus = executableMenus(application, activeMenus).sort((left, right) => left.sort_order - right.sort_order);
   const roots = menus.filter(menu => !menu.parent_id || !menus.some(candidate => candidate.id === menu.parent_id));
 
   const scope = `/apps/${routeSegment(application.code)}`;

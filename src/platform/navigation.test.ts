@@ -68,12 +68,12 @@ test('button permission checks keep tenant and platform scopes separate', () => 
   assert.equal(hasAllowedPermission(allowed, { scope: 'tenant', codes: [] }), false);
 });
 
-test('navigationToRoutes scopes routes and never evaluates backend component names', () => {
+test('navigationToRoutes scopes routes and mounts only an allowlisted component key', () => {
   const [applicationRoute] = navigationToRoutes({
     application: {
       id: 'app-1',
-      code: 'Identity Service',
-      name: 'Identity',
+      code: 'platform-admin',
+      name: 'Platform',
       description: '',
       icon: '',
       default_route: '',
@@ -89,7 +89,7 @@ test('navigationToRoutes scopes routes and never evaluates backend component nam
         name: '账户',
         i18n_key: '',
         route: 'accounts',
-        component: '../../untrusted',
+        component: 'platform-admin.users',
         icon: '',
         external_url: '',
         permission_code: 'identity.accounts.read',
@@ -101,11 +101,40 @@ test('navigationToRoutes scopes routes and never evaluates backend component nam
   });
 
   const [, route] = applicationRoute.children!;
-  assert.equal(route.path, '/apps/identity-service/accounts');
+  assert.equal(route.path, '/apps/platform-admin/accounts');
   assert.equal(route.component, 'view.platform_page');
-  assert.equal(route.name, 'platform_identity-service_accounts');
+  assert.equal(route.name, 'platform_platform-admin_accounts');
   assert.equal(applicationRoute.meta?.applicationId, 'app-1');
   assert.equal(route.meta?.applicationId, 'app-1');
+});
+
+test('navigationToRoutes removes unavailable pages and empty directories', () => {
+  const navigation = {
+    application: {
+      id: 'billing-id',
+      code: 'billing-center',
+      name: 'Billing',
+      description: '',
+      icon: '',
+      default_route: '',
+      status: 'active'
+    },
+    menus: [
+      applicationMenu({ id: 'installed', component: 'billing-center.plans' }),
+      applicationMenu({ id: 'future', component: 'billing-center.future' }),
+      applicationMenu({ id: 'empty-directory', type: 'directory', component: '', route: 'empty' }),
+      applicationMenu({
+        id: 'future-child',
+        parent_id: 'empty-directory',
+        component: 'billing-center.future-child'
+      })
+    ]
+  };
+
+  const serialized = JSON.stringify(navigationToRoutes(navigation));
+  assert.match(serialized, /installed/);
+  assert.doesNotMatch(serialized, /future/);
+  assert.doesNotMatch(serialized, /empty-directory/);
 });
 
 test('permission filtering separates scopes, removes denied descendants and preserves unprotected menus', () => {
