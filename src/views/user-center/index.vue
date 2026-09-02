@@ -8,6 +8,7 @@ import {
   fetchDisableMFA,
   fetchMFAStatus,
   fetchOwnSessions,
+  fetchRegenerateMFARecoveryCodes,
   fetchRevokeOwnSession,
   fetchStartMFASetup
 } from '@/service/api';
@@ -46,6 +47,9 @@ const recoveryCodes = ref<string[]>([]);
 const mfaDisableVisible = ref(false);
 const mfaDisablePassword = ref('');
 const mfaDisableCode = ref('');
+const mfaRecoveryVisible = ref(false);
+const mfaRecoveryPassword = ref('');
+const mfaRecoveryCode = ref('');
 const form = reactive({ currentPassword: '', newPassword: '', confirmPassword: '' });
 const rules: FormRules<typeof form> = {
   currentPassword: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
@@ -220,6 +224,35 @@ function openMFADisable() {
   mfaDisableVisible.value = true;
 }
 
+function openMFARecoveryRotation() {
+  mfaRecoveryPassword.value = '';
+  mfaRecoveryCode.value = '';
+  mfaRecoveryVisible.value = true;
+}
+
+async function regenerateMFARecoveryCodes() {
+  if (!mfaRecoveryPassword.value || !/^\d{6}$/.test(mfaRecoveryCode.value.trim())) {
+    window.$message?.error('请输入当前密码和 6 位动态验证码');
+    return;
+  }
+  mfaSubmitting.value = true;
+  try {
+    const { data, error } = await fetchRegenerateMFARecoveryCodes(
+      mfaRecoveryPassword.value,
+      mfaRecoveryCode.value.trim(),
+      mfaStatus.value.version
+    );
+    if (error) return;
+    recoveryCodes.value = data.recovery_codes;
+    mfaRecoveryVisible.value = false;
+    recoveryCodesVisible.value = true;
+    window.$message?.success('旧恢复码已全部失效，请立即保存新恢复码');
+    await loadMFAStatus();
+  } finally {
+    mfaSubmitting.value = false;
+  }
+}
+
 async function disableMFA() {
   if (!mfaDisablePassword.value || !/^\d{6}$/.test(mfaDisableCode.value.trim())) {
     window.$message?.error('请输入当前密码和 6 位动态验证码');
@@ -303,7 +336,10 @@ onMounted(() => Promise.all([loadSessions(), loadMFAStatus()]));
       </ElDescriptions>
       <div v-if="mfaStatus.available" class="mt-16px">
         <ElButton v-if="!mfaStatus.enabled" type="primary" @click="openMFASetup">启用 MFA</ElButton>
-        <ElButton v-else type="danger" plain @click="openMFADisable">停用 MFA</ElButton>
+        <template v-else>
+          <ElButton @click="openMFARecoveryRotation">重新生成恢复码</ElButton>
+          <ElButton type="danger" plain @click="openMFADisable">停用 MFA</ElButton>
+        </template>
       </div>
     </ElCard>
 
@@ -492,6 +528,30 @@ onMounted(() => Promise.all([loadSessions(), loadMFAStatus()]));
     <template #footer>
       <ElButton @click="mfaDisableVisible = false">取消</ElButton>
       <ElButton type="danger" :loading="mfaSubmitting" @click="disableMFA">确认停用</ElButton>
+    </template>
+  </ElDialog>
+
+  <ElDialog v-model="mfaRecoveryVisible" title="重新生成恢复码" width="560px">
+    <ElAlert
+      class="mb-16px"
+      type="warning"
+      show-icon
+      :closable="false"
+      title="生成成功后所有旧恢复码立即失效，新恢复码关闭后无法再次查看。"
+    />
+    <ElSpace direction="vertical" fill class="w-full">
+      <ElInput
+        v-model="mfaRecoveryPassword"
+        type="password"
+        show-password
+        autocomplete="current-password"
+        placeholder="当前密码"
+      />
+      <ElInput v-model="mfaRecoveryCode" maxlength="6" autocomplete="one-time-code" placeholder="6 位动态验证码" />
+    </ElSpace>
+    <template #footer>
+      <ElButton @click="mfaRecoveryVisible = false">取消</ElButton>
+      <ElButton type="primary" :loading="mfaSubmitting" @click="regenerateMFARecoveryCodes">确认重新生成</ElButton>
     </template>
   </ElDialog>
 </template>

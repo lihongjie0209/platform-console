@@ -264,6 +264,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/mfa/recovery-codes/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace all MFA recovery codes after password and TOTP verification */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Current password, fresh TOTP code, and expected version */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.RegenerateMFARecoveryCodesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RegenerateMFARecoveryCodesResponseBody"];
+                        };
+                    };
+                };
+                /** @description Code 30009: stale resource version */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/mfa/setup/confirm": {
         parameters: {
             query?: never;
@@ -1294,6 +1346,15 @@ export interface components {
         };
         "httptransport.RefreshRequest": {
             refresh_token: string;
+        };
+        "httptransport.RegenerateMFARecoveryCodesRequest": {
+            code: string;
+            current_password: string;
+            version: number;
+        };
+        "httptransport.RegenerateMFARecoveryCodesResponseBody": {
+            recovery_codes?: string[];
+            version?: number;
         };
         "httptransport.RegisterIdentityRequest": {
             display_name: string;

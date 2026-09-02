@@ -93,6 +93,11 @@ declare namespace Api {
       version: number;
     }
 
+    interface MFARecoveryRotation {
+      recovery_codes: string[];
+      version: number;
+    }
+
     interface MFADisableResult {
       disabled: boolean;
       revoked_sessions: number;

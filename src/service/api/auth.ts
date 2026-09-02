@@ -125,6 +125,15 @@ export function fetchConfirmMFASetup(code: string, version: number) {
   });
 }
 
+/** Replace all recovery codes after password and fresh-TOTP verification. */
+export function fetchRegenerateMFARecoveryCodes(currentPassword: string, code: string, version: number) {
+  return identityRequest<Api.Auth.MFARecoveryRotation>({
+    url: '/api/v1/auth/mfa/recovery-codes/regenerate',
+    method: 'post',
+    data: { current_password: currentPassword, code, version }
+  });
+}
+
 /** Disable MFA after password and TOTP verification. */
 export function fetchDisableMFA(currentPassword: string, code: string, version: number) {
   return identityRequest<Api.Auth.MFADisableResult>({
