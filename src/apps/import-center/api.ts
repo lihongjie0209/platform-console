@@ -1,6 +1,7 @@
 import type { components as ImportContract } from '@/service/contracts/generated/import';
 import { platformRequest } from '@/service/request';
 import { applicationScope } from '@/platform/application-context';
+import { paginationRequest } from '@/platform/pagination';
 export type ImportDataset = ImportContract['schemas']['httptransport.ImportDatasetSummaryBody'] &
   Record<string, unknown> & {
     provider_service: string;
@@ -79,7 +80,14 @@ export const describeDataset = (input: {
       }
     })
   );
-export const listImports = (input: { tenantID: string; applicationID: string; status: string; datasetCode: string }) =>
+export const listImports = (input: {
+  tenantID: string;
+  applicationID: string;
+  status: string;
+  datasetCode: string;
+  page: number;
+  pageSize: number;
+}) =>
   unwrap<Page<ImportJob>>(
     request({
       url: '/api/v1/imports/list',
@@ -88,8 +96,7 @@ export const listImports = (input: { tenantID: string; applicationID: string; st
         ...applicationScope(input.tenantID, input.applicationID),
         status: input.status,
         dataset_code: input.datasetCode,
-        page: 1,
-        page_size: 100
+        ...paginationRequest(input.page, input.pageSize)
       }
     })
   );

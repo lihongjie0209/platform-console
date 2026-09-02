@@ -27,6 +27,9 @@ const rows = ref<ImportJob[]>([]);
 const datasets = ref<ImportDataset[]>([]);
 const status = ref('');
 const datasetCode = ref('');
+const page = ref(1);
+const pageSize = ref(20);
+const total = ref(0);
 const selectedDataset = ref('');
 const descriptor = ref<ImportDatasetDescriptor>();
 const format = ref('');
@@ -41,6 +44,7 @@ async function load() {
   const version = loadVersion;
   if (!scopeReady.value) {
     rows.value = [];
+    total.value = 0;
     datasets.value = [];
     return;
   }
@@ -49,13 +53,24 @@ async function load() {
       tenantID: tenantID.value,
       applicationID: applicationID.value,
       status: status.value,
-      datasetCode: datasetCode.value
+      datasetCode: datasetCode.value,
+      page: page.value,
+      pageSize: pageSize.value
     }),
     listDatasets(tenantID.value, applicationID.value, '')
   ]);
   if (version !== loadVersion) return;
   rows.value = v.items || [];
+  total.value = v.total || 0;
   datasets.value = d.items || [];
+}
+function search() {
+  page.value = 1;
+  load();
+}
+function changePageSize() {
+  page.value = 1;
+  load();
 }
 function chooseFile(e: Event) {
   source.value = (e.target as HTMLInputElement).files?.[0];
@@ -143,6 +158,8 @@ watch([tenantID, applicationID], () => {
   descriptorGuard.invalidate();
   loadVersion += 1;
   rows.value = [];
+  page.value = 1;
+  total.value = 0;
   datasets.value = [];
   selectedDataset.value = '';
   descriptor.value = undefined;
@@ -218,7 +235,7 @@ onMounted(load);
       <ElForm inline>
         <ElFormItem label="状态"><ElInput v-model="status" /></ElFormItem>
         <ElFormItem label="数据集编码"><ElInput v-model="datasetCode" /></ElFormItem>
-        <ElButton @click="load">查询</ElButton>
+        <ElButton @click="search">查询</ElButton>
       </ElForm>
       <ElTable :data="rows" border>
         <ElTableColumn prop="filename" label="文件" />
@@ -252,6 +269,17 @@ onMounted(load);
           </template>
         </ElTableColumn>
       </ElTable>
+      <div class="mt-16px flex justify-end">
+        <ElPagination
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @current-change="load"
+          @size-change="changePageSize"
+        />
+      </div>
     </template>
   </ElCard>
 </template>

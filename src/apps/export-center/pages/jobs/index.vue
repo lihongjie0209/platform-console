@@ -23,6 +23,9 @@ const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicatio
 const rows = ref<ExportJob[]>([]);
 const status = ref('');
 const datasetCode = ref('');
+const page = ref(1);
+const pageSize = ref(20);
+const total = ref(0);
 const visible = ref(false);
 const datasets = ref<ExportDataset[]>([]);
 const descriptor = ref<ExportDatasetDescriptor>();
@@ -58,15 +61,29 @@ async function load() {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
     rows.value = [];
+    total.value = 0;
     return;
   }
   const v = await listExports({
     tenantID: tenantID.value,
     applicationID: applicationID.value,
     status: status.value,
-    datasetCode: datasetCode.value
+    datasetCode: datasetCode.value,
+    page: page.value,
+    pageSize: pageSize.value
   });
-  if (loadGuard.isCurrent(request)) rows.value = v.items || [];
+  if (loadGuard.isCurrent(request)) {
+    rows.value = v.items || [];
+    total.value = v.total || 0;
+  }
+}
+function search() {
+  page.value = 1;
+  load();
+}
+function changePageSize() {
+  page.value = 1;
+  load();
 }
 async function openCreate() {
   visible.value = true;
@@ -136,6 +153,8 @@ async function action(job: ExportJob, type: 'cancel' | 'retry' | 'download') {
 watch([tenantID, applicationID], () => {
   visible.value = false;
   rows.value = [];
+  page.value = 1;
+  total.value = 0;
   datasets.value = [];
   descriptor.value = undefined;
   catalogGuard.invalidate();
@@ -161,7 +180,7 @@ onMounted(load);
       <ElForm inline>
         <ElFormItem label="状态"><ElInput v-model="status" /></ElFormItem>
         <ElFormItem label="数据集"><ElInput v-model="datasetCode" /></ElFormItem>
-        <ElButton @click="load">查询</ElButton>
+        <ElButton @click="search">查询</ElButton>
       </ElForm>
       <ElTable :data="rows" border>
         <ElTableColumn prop="filename" label="文件" />
@@ -189,6 +208,17 @@ onMounted(load);
           </template>
         </ElTableColumn>
       </ElTable>
+      <div class="mt-16px flex justify-end">
+        <ElPagination
+          v-model:current-page="page"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @current-change="load"
+          @size-change="changePageSize"
+        />
+      </div>
     </template>
   </ElCard>
   <ElDialog v-model="visible" title="创建导出">

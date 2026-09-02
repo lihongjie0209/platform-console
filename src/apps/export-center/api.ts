@@ -1,6 +1,7 @@
 import type { components as ExportContract } from '@/service/contracts/generated/data-export';
 import { platformRequest } from '@/service/request';
 import { applicationScope } from '@/platform/application-context';
+import { paginationRequest } from '@/platform/pagination';
 export type ExportJob = ExportContract['schemas']['httptransport.ExportJobBody'] & {
   id: string;
   tenant_id: string;
@@ -50,7 +51,14 @@ async function unwrap<T>(value: PromiseLike<{ data: T | null; error: unknown }>)
   if (data === null) throw new Error('export service returned an empty response');
   return data;
 }
-export const listExports = (input: { tenantID: string; applicationID: string; status: string; datasetCode: string }) =>
+export const listExports = (input: {
+  tenantID: string;
+  applicationID: string;
+  status: string;
+  datasetCode: string;
+  page: number;
+  pageSize: number;
+}) =>
   unwrap<Page<ExportJob>>(
     request({
       url: '/api/v1/exports/list',
@@ -59,8 +67,7 @@ export const listExports = (input: { tenantID: string; applicationID: string; st
         ...applicationScope(input.tenantID, input.applicationID),
         status: input.status,
         dataset_code: input.datasetCode,
-        page: 1,
-        page_size: 100
+        ...paginationRequest(input.page, input.pageSize)
       }
     })
   );
