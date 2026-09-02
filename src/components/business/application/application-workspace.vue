@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { usePlatformStore } from '@/store/modules/platform';
+import { resolveApplicationWorkspace } from '@/apps/registry';
 import { applicationMenuSections, applicationNavigationCompatibility } from '@/platform/navigation';
 import { applicationCategoryDetails } from '@/platform/application-groups';
 import { BizEmptyState, BizPageContainer } from '@/components/business';
@@ -18,6 +19,7 @@ const application = computed(() => navigation.value?.application || platformStor
 const sections = computed(() => (navigation.value ? applicationMenuSections(navigation.value) : []));
 const entries = computed(() => sections.value.flatMap(section => section.entries));
 const category = computed(() => (application.value ? applicationCategoryDetails(application.value) : undefined));
+const applicationWorkspace = computed(() => resolveApplicationWorkspace(application.value?.code));
 const compatibility = computed(() =>
   navigation.value
     ? applicationNavigationCompatibility(navigation.value)
@@ -57,6 +59,8 @@ async function openEntry(entry: (typeof entries.value)[number]) {
         <ElTag v-else type="success" effect="plain">已兼容</ElTag>
       </ElDescriptionsItem>
     </ElDescriptions>
+
+    <component :is="applicationWorkspace" v-if="applicationWorkspace" class="mb-20px" />
 
     <BizEmptyState
       v-if="!entries.length"

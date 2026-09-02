@@ -3,10 +3,12 @@ import type { ApplicationManifest, ApplicationModule, ApplicationPageLoader } fr
 export interface ApplicationRegistry {
   modules: readonly ApplicationModule[];
   pageLoaders: ReadonlyMap<string, ApplicationPageLoader>;
+  workspaceLoaders: ReadonlyMap<string, ApplicationPageLoader>;
 }
 
 export function createApplicationRegistry(manifests: readonly ApplicationManifest[]): ApplicationRegistry {
   const pageLoaders = new Map<string, ApplicationPageLoader>();
+  const workspaceLoaders = new Map<string, ApplicationPageLoader>();
   const applicationCodes = new Set<string>();
 
   for (const manifest of manifests) {
@@ -14,6 +16,7 @@ export function createApplicationRegistry(manifests: readonly ApplicationManifes
       throw new Error(`Duplicate or empty application code: ${manifest.code}`);
     }
     applicationCodes.add(manifest.code);
+    if (manifest.workspace) workspaceLoaders.set(manifest.code, manifest.workspace);
     for (const [pageKey, loader] of Object.entries(manifest.pages)) {
       if (!pageKey.startsWith(`${manifest.code}.`)) {
         throw new Error(`Page ${pageKey} is outside application namespace ${manifest.code}`);
@@ -25,11 +28,13 @@ export function createApplicationRegistry(manifests: readonly ApplicationManifes
 
   return {
     pageLoaders,
+    workspaceLoaders,
     modules: Object.freeze(
       manifests.map(manifest => ({
         code: manifest.code,
         name: manifest.name,
         category: manifest.category,
+        hasWorkspace: Boolean(manifest.workspace),
         pages: Object.freeze(Object.keys(manifest.pages))
       }))
     )

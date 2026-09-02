@@ -41,7 +41,7 @@ const manifests: readonly ApplicationManifest[] = [
 ];
 
 const registry = createApplicationRegistry(manifests);
-const { pageLoaders } = registry;
+const { pageLoaders, workspaceLoaders } = registry;
 
 export type ApplicationPageKey = string;
 
@@ -70,6 +70,7 @@ export function applicationModuleFor(applicationCode: string) {
 }
 
 const pageComponents = new Map<string, Component>();
+const workspaceComponents = new Map<string, Component>();
 
 export function pageBelongsToApplication(pageKey: string, applicationCode: string) {
   return pageLoaders.has(pageKey) && pageUsesApplicationNamespace(pageKey, applicationCode);
@@ -84,6 +85,20 @@ export function resolveApplicationPage(pageKey?: string, applicationCode?: strin
     if (!loader) return undefined;
     component = defineAsyncComponent(loader);
     pageComponents.set(pageKey, component);
+  }
+  return component;
+}
+
+export function resolveApplicationWorkspace(applicationCode?: string): Component | undefined {
+  if (!applicationCode) return undefined;
+  const code = applicationCode.trim();
+  const loader = workspaceLoaders.get(code);
+  if (!loader) return undefined;
+
+  let component = workspaceComponents.get(code);
+  if (!component) {
+    component = defineAsyncComponent(loader);
+    workspaceComponents.set(code, component);
   }
   return component;
 }

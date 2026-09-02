@@ -56,10 +56,21 @@ test('application registry exposes immutable page ownership metadata', () => {
       code: 'orders',
       name: 'Orders',
       category: 'business',
+      hasWorkspace: false,
       pages: ['orders.list', 'orders.detail']
     }
   ]);
   assert.equal(registry.pageLoaders.get('orders.list'), loader);
   assert.equal(Object.isFrozen(registry.modules), true);
   assert.equal(Object.isFrozen(registry.modules[0]?.pages), true);
+});
+
+test('application registry keeps an optional workspace loader under its owning application', () => {
+  const workspace = (() => Promise.resolve({ default: {} })) as ApplicationPageLoader;
+  const registry = createApplicationRegistry([
+    { code: 'orders', name: 'Orders', category: 'business', workspace, pages: { 'orders.list': loader } }
+  ]);
+
+  assert.equal(registry.workspaceLoaders.get('orders'), workspace);
+  assert.equal(registry.modules[0]?.hasWorkspace, true);
 });

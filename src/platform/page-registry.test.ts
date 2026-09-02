@@ -6,7 +6,8 @@ import {
   isApplicationPageKey,
   pageBelongsToApplication,
   pageUsesApplicationNamespace,
-  resolveApplicationPage
+  resolveApplicationPage,
+  resolveApplicationWorkspace
 } from '../apps/registry';
 
 test('application pages are registered under an application namespace', () => {
@@ -75,6 +76,12 @@ test('page registry rejects untrusted component strings', () => {
   assert.ok(resolveApplicationPage('platform-admin.roles', 'platform-admin'));
   assert.equal(resolveApplicationPage('../../views/manage/user', 'platform-admin'), undefined);
   assert.equal(resolveApplicationPage('https://example.com/page.js', 'platform-admin'), undefined);
+});
+
+test('application workspaces are optional and scoped by manifest code', () => {
+  assert.ok(resolveApplicationWorkspace('platform-admin'));
+  assert.equal(resolveApplicationWorkspace('billing-center'), undefined);
+  assert.equal(resolveApplicationWorkspace('../../platform-admin'), undefined);
 });
 
 test('an application cannot mount a page owned by another application', () => {

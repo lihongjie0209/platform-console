@@ -4,6 +4,7 @@ export const platformAdminManifest = {
   code: 'platform-admin',
   name: '平台管理',
   category: 'platform',
+  workspace: () => import('./pages/workspace/index.vue'),
   pages: {
     'platform-admin.applications': () => import('./pages/applications/index.vue'),
     'platform-admin.menus': () => import('./pages/menus/index.vue'),

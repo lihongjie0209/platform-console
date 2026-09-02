@@ -15,6 +15,7 @@ export interface ApplicationManifest {
   code: string;
   name: string;
   category: ApplicationCategory;
+  workspace?: ApplicationPageLoader;
   pages: Readonly<Record<string, ApplicationPageLoader>>;
 }
 
@@ -22,5 +23,6 @@ export interface ApplicationModule {
   code: string;
   name: string;
   category: ApplicationCategory;
+  hasWorkspace: boolean;
   pages: readonly string[];
 }
