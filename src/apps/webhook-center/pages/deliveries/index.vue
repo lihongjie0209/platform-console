@@ -15,6 +15,7 @@ const status = ref('');
 const subscriptionID = ref('');
 const detail = ref<WebhookDelivery>();
 const loadGuard = createLatestRequestGuard();
+const canReplay = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.delivery.replay' }));
 async function load() {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
@@ -31,6 +32,7 @@ async function load() {
   if (loadGuard.isCurrent(request)) rows.value = v.items || [];
 }
 async function replay(v: WebhookDelivery) {
+  if (!canReplay.value) return;
   await replayDelivery(v);
   await load();
 }
@@ -66,7 +68,9 @@ onMounted(load);
         <ElTableColumn label="操作">
           <template #default="{ row }">
             <ElButton link @click="detail = row">详情</ElButton>
-            <ElButton v-if="['succeeded', 'dead'].includes(row.status)" link @click="replay(row)">重放</ElButton>
+            <ElButton v-if="canReplay && ['succeeded', 'dead'].includes(row.status)" link @click="replay(row)">
+              重放
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>

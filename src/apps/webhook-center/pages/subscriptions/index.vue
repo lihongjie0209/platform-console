@@ -19,6 +19,13 @@ const editing = ref<WebhookSubscription>();
 const secret = ref('');
 const testPayload = ref('{}');
 const loadGuard = createLatestRequestGuard();
+const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.subscription.create' }));
+const canUpdate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.subscription.update' }));
+const canTest = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.subscription.test' }));
+const canRotateSecret = computed(() =>
+  store.hasPermission({ scope: 'tenant', codes: 'webhook.subscription.rotate-secret' })
+);
+const canDelete = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.subscription.delete' }));
 const form = reactive({
   name: '',
   endpointURL: '',
@@ -43,6 +50,7 @@ async function load() {
   if (loadGuard.isCurrent(request)) rows.value = v.items || [];
 }
 function open(v?: WebhookSubscription) {
+  if ((v && !canUpdate.value) || (!v && !canCreate.value)) return;
   editing.value = v;
   Object.assign(
     form,
@@ -69,7 +77,7 @@ function open(v?: WebhookSubscription) {
   visible.value = true;
 }
 async function save() {
-  if (!scopeReady.value) return;
+  if ((editing.value && !canUpdate.value) || (!editing.value && !canCreate.value) || !scopeReady.value) return;
   const result = await saveSubscription(editing.value, tenantID.value, {
     ...form,
     applicationID: applicationID.value
@@ -82,16 +90,19 @@ async function save() {
   await load();
 }
 async function rotate(v: WebhookSubscription) {
+  if (!canRotateSecret.value) return;
   const result = await rotateSecret(v);
   secret.value = result.signing_secret;
   window.$message?.warning('新密钥仅显示一次，请立即保存');
   await load();
 }
 async function remove(v: WebhookSubscription) {
+  if (!canDelete.value) return;
   await deleteSubscription(v);
   await load();
 }
 async function test(v: WebhookSubscription) {
+  if (!canTest.value) return;
   try {
     await testSubscription(v, parseJSONObject(testPayload.value, '测试负载'));
     window.$message?.success('测试投递已入队');
@@ -117,7 +128,7 @@ onMounted(load);
           <h2 class="m-0">Webhook 订阅</h2>
           <p class="mb-0 text-#999">配置事件过滤、超时和重试；签名密钥创建或轮换后仅显示一次。</p>
         </div>
-        <ElButton type="primary" :disabled="!scopeReady" @click="open()">新建订阅</ElButton>
+        <ElButton v-if="canCreate" type="primary" :disabled="!scopeReady" @click="open()">新建订阅</ElButton>
       </div>
     </template>
     <ElAlert
@@ -138,7 +149,7 @@ onMounted(load);
     />
     <template v-else>
       <ElAlert :title="`当前应用：${applicationName}`" type="info" show-icon :closable="false" class="mb-16px" />
-      <ElForm inline>
+      <ElForm v-if="canTest" inline>
         <ElFormItem label="搜索"><ElInput v-model="search" /></ElFormItem>
         <ElFormItem label="状态"><ElInput v-model="status" /></ElFormItem>
         <ElButton @click="load">查询</ElButton>
@@ -153,10 +164,10 @@ onMounted(load);
         <ElTableColumn prop="status" label="状态" />
         <ElTableColumn label="操作" width="250">
           <template #default="{ row }">
-            <ElButton link @click="open(row)">编辑</ElButton>
-            <ElButton link @click="test(row)">测试</ElButton>
-            <ElButton link @click="rotate(row)">轮换密钥</ElButton>
-            <ElButton link type="danger" @click="remove(row)">删除</ElButton>
+            <ElButton v-if="canUpdate" link @click="open(row)">编辑</ElButton>
+            <ElButton v-if="canTest" link @click="test(row)">测试</ElButton>
+            <ElButton v-if="canRotateSecret" link @click="rotate(row)">轮换密钥</ElButton>
+            <ElButton v-if="canDelete" link type="danger" @click="remove(row)">删除</ElButton>
           </template>
         </ElTableColumn>
       </ElTable>
@@ -178,7 +189,7 @@ onMounted(load);
     </ElForm>
     <template #footer>
       <ElButton @click="visible = false">取消</ElButton>
-      <ElButton type="primary" @click="save">保存</ElButton>
+      <ElButton v-if="editing ? canUpdate : canCreate" type="primary" @click="save">保存</ElButton>
     </template>
   </ElDialog>
 </template>
