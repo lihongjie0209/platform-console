@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { createLatestRequestGuard } from '@/platform/application-context';
 import type { JobExecution, JobInput, ScheduledJob } from '../../api';
 import { createJob, deleteJob, listExecutions, listJobs, triggerJob, updateJob } from '../../api';
 import { normalizeRequestJSON } from '../../request-json';
@@ -27,6 +28,8 @@ const executionPage = ref(1);
 const selectedJob = ref<ScheduledJob>();
 const executionDetail = ref<JobExecution>();
 const executionDetailVisible = ref(false);
+const loadGuard = createLatestRequestGuard();
+const executionGuard = createLatestRequestGuard();
 const form = reactive<JobInput>({
   name: '',
   cronExpression: '0 0 * * * *',
@@ -39,9 +42,11 @@ const form = reactive<JobInput>({
 });
 
 async function loadData() {
+  const request = loadGuard.begin();
   if (!tenantID.value || !applicationID.value) {
     rows.value = [];
     total.value = 0;
+    loading.value = false;
     return;
   }
   loading.value = true;
@@ -53,10 +58,12 @@ async function loadData() {
       page: page.value,
       pageSize: pageSize.value
     });
-    rows.value = result.items || [];
-    total.value = result.total || 0;
+    if (loadGuard.isCurrent(request)) {
+      rows.value = result.items || [];
+      total.value = result.total || 0;
+    }
   } finally {
-    loading.value = false;
+    if (loadGuard.isCurrent(request)) loading.value = false;
   }
 }
 
@@ -130,18 +137,26 @@ async function trigger(row: ScheduledJob) {
 }
 async function loadExecutions() {
   if (!selectedJob.value) return;
+  const request = executionGuard.begin();
+  const jobID = selectedJob.value.id;
   executionLoading.value = true;
   try {
-    const result = await listExecutions(selectedJob.value.id, executionPage.value, 20);
-    executionRows.value = result.items || [];
-    executionTotal.value = result.total || 0;
+    const result = await listExecutions(jobID, executionPage.value, 20);
+    if (executionGuard.isCurrent(request) && selectedJob.value?.id === jobID) {
+      executionRows.value = result.items || [];
+      executionTotal.value = result.total || 0;
+    }
   } finally {
-    executionLoading.value = false;
+    if (executionGuard.isCurrent(request)) executionLoading.value = false;
   }
 }
 function showExecutions(row: ScheduledJob) {
   selectedJob.value = row;
   executionPage.value = 1;
+  executionRows.value = [];
+  executionTotal.value = 0;
+  executionDetail.value = undefined;
+  executionDetailVisible.value = false;
   executionsVisible.value = true;
   loadExecutions();
 }
@@ -150,12 +165,18 @@ function showExecution(row: JobExecution) {
   executionDetailVisible.value = true;
 }
 watch([tenantID, applicationID], () => {
+  executionGuard.invalidate();
   page.value = 1;
   rows.value = [];
   total.value = 0;
   formVisible.value = false;
   executionsVisible.value = false;
   selectedJob.value = undefined;
+  executionRows.value = [];
+  executionTotal.value = 0;
+  executionDetail.value = undefined;
+  executionDetailVisible.value = false;
+  executionLoading.value = false;
   loadData();
 });
 onMounted(loadData);

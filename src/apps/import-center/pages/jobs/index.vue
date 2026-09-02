@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { hasApplicationScope } from '@/platform/application-context';
+import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { sha256Hex } from '@/apps/file-center/checksum';
 import type { ImportDataset, ImportJob } from '../../api';
 import {
@@ -31,6 +31,7 @@ const source = ref<File>();
 const uploading = ref(false);
 const fileInputKey = ref(0);
 let loadVersion = 0;
+const uploadGuard = createLatestRequestGuard();
 async function load() {
   loadVersion += 1;
   const version = loadVersion;
@@ -57,24 +58,29 @@ function chooseFile(e: Event) {
 }
 async function create() {
   if (!scopeReady.value || !source.value) return;
+  const request = uploadGuard.begin();
+  const selectedFile = source.value;
+  const tenant = tenantID.value;
+  const application = applicationID.value;
   const dataset = datasets.value.find(v => `${v.provider_service}:${v.code}` === selectedDataset.value);
   if (!dataset) return;
   uploading.value = true;
   try {
     const auth = await createImport({
-      tenantID: tenantID.value,
-      applicationID: applicationID.value,
+      tenantID: tenant,
+      applicationID: application,
       dataset,
       format: format.value,
-      filename: source.value.name
+      filename: selectedFile.name
     });
-    await putImportFile(auth, source.value);
-    const checksum = await sha256Hex(source.value);
-    await completeImportUpload(auth.job, source.value.size, checksum);
+    await putImportFile(auth, selectedFile);
+    const checksum = await sha256Hex(selectedFile);
+    await completeImportUpload(auth.job, selectedFile.size, checksum);
+    if (!uploadGuard.isCurrent(request)) return;
     window.$message?.success('文件已上传，正在校验');
     await load();
   } finally {
-    uploading.value = false;
+    if (uploadGuard.isCurrent(request)) uploading.value = false;
   }
 }
 async function action(job: ImportJob, type: 'confirm' | 'cancel' | 'retry' | 'report') {
@@ -97,12 +103,14 @@ async function action(job: ImportJob, type: 'confirm' | 'cancel' | 'retry' | 're
   await load();
 }
 watch([tenantID, applicationID], () => {
+  uploadGuard.invalidate();
   loadVersion += 1;
   rows.value = [];
   datasets.value = [];
   selectedDataset.value = '';
   source.value = undefined;
   fileInputKey.value += 1;
+  uploading.value = false;
   load();
 });
 onMounted(load);

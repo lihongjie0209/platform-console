@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { hasApplicationScope } from '@/platform/application-context';
+import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { parseJSONObject } from '@/apps/commerce/json';
 import type { ExportJob } from '../../api';
 import { cancelExport, createExport, downloadExport, listExports, retryExport } from '../../api';
@@ -16,7 +16,9 @@ const status = ref('');
 const datasetCode = ref('');
 const visible = ref(false);
 const form = reactive({ datasetCode: '', providerService: '', format: 'csv', filename: '', query: '{}', columns: '' });
+const loadGuard = createLatestRequestGuard();
 async function load() {
+  const request = loadGuard.begin();
   if (!scopeReady.value) {
     rows.value = [];
     return;
@@ -27,7 +29,7 @@ async function load() {
     status: status.value,
     datasetCode: datasetCode.value
   });
-  rows.value = v.items || [];
+  if (loadGuard.isCurrent(request)) rows.value = v.items || [];
 }
 async function create() {
   if (!scopeReady.value) return;

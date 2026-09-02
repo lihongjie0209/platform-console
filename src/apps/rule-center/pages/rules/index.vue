@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { hasApplicationScope } from '@/platform/application-context';
+import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import type { RuleSet, RuleVersion } from '../../api';
 import {
   createRuleVersion,
@@ -31,8 +31,14 @@ const definition = ref('{\n  "rules": []\n}');
 const facts = ref('{}');
 const evaluation = ref('');
 const form = reactive({ code: '', name: '', description: '', status: 'draft' });
+const loadGuard = createLatestRequestGuard();
+const versionGuard = createLatestRequestGuard();
 async function load() {
-  if (!scopeReady.value) return;
+  const request = loadGuard.begin();
+  if (!scopeReady.value) {
+    rows.value = [];
+    return;
+  }
   const v = await listRuleSets({
     tenantID: tenantID.value,
     applicationID: applicationID.value,
@@ -41,7 +47,7 @@ async function load() {
     page: 1,
     pageSize: 100
   });
-  rows.value = v.items || [];
+  if (loadGuard.isCurrent(request)) rows.value = v.items || [];
 }
 function open(v?: RuleSet) {
   editing.value = v;
@@ -55,9 +61,13 @@ async function save() {
   await load();
 }
 async function versionsFor(v: RuleSet) {
+  const request = versionGuard.begin();
   selected.value = v;
-  versions.value = (await listRuleVersions(v)).items || [];
-  versionVisible.value = true;
+  const result = await listRuleVersions(v);
+  if (versionGuard.isCurrent(request) && selected.value?.id === v.id) {
+    versions.value = result.items || [];
+    versionVisible.value = true;
+  }
 }
 async function createVersion() {
   if (!selected.value) return;
@@ -81,7 +91,17 @@ async function evaluate(v: RuleSet) {
   const r = await evaluateRule(v, parseJSONObject(facts.value, '事实'));
   evaluation.value = JSON.stringify(r, null, 2);
 }
-watch([tenantID, applicationID], load);
+watch([tenantID, applicationID], () => {
+  versionGuard.invalidate();
+  rows.value = [];
+  visible.value = false;
+  editing.value = undefined;
+  versionVisible.value = false;
+  selected.value = undefined;
+  versions.value = [];
+  evaluation.value = '';
+  load();
+});
 onMounted(load);
 </script>
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { hasApplicationScope } from '@/platform/application-context';
+import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import type { UsagePoint } from '../../api';
 import { queryUsage } from '../../api';
 import { parseJSONObject } from '../../../commerce/json';
@@ -18,8 +18,10 @@ const dimensions = ref('{}');
 const rows = ref<UsagePoint[]>([]);
 const totalQuantity = ref(0);
 const loading = ref(false);
+const searchGuard = createLatestRequestGuard();
 async function search() {
   if (!scopeReady.value || !range.value || !meterCode.value.trim()) return;
+  const request = searchGuard.begin();
   loading.value = true;
   try {
     const v = await queryUsage({
@@ -33,17 +35,21 @@ async function search() {
       page: 1,
       pageSize: 100
     });
-    rows.value = v.items || [];
-    totalQuantity.value = v.total_quantity || 0;
+    if (searchGuard.isCurrent(request)) {
+      rows.value = v.items || [];
+      totalQuantity.value = v.total_quantity || 0;
+    }
   } catch (e) {
-    window.$message?.error(e instanceof Error ? e.message : '查询失败');
+    if (searchGuard.isCurrent(request)) window.$message?.error(e instanceof Error ? e.message : '查询失败');
   } finally {
-    loading.value = false;
+    if (searchGuard.isCurrent(request)) loading.value = false;
   }
 }
 watch([tenantID, applicationID], () => {
+  searchGuard.invalidate();
   rows.value = [];
   totalQuantity.value = 0;
+  loading.value = false;
 });
 </script>
 
