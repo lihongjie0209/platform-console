@@ -83,7 +83,11 @@ export function resolveApplicationPage(pageKey?: string, applicationCode?: strin
   if (!component) {
     const loader = pageLoaders.get(pageKey);
     if (!loader) return undefined;
-    component = createApplicationAsyncComponent(loader);
+    component = createApplicationAsyncComponent(loader, {
+      applicationCode,
+      resourceKey: pageKey,
+      kind: 'page'
+    });
     pageComponents.set(pageKey, component);
   }
   return component;
@@ -97,7 +101,11 @@ export function resolveApplicationWorkspace(applicationCode?: string): Component
 
   let component = workspaceComponents.get(code);
   if (!component) {
-    component = createApplicationAsyncComponent(loader);
+    component = createApplicationAsyncComponent(loader, {
+      applicationCode: code,
+      resourceKey: `${code}.__workspace__`,
+      kind: 'workspace'
+    });
     workspaceComponents.set(code, component);
   }
   return component;

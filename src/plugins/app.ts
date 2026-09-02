@@ -1,12 +1,20 @@
 import { h } from 'vue';
 import type { App } from 'vue';
 import { $t } from '@/locales';
+import { applicationLoadFailureEvent } from '@/platform/application-load-events';
+import type { ApplicationLoadFailure } from '@/platform/application-load-events';
 
 export function setupAppErrorHandle(app: App) {
   app.config.errorHandler = (err, vm, info) => {
     // eslint-disable-next-line no-console
     console.error(err, vm, info);
   };
+  window.addEventListener(applicationLoadFailureEvent, event => {
+    const failure = (event as CustomEvent<ApplicationLoadFailure>).detail;
+    // This structured boundary can be replaced by a browser telemetry exporter without changing application modules.
+    // eslint-disable-next-line no-console
+    console.error('application resource load failure', failure);
+  });
 }
 
 export function setupAppVersionNotification() {
