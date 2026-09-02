@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { BizCrudPage, BizRowActions } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
+import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { Quota, QuotaForm } from '../../api';
 import { listQuotas, setQuota } from '../../api';
 
@@ -26,7 +27,7 @@ const config: BizCrudConfig<Quota, Query, QuotaForm, string> = {
     { prop: 'used', label: '已使用', minWidth: 140 },
     { prop: 'used', label: '使用情况', minWidth: 230, slot: 'usage' },
     { prop: 'version', label: '版本', width: 90 },
-    { prop: 'updated_at', label: '更新时间', minWidth: 180 },
+    { prop: 'updated_at', label: '更新时间', minWidth: 180, formatter: formatPlatformTableDateTime },
     { prop: 'key', label: '操作', width: 100, fixed: 'right', slot: 'actions' }
   ],
   form: {

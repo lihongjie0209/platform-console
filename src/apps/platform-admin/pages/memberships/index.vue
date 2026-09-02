@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig, BizFieldOption } from '@/components/business';
+import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { Membership, MembershipForm, OrganizationUnit, UserIdentity } from '../../api';
 import { addMembership, listMemberships, listOrganizationUnits, listUsers, updateMembership } from '../../api';
 
@@ -59,7 +60,7 @@ const config: BizCrudConfig<Membership, Query, MembershipForm, string> = {
     { prop: 'user_id', label: '用户', minWidth: 210, slot: 'user' },
     { prop: 'primary_organization_unit_id', label: '主组织', minWidth: 190, slot: 'organization' },
     { prop: 'status', label: '状态', width: 110, slot: 'status' },
-    { prop: 'joined_at', label: '加入时间', minWidth: 180 },
+    { prop: 'joined_at', label: '加入时间', minWidth: 180, formatter: formatPlatformTableDateTime },
     { prop: 'version', label: '版本', width: 90 },
     { prop: 'id', label: '操作', width: 100, fixed: 'right', slot: 'actions' }
   ],

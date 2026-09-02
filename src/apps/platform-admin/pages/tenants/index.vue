@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig, BizFieldOption } from '@/components/business';
+import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { TenantDirectoryItem, TenantForm, UserIdentity } from '../../api';
 import { createTenant, getTenant, listTenantDirectory, listUsers, updateTenant } from '../../api';
 
@@ -35,7 +36,7 @@ const config: BizCrudConfig<TenantDirectoryItem, Query, TenantForm, string> = {
     { prop: 'code', label: '租户编码', minWidth: 170 },
     { prop: 'name', label: '租户名称', minWidth: 180 },
     { prop: 'status', label: '状态', width: 110, slot: 'status' },
-    { prop: 'updated_at', label: '更新时间', minWidth: 180 },
+    { prop: 'updated_at', label: '更新时间', minWidth: 180, formatter: formatPlatformTableDateTime },
     { prop: 'version', label: '版本', width: 90 },
     { prop: 'id', label: '操作', width: 100, fixed: 'right', slot: 'actions' }
   ],

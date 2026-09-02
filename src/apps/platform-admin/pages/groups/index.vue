@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
+import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { Group, GroupForm } from '../../api';
 import { createGroup, listGroups, updateGroup } from '../../api';
 
@@ -22,7 +23,7 @@ const config: BizCrudConfig<Group, Query, GroupForm, string> = {
     { prop: 'code', label: '成员组编码', minWidth: 180 },
     { prop: 'name', label: '成员组名称', minWidth: 180 },
     { prop: 'status', label: '状态', width: 110, slot: 'status' },
-    { prop: 'updated_at', label: '更新时间', minWidth: 180 },
+    { prop: 'updated_at', label: '更新时间', minWidth: 180, formatter: formatPlatformTableDateTime },
     { prop: 'version', label: '版本', width: 90 },
     { prop: 'id', label: '操作', width: 100, fixed: 'right', slot: 'actions' }
   ],
