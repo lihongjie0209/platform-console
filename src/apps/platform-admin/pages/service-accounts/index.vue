@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
+import { usePlatformStore } from '@/store/modules/platform';
 import { BizCopyText } from '@/components/business';
 import type { ServiceAccount, ServiceAccountForm } from '../../api';
 import { createServiceAccount, listServiceAccounts, updateServiceAccountStatus } from '../../api';
@@ -25,6 +26,13 @@ const rules: FormRules<ServiceAccountForm> = {
   name: [{ required: true, message: '请输入服务账号名称', trigger: 'blur' }],
   audiences: [{ required: true, type: 'array', min: 1, message: '至少配置一个 JWT audience', trigger: 'change' }]
 };
+const platformStore = usePlatformStore();
+const canCreateAccount = computed(() =>
+  platformStore.hasPermission({ scope: 'platform', codes: 'identity.service-account.create' })
+);
+const canUpdateAccount = computed(() =>
+  platformStore.hasPermission({ scope: 'platform', codes: 'identity.service-account.update-status' })
+);
 
 async function loadData() {
   loading.value = true;
@@ -54,13 +62,14 @@ function resetSearch() {
 }
 
 function openCreate() {
+  if (!canCreateAccount.value) return;
   Object.assign(form, { name: '', audiences: [] });
   formRef.value?.clearValidate();
   createVisible.value = true;
 }
 
 async function submit() {
-  if (!(await formRef.value?.validate())) return;
+  if (!canCreateAccount.value || !(await formRef.value?.validate())) return;
   submitting.value = true;
   try {
     const result = await createServiceAccount(form);
@@ -75,6 +84,7 @@ async function submit() {
 }
 
 async function changeStatus(row: ServiceAccount) {
+  if (!canUpdateAccount.value) return;
   const nextStatus = row.status === 'active' ? 'disabled' : 'active';
   await updateServiceAccountStatus(row.id, nextStatus, row.version);
   window.$message?.success(nextStatus === 'active' ? '服务账号已启用' : '服务账号已停用');
@@ -111,7 +121,7 @@ onMounted(loadData);
         </div>
         <div class="flex-y-center gap-8px">
           <ElButton :loading="loading" @click="loadData">刷新</ElButton>
-          <ElButton type="primary" @click="openCreate">创建服务账号</ElButton>
+          <ElButton v-if="canCreateAccount" type="primary" @click="openCreate">创建服务账号</ElButton>
         </div>
       </div>
     </template>
@@ -154,6 +164,7 @@ onMounted(loadData);
       <ElTableColumn label="操作" width="110" fixed="right">
         <template #default="{ row }">
           <ElPopconfirm
+            v-if="canUpdateAccount"
             :title="row.status === 'active' ? '确认停用该服务账号？' : '确认启用该服务账号？'"
             @confirm="changeStatus(row)"
           >
@@ -196,7 +207,7 @@ onMounted(loadData);
     </ElForm>
     <template #footer>
       <ElButton @click="createVisible = false">取消</ElButton>
-      <ElButton type="primary" :loading="submitting" @click="submit">创建</ElButton>
+      <ElButton v-if="canCreateAccount" type="primary" :loading="submitting" @click="submit">创建</ElButton>
     </template>
   </ElDialog>
 

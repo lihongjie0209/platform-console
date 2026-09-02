@@ -53,6 +53,10 @@ const config: BizCrudConfig<Quota, Query, QuotaForm, string> = {
       }
     ]
   },
+  permissions: {
+    create: { scope: 'tenant', codes: 'tenant.quota.update' },
+    update: { scope: 'tenant', codes: 'tenant.quota.update' }
+  },
   mapRowToForm: row => ({ key: String(row.key), limit: Number(row.limit), version: Number(row.version) })
 };
 const adapter: BizCrudAdapter<Quota, Query, QuotaForm, string> = {

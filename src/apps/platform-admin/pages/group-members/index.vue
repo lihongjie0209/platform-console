@@ -18,6 +18,10 @@ const page = ref(1);
 const pageSize = ref(20);
 const total = ref(0);
 const tenantID = computed(() => platformStore.selectedTenantId);
+const canAddMember = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'tenant.group.add-member' }));
+const canRemoveMember = computed(() =>
+  platformStore.hasPermission({ scope: 'tenant', codes: 'tenant.group.remove-member' })
+);
 const assignmentByMembership = computed(
   () => new Map(assignments.value.map(item => [String(item.membership_id), item]))
 );
@@ -67,6 +71,7 @@ async function loadAssignments() {
   }
 }
 async function toggle(membership: Membership, enabled: boolean) {
+  if ((enabled && !canAddMember.value) || (!enabled && !canRemoveMember.value)) return;
   const membershipID = String(membership.id || '');
   if (!membershipID) return;
   const assignment = assignmentByMembership.value.get(membershipID);
@@ -138,10 +143,13 @@ onMounted(loadCatalogs);
         <ElTableColumn label="组内状态" width="130" fixed="right">
           <template #default="{ row }">
             <ElSwitch
+              v-if="canAddMember || canRemoveMember"
               :model-value="assignmentByMembership.get(row.id)?.status === 'active'"
               :loading="changing === row.id"
+              :disabled="assignmentByMembership.get(row.id)?.status === 'active' ? !canRemoveMember : !canAddMember"
               @change="value => toggle(row, Boolean(value))"
             />
+            <span v-else>-</span>
           </template>
         </ElTableColumn>
       </ElTable>

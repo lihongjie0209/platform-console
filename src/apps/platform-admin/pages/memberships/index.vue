@@ -105,6 +105,10 @@ const config: BizCrudConfig<Membership, Query, MembershipForm, string> = {
       }
     ]
   },
+  permissions: {
+    create: { scope: 'tenant', codes: 'tenant.membership.create' },
+    update: { scope: 'tenant', codes: 'tenant.membership.update' }
+  },
   mapRowToForm: row => ({ ...emptyForm(), ...row })
 };
 const adapter: BizCrudAdapter<Membership, Query, MembershipForm, string> = {

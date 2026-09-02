@@ -20,6 +20,12 @@ const invitationToken = ref('');
 const formRef = ref<FormInstance>();
 const form = reactive<InvitationForm>({ email: '', expires_in_hours: 24 });
 const tenantID = computed(() => platformStore.selectedTenantId);
+const canCreateInvitation = computed(() =>
+  platformStore.hasPermission({ scope: 'tenant', codes: 'tenant.invitation.create' })
+);
+const canRevokeInvitation = computed(() =>
+  platformStore.hasPermission({ scope: 'tenant', codes: 'tenant.invitation.revoke' })
+);
 const rules: FormRules<InvitationForm> = {
   email: [{ required: true, type: 'email', message: '请输入有效邮箱', trigger: 'blur' }],
   expires_in_hours: [
@@ -43,12 +49,13 @@ async function loadData() {
   }
 }
 function openCreate() {
+  if (!canCreateInvitation.value) return;
   Object.assign(form, { email: '', expires_in_hours: 24 });
   formRef.value?.clearValidate();
   createVisible.value = true;
 }
 async function submit() {
-  if (!(await formRef.value?.validate())) return;
+  if (!canCreateInvitation.value || !(await formRef.value?.validate())) return;
   submitting.value = true;
   try {
     const result = await createInvitation(tenantID.value, form);
@@ -61,6 +68,7 @@ async function submit() {
   }
 }
 async function revoke(row: Invitation) {
+  if (!canRevokeInvitation.value) return;
   await revokeInvitation(String(row.id), Number(row.version));
   window.$message?.success('邀请已撤销');
   await loadData();
@@ -104,7 +112,9 @@ onMounted(loadData);
         </div>
         <div class="flex-y-center gap-8px">
           <ElButton :loading="loading" @click="loadData">刷新</ElButton>
-          <ElButton type="primary" :disabled="!tenantID" @click="openCreate">创建邀请</ElButton>
+          <ElButton v-if="canCreateInvitation" type="primary" :disabled="!tenantID" @click="openCreate">
+            创建邀请
+          </ElButton>
         </div>
       </div>
     </template>
@@ -124,7 +134,11 @@ onMounted(loadData);
         <ElTableColumn prop="version" label="版本" width="90" />
         <ElTableColumn label="操作" width="100" fixed="right">
           <template #default="{ row }">
-            <ElPopconfirm v-if="row.status === 'pending'" title="确认撤销该邀请？" @confirm="revoke(row)">
+            <ElPopconfirm
+              v-if="canRevokeInvitation && row.status === 'pending'"
+              title="确认撤销该邀请？"
+              @confirm="revoke(row)"
+            >
               <template #reference><ElButton link type="danger">撤销</ElButton></template>
             </ElPopconfirm>
             <span v-else>-</span>
@@ -155,7 +169,7 @@ onMounted(loadData);
     </ElForm>
     <template #footer>
       <ElButton @click="createVisible = false">取消</ElButton>
-      <ElButton type="primary" :loading="submitting" @click="submit">创建</ElButton>
+      <ElButton v-if="canCreateInvitation" type="primary" :loading="submitting" @click="submit">创建</ElButton>
     </template>
   </ElDialog>
 

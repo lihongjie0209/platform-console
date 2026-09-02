@@ -53,6 +53,10 @@ const config: BizCrudConfig<Group, Query, GroupForm, string> = {
       }
     ]
   },
+  permissions: {
+    create: { scope: 'tenant', codes: 'tenant.group.create' },
+    update: { scope: 'tenant', codes: 'tenant.group.update' }
+  },
   mapRowToForm: row => ({ ...emptyForm(), ...row })
 };
 const adapter: BizCrudAdapter<Group, Query, GroupForm, string> = {

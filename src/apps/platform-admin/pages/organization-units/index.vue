@@ -21,6 +21,16 @@ const editorVisible = ref(false);
 const formRef = ref<FormInstance>();
 const form = reactive<OrganizationUnitForm>(emptyForm());
 const tenantID = computed(() => platformStore.selectedTenantId);
+const canCreateUnit = computed(() =>
+  platformStore.hasPermission({ scope: 'tenant', codes: 'tenant.organization-unit.create' })
+);
+const canUpdateUnit = computed(() =>
+  platformStore.hasPermission({
+    scope: 'tenant',
+    codes: ['tenant.organization-unit.read', 'tenant.organization-unit.update'],
+    strategy: 'all'
+  })
+);
 const tree = computed(() => buildOrganizationTree(units.value));
 const forbiddenParentIDs = computed(() =>
   form.id ? descendantOrganizationIDs(units.value, form.id) : new Set<string>()
@@ -60,10 +70,12 @@ async function loadData() {
   }
 }
 function openCreate(parentID = '') {
+  if (!canCreateUnit.value) return;
   resetForm(emptyForm(parentID));
   editorVisible.value = true;
 }
 function openEdit(unit: OrganizationUnit) {
+  if (!canUpdateUnit.value) return;
   resetForm({
     id: String(unit.id),
     parent_id: String(unit.parent_id || ''),
@@ -75,6 +87,7 @@ function openEdit(unit: OrganizationUnit) {
   editorVisible.value = true;
 }
 async function save() {
+  if ((form.id && !canUpdateUnit.value) || (!form.id && !canCreateUnit.value)) return;
   if (!(await formRef.value?.validate())) return;
   saving.value = true;
   try {
@@ -104,7 +117,9 @@ onMounted(loadData);
         </div>
         <div class="flex-y-center gap-8px">
           <ElButton :loading="loading" @click="loadData">刷新</ElButton>
-          <ElButton type="primary" :disabled="!tenantID" @click="openCreate()">新增根节点</ElButton>
+          <ElButton v-if="canCreateUnit" type="primary" :disabled="!tenantID" @click="openCreate()">
+            新增根节点
+          </ElButton>
         </div>
       </div>
     </template>
@@ -129,8 +144,8 @@ onMounted(loadData);
       <ElTableColumn prop="version" label="版本" width="90" />
       <ElTableColumn label="操作" width="180" fixed="right">
         <template #default="{ row }">
-          <ElButton link type="primary" @click="openCreate(row.id)">新增下级</ElButton>
-          <ElButton link type="primary" @click="openEdit(row)">编辑</ElButton>
+          <ElButton v-if="canCreateUnit" link type="primary" @click="openCreate(row.id)">新增下级</ElButton>
+          <ElButton v-if="canUpdateUnit" link type="primary" @click="openEdit(row)">编辑</ElButton>
         </template>
       </ElTableColumn>
     </ElTable>
@@ -159,7 +174,9 @@ onMounted(loadData);
     </ElForm>
     <template #footer>
       <ElButton @click="editorVisible = false">取消</ElButton>
-      <ElButton type="primary" :loading="saving" @click="save">保存</ElButton>
+      <ElButton v-if="form.id ? canUpdateUnit : canCreateUnit" type="primary" :loading="saving" @click="save">
+        保存
+      </ElButton>
     </template>
   </ElDrawer>
 </template>

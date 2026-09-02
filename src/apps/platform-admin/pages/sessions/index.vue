@@ -34,6 +34,9 @@ const rules: FormRules<RevokeForm> = {
 };
 const userByID = computed(() => new Map(users.value.map(item => [item.id, item])));
 const tenantByID = computed(() => new Map(tenants.value.map(item => [item.id, item])));
+const canRevokeSession = computed(() =>
+  platformStore.hasPermission({ scope: 'platform', codes: 'identity.session.revoke' })
+);
 
 function userLabel(id: string) {
   const user = userByID.value.get(id);
@@ -91,6 +94,7 @@ function resetSearch() {
 }
 
 function openRevoke(row: UserSession) {
+  if (!canRevokeSession.value) return;
   selected.value = row;
   form.reason = '';
   formRef.value?.clearValidate();
@@ -98,7 +102,7 @@ function openRevoke(row: UserSession) {
 }
 
 async function submitRevoke() {
-  if (!selected.value || !(await formRef.value?.validate())) return;
+  if (!canRevokeSession.value || !selected.value || !(await formRef.value?.validate())) return;
   submitting.value = true;
   try {
     await revokeSession(selected.value.session_id, form.reason, selected.value.version);
@@ -207,7 +211,9 @@ onMounted(() => Promise.all([loadCatalogs(), loadData()]));
       <ElTableColumn prop="version" label="版本" width="90" />
       <ElTableColumn label="操作" width="100" fixed="right">
         <template #default="{ row }">
-          <ElButton v-if="row.status === 'active'" link type="danger" @click="openRevoke(row)">撤销</ElButton>
+          <ElButton v-if="canRevokeSession && row.status === 'active'" link type="danger" @click="openRevoke(row)">
+            撤销
+          </ElButton>
           <span v-else>-</span>
         </template>
       </ElTableColumn>
@@ -241,7 +247,7 @@ onMounted(() => Promise.all([loadCatalogs(), loadData()]));
     </ElForm>
     <template #footer>
       <ElButton @click="revokeVisible = false">取消</ElButton>
-      <ElButton type="danger" :loading="submitting" @click="submitRevoke">确认撤销</ElButton>
+      <ElButton v-if="canRevokeSession" type="danger" :loading="submitting" @click="submitRevoke">确认撤销</ElButton>
     </template>
   </ElDialog>
 </template>

@@ -75,6 +75,10 @@ const config: BizCrudConfig<TenantDirectoryItem, Query, TenantForm, string> = {
       }
     ]
   },
+  permissions: {
+    create: { scope: 'platform', codes: 'tenant.profile.create' },
+    update: { scope: 'platform', codes: ['tenant.profile.read', 'tenant.profile.update'], strategy: 'all' }
+  },
   mapRowToForm: row => ({ ...emptyForm(), ...row })
 };
 const adapter: BizCrudAdapter<TenantDirectoryItem, Query, TenantForm, string> = {

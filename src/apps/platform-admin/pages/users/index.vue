@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { usePlatformStore } from '@/store/modules/platform';
 import { BizCopyText, BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
 import { formatPlatformDateTime } from '@/platform/date-time';
@@ -33,6 +34,13 @@ const emptyForm = (): UserForm => ({
   version: 0
 });
 const editing = (model: Record<string, unknown>) => Number(model.version) > 0;
+const platformStore = usePlatformStore();
+const canResetPassword = computed(() =>
+  platformStore.hasPermission({ scope: 'platform', codes: 'identity.user.password-reset' })
+);
+const canResetMFA = computed(() =>
+  platformStore.hasPermission({ scope: 'platform', codes: 'identity.user.mfa-reset' })
+);
 const config: BizCrudConfig<UserIdentity, Query, UserForm, string> = {
   title: '用户管理',
   rowKey: 'id',
@@ -119,6 +127,10 @@ const config: BizCrudConfig<UserIdentity, Query, UserForm, string> = {
       }
     ]
   },
+  permissions: {
+    create: { scope: 'platform', codes: 'identity.user.create' },
+    update: { scope: 'platform', codes: 'identity.user.update-status' }
+  },
   mapRowToForm: row => ({ ...emptyForm(), ...row })
 };
 const adapter: BizCrudAdapter<UserIdentity, Query, UserForm, string> = {
@@ -153,6 +165,7 @@ function closePasswordResetIssue() {
 }
 
 async function issuePasswordReset(row: UserIdentity) {
+  if (!canResetPassword.value) return;
   passwordResetUserID.value = row.id;
   try {
     const { value: reason } = await ElMessageBox.prompt(
@@ -178,6 +191,7 @@ async function issuePasswordReset(row: UserIdentity) {
 }
 
 async function resetMFA(row: UserIdentity) {
+  if (!canResetMFA.value) return;
   resettingMFAUserID.value = row.id;
   try {
     const status = await getUserMFAStatus(row.id);
@@ -217,8 +231,12 @@ async function resetMFA(row: UserIdentity) {
     </template>
     <template #cell-actions="{ row, edit, canEdit }">
       <BizRowActions :can-edit="canEdit" :can-delete="false" @edit="edit(row)" />
-      <ElButton link :loading="passwordResetUserID === row.id" @click="issuePasswordReset(row)">重置密码</ElButton>
-      <ElButton link type="danger" :loading="resettingMFAUserID === row.id" @click="resetMFA(row)">重置 MFA</ElButton>
+      <ElButton v-if="canResetPassword" link :loading="passwordResetUserID === row.id" @click="issuePasswordReset(row)">
+        重置密码
+      </ElButton>
+      <ElButton v-if="canResetMFA" link type="danger" :loading="resettingMFAUserID === row.id" @click="resetMFA(row)">
+        重置 MFA
+      </ElButton>
     </template>
   </BizCrudPage>
 
