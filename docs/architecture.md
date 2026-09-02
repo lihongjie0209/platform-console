@@ -4,6 +4,8 @@
 
 Feature pages are split by application namespace (`platform-admin`, `audit-center`, `config-center`, `notification-center`, and later business applications). Each module owns its API adapter, pages, and `manifest.ts` page allowlist while sharing only the shell, authentication, request client, and reusable UI primitives. The central registry only aggregates manifests and rejects duplicate application codes or page keys outside the owning namespace; adding a page never requires placing its loader in a global service-oriented switch.
 
+Application modules cannot import another application's implementation, and shell code cannot reach into a concrete application. Cross-application utilities must move to the platform or shared component layer only after they are genuinely reused. `pnpm check:application-boundaries` enforces both dependency directions in CI; `src/apps` root files are the explicit composition layer that may aggregate manifests and common application types.
+
 The shell view surface is intentionally small: login, error pages, the application launcher, personal center, and the generic application host. Scaffold demonstrations are not shipped as hidden routes or dormant chunks. CI checks this allowlist and prevents demo-only dependencies from returning during upstream scaffold updates.
 
 ## Trust boundary

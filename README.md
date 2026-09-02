@@ -32,6 +32,7 @@ pnpm test
 pnpm build
 pnpm generate:contracts
 pnpm check:contracts
+pnpm check:application-boundaries
 pnpm check:application-scope
 pnpm check:product-surface
 docker build -f docker/Dockerfile -t platform-console .
