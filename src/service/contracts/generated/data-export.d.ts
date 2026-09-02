@@ -576,6 +576,7 @@ export interface components {
             columns?: components["schemas"]["httptransport.ExportColumnBody"][];
             estimated_rows?: number;
             formats?: string[];
+            query_fields?: components["schemas"]["httptransport.ExportQueryFieldBody"][];
             supports_snapshot?: boolean;
             title?: string;
         };
@@ -637,6 +638,15 @@ export interface components {
             page?: number;
             page_size?: number;
             total?: number;
+        };
+        "httptransport.ExportQueryFieldBody": {
+            description?: string;
+            format?: string;
+            key?: string;
+            options?: string[];
+            required?: boolean;
+            title?: string;
+            type?: string;
         };
         "httptransport.GetExportRequest": {
             application_id?: string;

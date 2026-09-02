@@ -27,6 +27,15 @@ export type ExportDatasetDescriptor = ExportContract['schemas']['httptransport.E
   title: string;
   formats: string[];
   columns: Array<{ key?: string; title?: string; type?: string; format?: string; sensitive?: boolean }>;
+  query_fields: Array<{
+    key?: string;
+    title?: string;
+    type?: string;
+    format?: string;
+    description?: string;
+    options?: string[];
+    required?: boolean;
+  }>;
 };
 interface Page<T> {
   items: T[];

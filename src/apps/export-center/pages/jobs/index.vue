@@ -2,7 +2,6 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
-import { parseJSONObject } from '@/platform/json';
 import type { ExportDataset, ExportDatasetDescriptor, ExportJob } from '../../api';
 import {
   cancelExport,
@@ -13,7 +12,8 @@ import {
   listExports,
   retryExport
 } from '../../api';
-import { datasetKey, descriptorDefaults, findDataset } from '../../export-form';
+import type { ExportQueryValue } from '../../export-form';
+import { buildExportQuery, datasetKey, descriptorDefaults, exportQueryDefaults, findDataset } from '../../export-form';
 defineOptions({ name: 'ExportCenterJobs' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
@@ -27,10 +27,33 @@ const visible = ref(false);
 const datasets = ref<ExportDataset[]>([]);
 const descriptor = ref<ExportDatasetDescriptor>();
 const catalogLoading = ref(false);
-const form = reactive({ datasetKey: '', format: '', filename: '', query: '{}', columns: [] as string[] });
+const form = reactive({
+  datasetKey: '',
+  format: '',
+  filename: '',
+  query: {} as Record<string, ExportQueryValue>,
+  columns: [] as string[]
+});
 const loadGuard = createLatestRequestGuard();
 const catalogGuard = createLatestRequestGuard();
 const descriptorGuard = createLatestRequestGuard();
+function queryString(key?: string) {
+  const value = key ? form.query[key] : undefined;
+  return typeof value === 'string' ? value : '';
+}
+function queryNumber(key?: string) {
+  const value = key ? form.query[key] : undefined;
+  return typeof value === 'number' ? value : undefined;
+}
+function queryBoolean(key?: string) {
+  const value = key ? form.query[key] : undefined;
+  return typeof value === 'boolean' ? value : undefined;
+}
+function setQueryValue(key: string | undefined, value: unknown) {
+  if (!key) return;
+  form.query[key] =
+    typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? value : undefined;
+}
 async function load() {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
@@ -50,6 +73,7 @@ async function openCreate() {
   form.datasetKey = '';
   form.format = '';
   form.columns = [];
+  form.query = {};
   descriptor.value = undefined;
   const request = catalogGuard.begin();
   catalogLoading.value = true;
@@ -76,6 +100,7 @@ async function selectDataset() {
   const defaults = descriptorDefaults(value);
   form.format = defaults.format;
   form.columns = defaults.columns;
+  form.query = exportQueryDefaults(value);
 }
 async function create() {
   if (!scopeReady.value) return;
@@ -89,7 +114,7 @@ async function create() {
       providerService: selected.provider_service,
       format: form.format,
       filename: form.filename,
-      query: parseJSONObject(form.query, '查询条件'),
+      query: buildExportQuery(descriptor.value, form.query),
       columns: form.columns
     });
     visible.value = false;
@@ -184,7 +209,55 @@ onMounted(load);
         </ElSelect>
       </ElFormItem>
       <ElFormItem label="文件名"><ElInput v-model="form.filename" /></ElFormItem>
-      <ElFormItem label="查询 JSON"><ElInput v-model="form.query" type="textarea" :rows="6" /></ElFormItem>
+      <ElFormItem
+        v-for="field in descriptor?.query_fields || []"
+        :key="field.key"
+        :label="field.title || field.key"
+        :required="field.required"
+      >
+        <ElSelect
+          v-if="field.options?.length"
+          :model-value="queryString(field.key)"
+          clearable
+          class="w-full"
+          @update:model-value="setQueryValue(field.key, $event)"
+        >
+          <ElOption v-for="option in field.options" :key="option" :label="option" :value="option" />
+        </ElSelect>
+        <ElDatePicker
+          v-else-if="field.type === 'datetime'"
+          :model-value="queryString(field.key)"
+          type="datetime"
+          value-format="YYYY-MM-DDTHH:mm:ssZ"
+          class="w-full"
+          @update:model-value="setQueryValue(field.key, $event)"
+        />
+        <ElInputNumber
+          v-else-if="field.type === 'integer' || field.type === 'number'"
+          :model-value="queryNumber(field.key)"
+          :precision="field.type === 'integer' ? 0 : undefined"
+          controls-position="right"
+          class="w-full"
+          @update:model-value="setQueryValue(field.key, $event)"
+        />
+        <ElSelect
+          v-else-if="field.type === 'boolean'"
+          :model-value="queryBoolean(field.key)"
+          clearable
+          class="w-full"
+          @update:model-value="setQueryValue(field.key, $event)"
+        >
+          <ElOption label="是" :value="true" />
+          <ElOption label="否" :value="false" />
+        </ElSelect>
+        <ElInput
+          v-else
+          :model-value="queryString(field.key)"
+          clearable
+          @update:model-value="setQueryValue(field.key, $event)"
+        />
+        <div v-if="field.description" class="mt-4px text-12px text-#999">{{ field.description }}</div>
+      </ElFormItem>
       <ElFormItem v-if="descriptor" label="选择列">
         <ElCheckboxGroup v-model="form.columns">
           <ElCheckbox v-for="column in descriptor.columns" :key="column.key" :value="column.key">
