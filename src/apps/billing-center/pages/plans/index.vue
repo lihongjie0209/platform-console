@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { createLatestRequestGuard } from '@/platform/application-context';
 import { parseJSONArray, parseJSONObject } from '@/platform/json';
 import type { Plan, UsagePrice } from '../../api';
 import { deleteUsagePrice, getPlan, listPlans, savePlan, upsertUsagePrice } from '../../api';
@@ -21,6 +22,8 @@ const editing = ref<Plan>();
 const priceVisible = ref(false);
 const prices = ref<UsagePrice[]>([]);
 const selected = ref<Plan>();
+const loadGuard = createLatestRequestGuard();
+const detailGuard = createLatestRequestGuard();
 const form = reactive({
   code: '',
   name: '',
@@ -43,14 +46,17 @@ const price = reactive({
   version: 0
 });
 async function load() {
+  const request = loadGuard.begin();
   const v = await listPlans({
     status: status.value,
     keyword: keyword.value,
     page: page.value,
     pageSize: pageSize.value
   });
-  rows.value = v.items || [];
-  total.value = v.total || 0;
+  if (loadGuard.isCurrent(request)) {
+    rows.value = v.items || [];
+    total.value = v.total || 0;
+  }
 }
 function search() {
   page.value = 1;
@@ -92,8 +98,10 @@ async function save() {
 }
 async function manage(v: Plan) {
   if (!canRead.value) return;
+  const request = detailGuard.begin();
   selected.value = v;
   const detail = await getPlan(v.id);
+  if (!detailGuard.isCurrent(request) || selected.value?.id !== v.id) return;
   prices.value = detail.usage_prices || [];
   priceVisible.value = true;
 }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { createLatestRequestGuard } from '@/platform/application-context';
 import type { Meter } from '../../api';
 import { listMeters, saveMeter } from '../../api';
 defineOptions({ name: 'MeteringCenterMeters' });
@@ -10,11 +11,13 @@ const canUpdate = computed(() => platformStore.hasPermission({ scope: 'platform'
 const rows = ref<Meter[]>([]);
 const total = ref(0);
 const page = ref(1);
+const pageSize = ref(20);
 const status = ref('');
 const keyword = ref('');
 const loading = ref(false);
 const visible = ref(false);
 const editing = ref<Meter>();
+const loadGuard = createLatestRequestGuard();
 const form = reactive({
   code: '',
   name: '',
@@ -25,19 +28,26 @@ const form = reactive({
   status: 'active'
 });
 async function loadData() {
+  const request = loadGuard.begin();
   loading.value = true;
   try {
     const v = await listMeters({
       status: status.value,
       keyword: keyword.value,
       page: page.value,
-      pageSize: 20
+      pageSize: pageSize.value
     });
-    rows.value = v.items || [];
-    total.value = v.total || 0;
+    if (loadGuard.isCurrent(request)) {
+      rows.value = v.items || [];
+      total.value = v.total || 0;
+    }
   } finally {
-    loading.value = false;
+    if (loadGuard.isCurrent(request)) loading.value = false;
   }
+}
+function search() {
+  page.value = 1;
+  loadData();
 }
 function open(row?: Meter) {
   if ((row && !canUpdate.value) || (!row && !canCreate.value)) return;
@@ -92,15 +102,7 @@ onMounted(loadData);
           <ElOption label="disabled" value="disabled" />
         </ElSelect>
       </ElFormItem>
-      <ElButton
-        type="primary"
-        @click="
-          page = 1;
-          loadData();
-        "
-      >
-        查询
-      </ElButton>
+      <ElButton type="primary" @click="search">查询</ElButton>
     </ElForm>
     <ElTable v-loading="loading" :data="rows" border>
       <ElTableColumn prop="code" label="编码" />
@@ -116,16 +118,14 @@ onMounted(loadData);
       </ElTableColumn>
     </ElTable>
     <ElPagination
+      v-model:current-page="page"
+      v-model:page-size="pageSize"
       class="mt-16px justify-end"
       :total="total"
-      :current-page="page"
-      :page-size="20"
-      @update:current-page="
-        v => {
-          page = v;
-          loadData();
-        }
-      "
+      :page-sizes="[20, 50, 100]"
+      layout="total, sizes, prev, pager, next, jumper"
+      @current-change="loadData"
+      @size-change="search"
     />
   </ElCard>
   <ElDialog v-model="visible" :title="editing ? '编辑计量项' : '新建计量项'">

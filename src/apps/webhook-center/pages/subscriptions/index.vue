@@ -164,12 +164,12 @@ onMounted(load);
     />
     <template v-else>
       <ElAlert :title="`当前应用：${applicationName}`" type="info" show-icon :closable="false" class="mb-16px" />
-      <ElForm v-if="canTest" inline>
+      <ElForm inline>
         <ElFormItem label="搜索"><ElInput v-model="search" /></ElFormItem>
         <ElFormItem label="状态"><ElInput v-model="status" /></ElFormItem>
         <ElButton @click="applyFilters">查询</ElButton>
       </ElForm>
-      <ElForm inline>
+      <ElForm v-if="canTest" inline>
         <ElFormItem label="测试负载"><ElInput v-model="testPayload" class="w-360px" /></ElFormItem>
       </ElForm>
       <ElTable :data="rows" border>

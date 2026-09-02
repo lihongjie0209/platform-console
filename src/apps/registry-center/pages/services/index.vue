@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { createLatestRequestGuard } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { ServiceInstance, ServiceSummary } from '../../api';
 import { listInstances, listServices } from '../../api';
@@ -21,20 +22,26 @@ const visible = ref(false);
 const includeDraining = ref(true);
 const detail = ref<ServiceInstance>();
 const detailVisible = ref(false);
+const serviceGuard = createLatestRequestGuard();
+const instanceGuard = createLatestRequestGuard();
 async function loadServices() {
+  const request = serviceGuard.begin();
   loading.value = true;
   try {
     const result = await listServices(prefix.value);
+    if (!serviceGuard.isCurrent(request)) return;
     services.value = result.services || [];
     revision.value = result.revision || 0;
   } finally {
-    loading.value = false;
+    if (serviceGuard.isCurrent(request)) loading.value = false;
   }
 }
 async function showInstances(row: ServiceSummary) {
   if (!canListInstances.value) return;
+  const request = instanceGuard.begin();
   selected.value = row;
   const result = await listInstances(row.service_name, {}, includeDraining.value);
+  if (!instanceGuard.isCurrent(request) || selected.value?.service_name !== row.service_name) return;
   instances.value = result.instances || [];
   instanceRevision.value = result.revision || 0;
   visible.value = true;
