@@ -1216,7 +1216,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/httptransport.Response"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.CompleteTaskResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -1802,6 +1814,17 @@
                     },
                     "tenant_id": {
                         "type": "string"
+                    }
+                }
+            },
+            "httptransport.CompleteTaskResponseBody": {
+                "type": "object",
+                "properties": {
+                    "instance": {
+                        "$ref": "#/components/schemas/httptransport.InstanceDTO"
+                    },
+                    "task": {
+                        "$ref": "#/components/schemas/httptransport.TaskDTO"
                     }
                 }
             },

@@ -201,7 +201,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.LogoutResponseBody"];
+                        };
                     };
                 };
             };
@@ -635,7 +637,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ServiceAccountTokenResponseBody"];
+                        };
                     };
                 };
             };
@@ -1171,7 +1175,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.UpdateServiceAccountStatusResponseBody"];
+                        };
                     };
                 };
             };
@@ -1548,6 +1554,9 @@ export interface components {
             reason?: string;
             session_id: string;
         };
+        "httptransport.LogoutResponseBody": {
+            revoked?: boolean;
+        };
         "httptransport.MFASetupResponseBody": {
             expires_at?: string;
             secret?: string;
@@ -1633,6 +1642,11 @@ export interface components {
             client_id: string;
             client_secret: string;
         };
+        "httptransport.ServiceAccountTokenResponseBody": {
+            access_token?: string;
+            expires_at?: string;
+            token_type?: string;
+        };
         "httptransport.SessionPageResponseBody": {
             items?: components["schemas"]["httptransport.SessionResponseBody"][];
             page?: number;
@@ -1670,6 +1684,9 @@ export interface components {
             id: string;
             status: string;
             version: number;
+        };
+        "httptransport.UpdateServiceAccountStatusResponseBody": {
+            updated?: boolean;
         };
         "httptransport.VerifyMFAChallengeRequest": {
             challenge_token: string;

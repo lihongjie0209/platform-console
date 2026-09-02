@@ -15,6 +15,13 @@ const outputDir = process.env.CONTRACT_OUTPUT_DIR
 const openAPIDir = path.join(outputDir, 'openapi');
 const typesDir = path.join(outputDir, 'generated');
 const binDir = path.join(rootDir, 'node_modules/.bin');
+const immutableGitHubRawURL = /^https:\/\/raw\.githubusercontent\.com\/[^/]+\/[^/]+\/[0-9a-f]{40}\/.+$/;
+
+for (const [service, sourceURL] of Object.entries(manifest)) {
+  if (!immutableGitHubRawURL.test(sourceURL)) {
+    throw new Error(`${service} contract must use an immutable 40-character Git commit URL`);
+  }
+}
 
 async function fetchWithRetry(url, attempts = 3, attempt = 1) {
   try {

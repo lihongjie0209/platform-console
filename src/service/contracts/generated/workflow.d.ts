@@ -1113,7 +1113,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["httptransport.Response"];
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.CompleteTaskResponseBody"];
+                        };
                     };
                 };
                 /** @description Bad Request */
@@ -1568,6 +1570,10 @@ export interface components {
             id: string;
             output_json?: Record<string, never>;
             tenant_id: string;
+        };
+        "httptransport.CompleteTaskResponseBody": {
+            instance?: components["schemas"]["httptransport.InstanceDTO"];
+            task?: components["schemas"]["httptransport.TaskDTO"];
         };
         "httptransport.CreateDefinitionRequest": {
             application_id: string;
