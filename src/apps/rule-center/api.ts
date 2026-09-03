@@ -107,6 +107,18 @@ export const listRuleVersions = (value: RuleSet, page: number, pageSize: number)
       }
     })
   );
+export const getRuleVersion = (set: RuleSet, versionID: string) =>
+  unwrap<RuleVersion>(
+    request({
+      url: '/api/v1/rule-versions/get',
+      method: 'post',
+      data: {
+        ...applicationScope(set.tenant_id, set.application_id),
+        rule_set_id: set.id,
+        id: versionID
+      }
+    })
+  );
 export const validateRule = (tenantID: string, applicationID: string, definition: Record<string, unknown>) =>
   unwrap<{ valid: boolean; issues: string[]; checksum: string }>(
     request({

@@ -8,6 +8,7 @@ import {
   createRuleVersion,
   evaluateRule,
   getRuleSet,
+  getRuleVersion,
   listRuleSets,
   listRuleVersions,
   publishRuleVersion,
@@ -44,6 +45,7 @@ const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: '
 const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'rule.set.read' }));
 const canUpdate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'rule.set.update' }));
 const canListVersions = computed(() => store.hasPermission({ scope: 'tenant', codes: 'rule.version.list' }));
+const canReadVersion = computed(() => store.hasPermission({ scope: 'tenant', codes: 'rule.version.read' }));
 const canCreateVersion = computed(() =>
   store.hasPermission({
     scope: 'tenant',
@@ -124,9 +126,15 @@ async function createVersion() {
   await versionsFor(selected.value);
 }
 async function publish(v: RuleVersion) {
-  if (!canPublish.value || !canRead.value || !selected.value) return;
+  if (!canPublish.value || !canRead.value || !canReadVersion.value || !selected.value) return;
   const current = await getRuleSet(selected.value);
-  const result = await publishRuleVersion(current, v);
+  const currentVersion = await getRuleVersion(current, v.id);
+  if (currentVersion.status !== v.status || currentVersion.status !== 'draft') {
+    window.$message?.warning('规则版本状态已变化，请确认最新状态后重试');
+    await versionsFor(current);
+    return;
+  }
+  const result = await publishRuleVersion(current, currentVersion);
   selected.value = result.rule_set;
   await load();
   await versionsFor(result.rule_set);
@@ -228,7 +236,9 @@ onMounted(load);
       <ElTableColumn prop="checksum" label="校验和" />
       <ElTableColumn label="操作">
         <template #default="{ row }">
-          <ElButton v-if="canPublish && canRead && row.status === 'draft'" link @click="publish(row)">发布</ElButton>
+          <ElButton v-if="canPublish && canRead && canReadVersion && row.status === 'draft'" link @click="publish(row)">
+            发布
+          </ElButton>
         </template>
       </ElTableColumn>
     </ElTable>

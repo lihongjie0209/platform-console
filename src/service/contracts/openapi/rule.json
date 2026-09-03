@@ -309,6 +309,57 @@
                 }
             }
         },
+        "/api/v1/rule-versions/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    },
+                    {
+                        "PSK": []
+                    }
+                ],
+                "tags": [
+                    "rule versions"
+                ],
+                "summary": "Get a rule version",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GetRuleVersionRequest"
+                            }
+                        }
+                    },
+                    "description": "Rule version selector",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.RuleVersionView"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/rule-versions/list": {
             "post": {
                 "security": [
@@ -902,6 +953,23 @@
                         "type": "string"
                     },
                     "id": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.GetRuleVersionRequest": {
+                "type": "object",
+                "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "rule_set_id": {
                         "type": "string"
                     },
                     "tenant_id": {

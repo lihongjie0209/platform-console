@@ -266,6 +266,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rule-versions/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a rule version */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Rule version selector */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetRuleVersionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RuleVersionView"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/rule-versions/list": {
         parameters: {
             query?: never;
@@ -685,6 +728,12 @@ export interface components {
             application_id?: string;
             code?: string;
             id?: string;
+            tenant_id?: string;
+        };
+        "httptransport.GetRuleVersionRequest": {
+            application_id?: string;
+            id?: string;
+            rule_set_id?: string;
             tenant_id?: string;
         };
         "httptransport.ListRuleVersionsRequest": {
