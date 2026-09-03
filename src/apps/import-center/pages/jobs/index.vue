@@ -6,6 +6,7 @@ import { formatPlatformDateTime } from '@/platform/date-time';
 import { formatPlatformBytes } from '@/platform/display';
 import { sha256Hex } from '@/platform/file';
 import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
+import { hasPersistedStateChanged } from '@/platform/optimistic-mutation';
 import { remoteSearchPage } from '@/platform/remote-search';
 import { shouldReportTaskLoadError, useTaskPolling } from '@/platform/task-polling';
 import type { ImportDataset, ImportDatasetDescriptor, ImportJob } from '../../api';
@@ -245,6 +246,11 @@ async function action(job: ImportJob, type: 'confirm' | 'cancel' | 'retry' | 're
   await runTaskAction(key, async () => {
     try {
       const current = await getImport(job);
+      if (type !== 'report' && hasPersistedStateChanged(job.status, current.status)) {
+        window.$message?.warning('导入任务状态已变化，请确认最新状态后重试');
+        await load();
+        return;
+      }
       if (type === 'confirm') await confirmImport(current);
       if (type === 'cancel') await cancelImport(current);
       if (type === 'retry') {

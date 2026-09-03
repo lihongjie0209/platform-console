@@ -5,6 +5,7 @@ import { createLatestRequestGuard, hasApplicationScope } from '@/platform/applic
 import { formatPlatformDateTime } from '@/platform/date-time';
 import { formatPlatformBytes } from '@/platform/display';
 import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
+import { hasPersistedStateChanged } from '@/platform/optimistic-mutation';
 import { remoteSearchPage } from '@/platform/remote-search';
 import { shouldReportTaskLoadError, useTaskPolling } from '@/platform/task-polling';
 import type { ExportDataset, ExportDatasetDescriptor, ExportJob } from '../../api';
@@ -245,6 +246,11 @@ async function action(job: ExportJob, type: 'cancel' | 'retry' | 'download') {
   await runTaskAction(key, async () => {
     try {
       const current = await getExport(job);
+      if (type !== 'download' && hasPersistedStateChanged(job.status, current.status)) {
+        window.$message?.warning('导出任务状态已变化，请确认最新状态后重试');
+        await load();
+        return;
+      }
       if (type === 'cancel') await cancelExport(current);
       if (type === 'retry') await retryExport(current);
       if (type === 'download') {
