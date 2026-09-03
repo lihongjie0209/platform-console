@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
 import { promptUserInput } from '@/platform/user-action';
 import type { ConfigDraftInput, ConfigEntry } from '../../api';
@@ -154,6 +155,11 @@ async function runEntryAction(
 ) {
   if (!canRead.value) return;
   const current = await getConfigEntry(entry.id);
+  if (hasPersistedVersionChanged(entry.version, current.version)) {
+    window.$message?.warning('配置已发生变化，请确认最新内容后重试');
+    await loadData();
+    return;
+  }
   await action(current);
   window.$message?.success(message);
   await loadData();

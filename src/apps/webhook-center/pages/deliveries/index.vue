@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { hasPersistedStateChanged } from '@/platform/optimistic-mutation';
 import { confirmUserAction } from '@/platform/user-action';
 import type { WebhookDelivery } from '../../api';
 import { getDelivery, listDeliveries, replayDelivery } from '../../api';
@@ -53,6 +54,11 @@ async function replay(v: WebhookDelivery) {
   );
   if (!confirmed) return;
   const current = await getDelivery(v);
+  if (hasPersistedStateChanged(v.status, current.status) || !['succeeded', 'dead'].includes(current.status)) {
+    window.$message?.warning('投递状态已变化，请确认最新状态后重试');
+    await load();
+    return;
+  }
   await replayDelivery(current);
   await load();
 }
