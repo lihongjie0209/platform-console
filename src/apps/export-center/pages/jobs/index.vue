@@ -5,7 +5,7 @@ import { createLatestRequestGuard, hasApplicationScope } from '@/platform/applic
 import { formatPlatformDateTime } from '@/platform/date-time';
 import { formatPlatformBytes } from '@/platform/display';
 import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
-import { collectAllPages } from '@/platform/pagination';
+import { remoteSearchPage } from '@/platform/remote-search';
 import { shouldReportTaskLoadError, useTaskPolling } from '@/platform/task-polling';
 import type { ExportDataset, ExportDatasetDescriptor, ExportJob } from '../../api';
 import {
@@ -148,16 +148,18 @@ async function searchDatasets(keyword: string) {
   const request = catalogGuard.begin();
   catalogLoading.value = true;
   try {
-    const value = await collectAllPages((catalogPage, catalogPageSize) =>
-      listExportDatasets({
-        tenantID: tenantID.value,
-        applicationID: applicationID.value,
-        search: keyword,
-        page: catalogPage,
-        pageSize: catalogPageSize
-      })
-    );
-    if (catalogGuard.isCurrent(request)) datasets.value = value;
+    const value = await listExportDatasets({
+      tenantID: tenantID.value,
+      applicationID: applicationID.value,
+      search: keyword.trim(),
+      ...remoteSearchPage(50)
+    });
+    if (catalogGuard.isCurrent(request)) {
+      const selected = findDataset(datasets.value, form.datasetKey);
+      datasets.value = selected
+        ? Array.from(new Map([selected, ...value.items].map(item => [datasetKey(item), item])).values())
+        : value.items;
+    }
   } catch (error) {
     if (catalogGuard.isCurrent(request)) {
       datasets.value = [];

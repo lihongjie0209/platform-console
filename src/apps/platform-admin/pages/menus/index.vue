@@ -3,7 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard } from '@/platform/application-context';
-import { collectAllPages } from '@/platform/pagination';
+import { remoteSearchPage } from '@/platform/remote-search';
 import { confirmUserAction } from '@/platform/user-action';
 import { applicationPageOptionsFor, pageUsesApplicationNamespace } from '@/apps/registry';
 import { type PermissionCatalogOption, buildPermissionCatalogOptions } from '@/platform/permission-catalog';
@@ -12,10 +12,10 @@ import type { Application, ApplicationMenu } from '../../api';
 import {
   deleteMenu,
   getApplication,
-  listApplications,
   listMenuDraft,
   listMyPermissionCatalog,
   publishMenus,
+  searchApplications,
   upsertMenu
 } from '../../api';
 import {
@@ -46,12 +46,14 @@ interface MenuForm {
 }
 
 const loading = ref(false);
+const applicationSearching = ref(false);
 const saving = ref(false);
 const publishing = ref(false);
 const permissionLoading = ref(false);
 const permissionOptions = ref<PermissionCatalogOption[]>([]);
 const platformStore = usePlatformStore();
 let permissionRequestSequence = 0;
+let applicationRequestSequence = 0;
 const menuRequestGuard = createLatestRequestGuard();
 let loadedMenuApplicationID = '';
 const applications = ref<Application[]>([]);
@@ -117,8 +119,28 @@ function resetForm(value = emptyMenu()) {
   formRef.value?.clearValidate();
 }
 
+async function searchApplicationOptions(keyword = '') {
+  applicationRequestSequence += 1;
+  const sequence = applicationRequestSequence;
+  applicationSearching.value = true;
+  try {
+    const result = await searchApplications({
+      ...remoteSearchPage(20),
+      keyword: keyword.trim()
+    });
+    if (sequence !== applicationRequestSequence) return;
+
+    const selected = applications.value.find(item => String(item.id) === applicationID.value);
+    applications.value = selected
+      ? Array.from(new Map([selected, ...result.items].map(item => [String(item.id), item])).values())
+      : result.items;
+  } finally {
+    if (sequence === applicationRequestSequence) applicationSearching.value = false;
+  }
+}
+
 async function loadApplications() {
-  applications.value = await collectAllPages((page, pageSize) => listApplications(page, pageSize));
+  await searchApplicationOptions();
   if (!applications.value.some(item => item.id === applicationID.value)) {
     applicationID.value = String(applications.value[0]?.id || '');
   }
@@ -324,7 +346,16 @@ onMounted(async () => {
           <p class="mb-0 mt-6px text-13px text-#999">编辑草稿树，并使用应用数据版本进行乐观锁发布。</p>
         </div>
         <div class="flex-y-center gap-8px">
-          <ElSelect v-model="applicationID" class="w-240px" filterable placeholder="选择应用">
+          <ElSelect
+            v-model="applicationID"
+            class="w-240px"
+            filterable
+            remote
+            reserve-keyword
+            :remote-method="searchApplicationOptions"
+            :loading="applicationSearching"
+            placeholder="按名称或编码搜索应用"
+          >
             <ElOption
               v-for="item in applications"
               :key="String(item.id)"
