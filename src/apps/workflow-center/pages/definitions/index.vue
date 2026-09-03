@@ -6,6 +6,7 @@ import { formatPlatformDateTime } from '@/platform/date-time';
 import type { WorkflowDefinition, WorkflowEdge, WorkflowNode } from '../../api';
 import { changeDefinitionStatus, getDefinition, listDefinitions, saveDefinition } from '../../api';
 import { parseJSONArray } from '../../json';
+import { hasPersistedStateChanged } from '../../mutation';
 defineOptions({ name: 'WorkflowCenterDefinitions' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
@@ -129,8 +130,15 @@ async function save() {
   }
 }
 async function changeStatus(row: WorkflowDefinition, action: 'publish' | 'disable') {
-  if ((action === 'publish' && !canPublish.value) || (action === 'disable' && !canDisable.value)) return;
-  await changeDefinitionStatus(row, action);
+  if (!canRead.value || (action === 'publish' && !canPublish.value) || (action === 'disable' && !canDisable.value))
+    return;
+  const current = await loadDefinition(row);
+  if (hasPersistedStateChanged(row.status, current.status)) {
+    window.$message?.warning('工作流状态已变化，请确认最新状态后重试');
+    await loadData();
+    return;
+  }
+  await changeDefinitionStatus(current, action);
   window.$message?.success(action === 'publish' ? '工作流已发布' : '工作流已停用');
   await loadData();
 }
@@ -191,7 +199,7 @@ onMounted(loadData);
             <ElButton v-if="canRead" link type="primary" @click="showDetail(row)">详情</ElButton>
             <ElButton v-if="canUpdate && canRead" link type="primary" @click="openEdit(row)">编辑</ElButton>
             <ElButton
-              v-if="canPublish && row.status === 'draft'"
+              v-if="canPublish && canRead && row.status === 'draft'"
               link
               type="primary"
               @click="changeStatus(row, 'publish')"
@@ -199,7 +207,7 @@ onMounted(loadData);
               发布
             </ElButton>
             <ElButton
-              v-if="canDisable && row.status === 'published'"
+              v-if="canDisable && canRead && row.status === 'published'"
               link
               type="danger"
               @click="changeStatus(row, 'disable')"

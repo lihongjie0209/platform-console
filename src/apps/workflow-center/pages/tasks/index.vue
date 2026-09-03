@@ -6,6 +6,7 @@ import { formatPlatformDateTime, formatPlatformTableDateTime } from '@/platform/
 import type { WorkflowTask, WorkflowTaskHistory } from '../../api';
 import { claimTask, completeTask, delegateTask, getTask, listTaskHistory, listTasks } from '../../api';
 import { parseJSONObject } from '../../json';
+import { hasPersistedStateChanged, isTaskActionable } from '../../mutation';
 defineOptions({ name: 'WorkflowCenterTasks' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
@@ -69,8 +70,14 @@ function search() {
   loadData();
 }
 async function claim(row: WorkflowTask) {
-  if (!canClaim.value) return;
-  await claimTask(row);
+  if (!canClaim.value || !canRead.value) return;
+  const current = await getTask(row);
+  if (hasPersistedStateChanged(row.status, current.status) || current.status !== 'pending') {
+    window.$message?.warning('任务状态已变化，请确认最新状态后重试');
+    await loadData();
+    return;
+  }
+  await claimTask(current);
   await loadData();
 }
 async function loadHistory() {
@@ -99,9 +106,15 @@ async function showDetail(row: WorkflowTask) {
     detailLoading.value = false;
   }
 }
-function openComplete(row: WorkflowTask) {
-  if (!canComplete.value) return;
-  selected.value = row;
+async function openComplete(row: WorkflowTask) {
+  if (!canComplete.value || !canRead.value) return;
+  const current = await getTask(row);
+  if (!isTaskActionable(current.status)) {
+    window.$message?.warning('任务已无法处理，请确认最新状态');
+    await loadData();
+    return;
+  }
+  selected.value = current;
   Object.assign(form, { decision: 'approved', comment: '', output: '{}' });
   completeVisible.value = true;
 }
@@ -118,9 +131,15 @@ async function complete() {
   completeVisible.value = false;
   await loadData();
 }
-function openDelegate(row: WorkflowTask) {
-  if (!canDelegate.value) return;
-  selected.value = row;
+async function openDelegate(row: WorkflowTask) {
+  if (!canDelegate.value || !canRead.value) return;
+  const current = await getTask(row);
+  if (!isTaskActionable(current.status)) {
+    window.$message?.warning('任务已无法转交，请确认最新状态');
+    await loadData();
+    return;
+  }
+  selected.value = current;
   Object.assign(delegation, { userID: '', reason: '' });
   delegateVisible.value = true;
 }
@@ -181,11 +200,11 @@ onMounted(loadData);
         <ElTableColumn label="操作" width="240">
           <template #default="{ row }">
             <ElButton v-if="canRead" link type="primary" @click="showDetail(row)">详情</ElButton>
-            <ElButton v-if="canClaim && row.status === 'pending'" link type="primary" @click="claim(row)">
+            <ElButton v-if="canClaim && canRead && row.status === 'pending'" link type="primary" @click="claim(row)">
               领取
             </ElButton>
             <ElButton
-              v-if="canComplete && ['pending', 'claimed'].includes(row.status)"
+              v-if="canComplete && canRead && ['pending', 'claimed'].includes(row.status)"
               link
               type="primary"
               @click="openComplete(row)"
@@ -193,7 +212,7 @@ onMounted(loadData);
               处理
             </ElButton>
             <ElButton
-              v-if="canDelegate && ['pending', 'claimed'].includes(row.status)"
+              v-if="canDelegate && canRead && ['pending', 'claimed'].includes(row.status)"
               link
               type="primary"
               @click="openDelegate(row)"
