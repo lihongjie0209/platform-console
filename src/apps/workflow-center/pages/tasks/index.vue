@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformDateTime, formatPlatformTableDateTime } from '@/platform/date-time';
+import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
 import { hasPersistedStateChanged } from '@/platform/optimistic-mutation';
 import type { WorkflowTask, WorkflowTaskHistory } from '../../api';
 import { claimTask, completeTask, delegateTask, getTask, listTaskHistory, listTasks } from '../../api';
@@ -35,6 +36,7 @@ const historyTotal = ref(0);
 const form = reactive({ decision: 'approved', comment: '', output: '{}' });
 const delegation = reactive({ userID: '', reason: '' });
 const loadGuard = createLatestRequestGuard();
+const { active: activeAction, run: runAction } = useKeyedAsyncAction();
 const canClaim = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.task.claim' }));
 const canComplete = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.task.complete' }));
 const canDelegate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.task.delegate' }));
@@ -72,14 +74,16 @@ function search() {
 }
 async function claim(row: WorkflowTask) {
   if (!canClaim.value || !canRead.value) return;
-  const current = await getTask(row);
-  if (hasPersistedStateChanged(row.status, current.status) || current.status !== 'pending') {
-    window.$message?.warning('任务状态已变化，请确认最新状态后重试');
+  await runAction(`${row.id}:claim`, async () => {
+    const current = await getTask(row);
+    if (hasPersistedStateChanged(row.status, current.status) || current.status !== 'pending') {
+      window.$message?.warning('任务状态已变化，请确认最新状态后重试');
+      await loadData();
+      return;
+    }
+    await claimTask(current);
     await loadData();
-    return;
-  }
-  await claimTask(current);
-  await loadData();
+  });
 }
 async function loadHistory() {
   if (!detail.value) return;
@@ -109,15 +113,17 @@ async function showDetail(row: WorkflowTask) {
 }
 async function openComplete(row: WorkflowTask) {
   if (!canComplete.value || !canRead.value) return;
-  const current = await getTask(row);
-  if (!isTaskActionable(current.status)) {
-    window.$message?.warning('任务已无法处理，请确认最新状态');
-    await loadData();
-    return;
-  }
-  selected.value = current;
-  Object.assign(form, { decision: 'approved', comment: '', output: '{}' });
-  completeVisible.value = true;
+  await runAction(`${row.id}:open-complete`, async () => {
+    const current = await getTask(row);
+    if (!isTaskActionable(current.status)) {
+      window.$message?.warning('任务已无法处理，请确认最新状态');
+      await loadData();
+      return;
+    }
+    selected.value = current;
+    Object.assign(form, { decision: 'approved', comment: '', output: '{}' });
+    completeVisible.value = true;
+  });
 }
 async function complete() {
   if (!canComplete.value || !selected.value) return;
@@ -128,30 +134,38 @@ async function complete() {
     window.$message?.error(error instanceof Error ? error.message : '输出错误');
     return;
   }
-  await completeTask(selected.value, { decision: form.decision, comment: form.comment, output });
-  completeVisible.value = false;
-  await loadData();
+  const task = selected.value;
+  await runAction(`${task.id}:complete`, async () => {
+    await completeTask(task, { decision: form.decision, comment: form.comment, output });
+    completeVisible.value = false;
+    await loadData();
+  });
 }
 async function openDelegate(row: WorkflowTask) {
   if (!canDelegate.value || !canRead.value) return;
-  const current = await getTask(row);
-  if (!isTaskActionable(current.status)) {
-    window.$message?.warning('任务已无法转交，请确认最新状态');
-    await loadData();
-    return;
-  }
-  selected.value = current;
-  Object.assign(delegation, { userID: '', reason: '' });
-  delegateVisible.value = true;
+  await runAction(`${row.id}:open-delegate`, async () => {
+    const current = await getTask(row);
+    if (!isTaskActionable(current.status)) {
+      window.$message?.warning('任务已无法转交，请确认最新状态');
+      await loadData();
+      return;
+    }
+    selected.value = current;
+    Object.assign(delegation, { userID: '', reason: '' });
+    delegateVisible.value = true;
+  });
 }
 async function delegate() {
   if (!canDelegate.value || !selected.value) return;
-  await delegateTask(selected.value, delegation.userID, delegation.reason);
-  delegateVisible.value = false;
-  detailVisible.value = false;
-  detail.value = undefined;
-  history.value = [];
-  await loadData();
+  const task = selected.value;
+  await runAction(`${task.id}:delegate`, async () => {
+    await delegateTask(task, delegation.userID, delegation.reason);
+    delegateVisible.value = false;
+    detailVisible.value = false;
+    detail.value = undefined;
+    history.value = [];
+    await loadData();
+  });
 }
 watch([tenantID, applicationID], () => {
   rows.value = [];
@@ -201,13 +215,22 @@ onMounted(loadData);
         <ElTableColumn label="操作" width="240">
           <template #default="{ row }">
             <ElButton v-if="canRead" link type="primary" @click="showDetail(row)">详情</ElButton>
-            <ElButton v-if="canClaim && canRead && row.status === 'pending'" link type="primary" @click="claim(row)">
+            <ElButton
+              v-if="canClaim && canRead && row.status === 'pending'"
+              link
+              type="primary"
+              :loading="activeAction === `${row.id}:claim`"
+              :disabled="Boolean(activeAction)"
+              @click="claim(row)"
+            >
               领取
             </ElButton>
             <ElButton
               v-if="canComplete && canRead && ['pending', 'claimed'].includes(row.status)"
               link
               type="primary"
+              :loading="activeAction === `${row.id}:open-complete`"
+              :disabled="Boolean(activeAction)"
               @click="openComplete(row)"
             >
               处理
@@ -216,6 +239,8 @@ onMounted(loadData);
               v-if="canDelegate && canRead && ['pending', 'claimed'].includes(row.status)"
               link
               type="primary"
+              :loading="activeAction === `${row.id}:open-delegate`"
+              :disabled="Boolean(activeAction)"
               @click="openDelegate(row)"
             >
               转交
@@ -252,8 +277,15 @@ onMounted(loadData);
       <ElFormItem label="输出 JSON"><ElInput v-model="form.output" type="textarea" :rows="6" /></ElFormItem>
     </ElForm>
     <template #footer>
-      <ElButton @click="completeVisible = false">取消</ElButton>
-      <ElButton v-if="canComplete" type="primary" @click="complete">提交</ElButton>
+      <ElButton :disabled="Boolean(activeAction)" @click="completeVisible = false">取消</ElButton>
+      <ElButton
+        v-if="canComplete"
+        type="primary"
+        :loading="activeAction === `${selected?.id}:complete`"
+        @click="complete"
+      >
+        提交
+      </ElButton>
     </template>
   </ElDialog>
   <ElDialog v-model="delegateVisible" title="转交任务" width="560px">
@@ -262,8 +294,15 @@ onMounted(loadData);
       <ElFormItem label="原因"><ElInput v-model="delegation.reason" /></ElFormItem>
     </ElForm>
     <template #footer>
-      <ElButton @click="delegateVisible = false">取消</ElButton>
-      <ElButton v-if="canDelegate" type="primary" @click="delegate">转交</ElButton>
+      <ElButton :disabled="Boolean(activeAction)" @click="delegateVisible = false">取消</ElButton>
+      <ElButton
+        v-if="canDelegate"
+        type="primary"
+        :loading="activeAction === `${selected?.id}:delegate`"
+        @click="delegate"
+      >
+        转交
+      </ElButton>
     </template>
   </ElDialog>
   <ElDrawer v-model="detailVisible" title="任务详情" size="760px">
