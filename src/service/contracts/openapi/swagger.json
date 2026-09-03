@@ -73,7 +73,7 @@
                             }
                         }
                     },
-                    "description": "Empty request",
+                    "description": "Search and pagination",
                     "required": true
                 },
                 "responses": {
@@ -441,7 +441,21 @@
                 }
             },
             "httptransport.ListSwaggerServicesRequest": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                    "keyword": {
+                        "type": "string"
+                    },
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "maximum": 100,
+                        "minimum": 1
+                    }
+                }
             },
             "httptransport.MeResponseBody": {
                 "type": "object",
@@ -474,6 +488,15 @@
                         "items": {
                             "$ref": "#/components/schemas/catalog.Source"
                         }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "total": {
+                        "type": "integer"
                     }
                 }
             },

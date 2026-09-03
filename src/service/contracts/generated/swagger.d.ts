@@ -68,7 +68,7 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            /** @description Empty request */
+            /** @description Search and pagination */
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["httptransport.ListSwaggerServicesRequest"];
@@ -358,7 +358,11 @@ export interface components {
             /** @example platform--identity-service */
             name: string;
         };
-        "httptransport.ListSwaggerServicesRequest": Record<string, never>;
+        "httptransport.ListSwaggerServicesRequest": {
+            keyword?: string;
+            page?: number;
+            page_size?: number;
+        };
         "httptransport.MeResponseBody": {
             subject?: string;
         };
@@ -370,6 +374,9 @@ export interface components {
         };
         "httptransport.SwaggerServicesBody": {
             items?: components["schemas"]["catalog.Source"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
         };
         "httptransport.SwaggerSpecBody": {
             document?: {

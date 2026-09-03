@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { createLatestRequestGuard } from '@/platform/application-context';
+import { remoteSearchPage } from '@/platform/remote-search';
 import type { SwaggerService } from '../../api';
 import { getSwaggerSpec, listSwaggerServices } from '../../api';
 import { renderSwaggerUI } from '../../swagger-ui';
@@ -16,19 +18,29 @@ const selectedName = ref('');
 const swaggerRoot = ref<HTMLElement>();
 let renderRevision = 0;
 let swaggerUI: { destroy?: () => void } | undefined;
+const serviceGuard = createLatestRequestGuard();
 
-async function loadServices() {
+async function loadServices(keyword = '', selectDefault = false) {
+  const request = serviceGuard.begin();
   loading.value = true;
   try {
-    const response = await listSwaggerServices();
-    services.value = response.items || [];
-    if (!services.value.some(item => item.name === selectedName.value)) {
+    const response = await listSwaggerServices({ keyword: keyword.trim(), ...remoteSearchPage(50) });
+    if (!serviceGuard.isCurrent(request)) return;
+    const selected = services.value.find(item => item.name === selectedName.value);
+    services.value = selected
+      ? Array.from(new Map([selected, ...(response.items || [])].map(item => [item.name, item])).values())
+      : response.items || [];
+    if (selectDefault && !services.value.some(item => item.name === selectedName.value)) {
       selectedName.value = services.value[0]?.name || '';
     }
-    if (canRead.value && selectedName.value) await loadSpec();
+    if (selectDefault && canRead.value && selectedName.value) await loadSpec();
   } finally {
-    loading.value = false;
+    if (serviceGuard.isCurrent(request)) loading.value = false;
   }
+}
+
+function reloadServices() {
+  loadServices('', true);
 }
 
 async function loadSpec() {
@@ -48,8 +60,9 @@ async function loadSpec() {
   }
 }
 
-onMounted(loadServices);
+onMounted(reloadServices);
 onBeforeUnmount(() => {
+  serviceGuard.invalidate();
   renderRevision += 1;
   swaggerUI?.destroy?.();
 });
@@ -67,9 +80,13 @@ onBeforeUnmount(() => {
           <ElSelect
             v-model="selectedName"
             filterable
+            remote
+            reserve-keyword
             class="w-280px"
             placeholder="选择服务"
             :disabled="!canRead"
+            :remote-method="loadServices"
+            :loading="loading"
             @change="loadSpec"
           >
             <ElOption v-for="service in services" :key="service.name" :label="service.title" :value="service.name">
@@ -79,7 +96,7 @@ onBeforeUnmount(() => {
               </div>
             </ElOption>
           </ElSelect>
-          <ElButton :loading="loading" @click="loadServices">刷新目录</ElButton>
+          <ElButton :loading="loading" @click="reloadServices">刷新目录</ElButton>
         </div>
       </div>
     </template>

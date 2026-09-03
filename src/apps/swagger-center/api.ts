@@ -16,6 +16,9 @@ export interface SwaggerService extends SwaggerServiceSchema {
 
 export interface SwaggerServicesBody extends SwaggerServicesSchema {
   items: SwaggerService[];
+  total: number;
+  page: number;
+  page_size: number;
 }
 
 export interface SwaggerSpecBody extends SwaggerSpecSchema {
@@ -32,8 +35,14 @@ async function unwrap<T>(value: PromiseLike<{ data: T | null; error: unknown }>)
   return data;
 }
 
-export function listSwaggerServices() {
-  return unwrap<SwaggerServicesBody>(request({ url: '/api/v1/swagger/services', method: 'post', data: {} }));
+export function listSwaggerServices(query: { keyword: string; page: number; pageSize: number }) {
+  return unwrap<SwaggerServicesBody>(
+    request({
+      url: '/api/v1/swagger/services',
+      method: 'post',
+      data: { keyword: query.keyword, page: query.page, page_size: query.pageSize }
+    })
+  );
 }
 
 export function getSwaggerSpec(name: string) {
