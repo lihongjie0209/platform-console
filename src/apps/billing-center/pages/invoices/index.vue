@@ -4,7 +4,7 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { promptUserInput } from '@/platform/user-action';
 import type { Invoice } from '../../api';
-import { finalizeInvoice, listInvoices, voidInvoice } from '../../api';
+import { finalizeInvoice, getInvoice, listInvoices, voidInvoice } from '../../api';
 defineOptions({ name: 'BillingCenterInvoices' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
@@ -19,6 +19,7 @@ const status = ref('');
 const loadGuard = createLatestRequestGuard();
 const canFinalize = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.invoice.finalize' }));
 const canVoid = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.invoice.void' }));
+const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.invoice.read' }));
 async function load() {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
@@ -43,12 +44,13 @@ function search() {
   load();
 }
 async function finalize(v: Invoice) {
-  if (!canFinalize.value) return;
-  await finalizeInvoice(v, new Date(Date.now() + 7 * 86400000).toISOString());
+  if (!canFinalize.value || !canRead.value) return;
+  const current = await getInvoice(v);
+  await finalizeInvoice(current, new Date(Date.now() + 7 * 86400000).toISOString());
   await load();
 }
 async function voidOne(v: Invoice) {
-  if (!canVoid.value) return;
+  if (!canVoid.value || !canRead.value) return;
   const reason = await promptUserInput(() =>
     ElMessageBox.prompt('请输入作废原因', '作废账单', {
       inputPattern: /\S+/,
@@ -57,7 +59,8 @@ async function voidOne(v: Invoice) {
     })
   );
   if (!reason) return;
-  await voidInvoice(v, reason);
+  const current = await getInvoice(v);
+  await voidInvoice(current, reason);
   await load();
 }
 watch([tenantID, applicationID], () => {
@@ -92,8 +95,12 @@ onMounted(load);
         <ElTableColumn prop="refunded_minor" label="退款(分)" />
         <ElTableColumn label="操作" width="150">
           <template #default="{ row }">
-            <ElButton v-if="canFinalize && row.status === 'draft'" link @click="finalize(row)">确认</ElButton>
-            <ElButton v-if="canVoid && row.status !== 'void'" link type="danger" @click="voidOne(row)">作废</ElButton>
+            <ElButton v-if="canFinalize && canRead && row.status === 'draft'" link @click="finalize(row)">
+              确认
+            </ElButton>
+            <ElButton v-if="canVoid && canRead && row.status !== 'void'" link type="danger" @click="voidOne(row)">
+              作废
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>

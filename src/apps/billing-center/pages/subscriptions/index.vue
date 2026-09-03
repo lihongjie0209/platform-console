@@ -4,7 +4,7 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { confirmUserAction } from '@/platform/user-action';
 import type { Subscription } from '../../api';
-import { cancelSubscription, createSubscription, listSubscriptions } from '../../api';
+import { cancelSubscription, createSubscription, getSubscription, listSubscriptions } from '../../api';
 defineOptions({ name: 'BillingCenterSubscriptions' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
@@ -21,6 +21,7 @@ const form = reactive({ planID: '', startsAt: '', externalReference: '' });
 const loadGuard = createLatestRequestGuard();
 const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.subscription.create' }));
 const canCancel = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.subscription.cancel' }));
+const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.subscription.read' }));
 async function load() {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
@@ -57,12 +58,13 @@ async function create() {
   await load();
 }
 async function cancel(v: Subscription) {
-  if (!canCancel.value) return;
+  if (!canCancel.value || !canRead.value) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm('取消将在当前计费周期结束后生效，确认继续吗？', '取消订阅', { type: 'warning' })
   );
   if (!confirmed) return;
-  await cancelSubscription(v, true);
+  const current = await getSubscription(v);
+  await cancelSubscription(current, true);
   await load();
 }
 watch([tenantID, applicationID], () => {
@@ -100,7 +102,7 @@ onMounted(load);
         <ElTableColumn prop="current_period_end" label="周期结束" />
         <ElTableColumn label="操作">
           <template #default="{ row }">
-            <ElButton v-if="canCancel && row.status === 'active'" link type="danger" @click="cancel(row)">
+            <ElButton v-if="canCancel && canRead && row.status === 'active'" link type="danger" @click="cancel(row)">
               周期末取消
             </ElButton>
           </template>

@@ -172,6 +172,14 @@ export const listSubscriptions = (input: {
       }
     })
   );
+export const getSubscription = (value: Pick<Subscription, 'id' | 'tenant_id' | 'application_id'>) =>
+  unwrap<Subscription>(
+    request({
+      url: '/api/v1/subscriptions/get',
+      method: 'post',
+      data: { id: value.id, ...applicationScope(value.tenant_id, value.application_id) }
+    })
+  );
 export const createSubscription = (input: {
   tenantID: string;
   applicationID: string;
@@ -221,6 +229,14 @@ export const listInvoices = (input: {
         page: input.page,
         page_size: input.pageSize
       }
+    })
+  );
+export const getInvoice = (value: Pick<Invoice, 'id' | 'tenant_id' | 'application_id'>) =>
+  unwrap<Invoice>(
+    request({
+      url: '/api/v1/invoices/get',
+      method: 'post',
+      data: { id: value.id, ...applicationScope(value.tenant_id, value.application_id) }
     })
   );
 export const finalizeInvoice = (value: Invoice, dueAt: string) =>

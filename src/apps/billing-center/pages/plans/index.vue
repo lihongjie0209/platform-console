@@ -63,13 +63,14 @@ function search() {
   page.value = 1;
   load();
 }
-function open(v?: Plan) {
-  if ((v && !canUpdate.value) || (!v && !canCreate.value)) return;
-  editing.value = v;
+async function open(v?: Plan) {
+  if ((v && (!canUpdate.value || !canRead.value)) || (!v && !canCreate.value)) return;
+  const current = v ? (await getPlan(v.id)).plan : undefined;
+  editing.value = current;
   Object.assign(
     form,
-    v
-      ? { ...v, entitlements: JSON.stringify(v.entitlements_json, null, 2) }
+    current
+      ? { ...current, entitlements: JSON.stringify(current.entitlements_json, null, 2) }
       : {
           code: '',
           name: '',
@@ -170,7 +171,7 @@ onMounted(load);
       <ElTableColumn prop="status" label="状态" />
       <ElTableColumn label="操作" width="160">
         <template #default="{ row }">
-          <ElButton v-if="canUpdate" link @click="open(row)">编辑</ElButton>
+          <ElButton v-if="canUpdate && canRead" link @click="open(row)">编辑</ElButton>
           <ElButton v-if="canRead" link @click="manage(row)">用量价格</ElButton>
         </template>
       </ElTableColumn>
