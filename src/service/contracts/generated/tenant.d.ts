@@ -176,6 +176,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/groups/members/batch-get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get group membership state for a bounded membership set */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Group and membership IDs (maximum 100) */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.BatchGetGroupMembersRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.GroupMembersResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/groups/members/list": {
         parameters: {
             query?: never;
@@ -1562,6 +1605,10 @@ export interface components {
             primary_organization_unit_id?: string;
             tenant_id: string;
             user_id: string;
+        };
+        "httptransport.BatchGetGroupMembersRequest": {
+            group_id: string;
+            membership_ids: string[];
         };
         "httptransport.BatchGetMembershipsRequest": {
             membership_ids: string[];

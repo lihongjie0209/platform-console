@@ -1,6 +1,6 @@
 {
   "identity": "https://raw.githubusercontent.com/lihongjie0209/identity-service/d8ae900f81abfccfdb073892d6701885b2f5acd1/docs/swagger.json",
-  "tenant": "https://raw.githubusercontent.com/lihongjie0209/tenant-service/71d05ec674c25469db2dbefce0599ac8b21cdd32/docs/swagger.json",
+  "tenant": "https://raw.githubusercontent.com/lihongjie0209/tenant-service/702b050a6bc4321a4d2f9e5bae42aba0d5ab0694/docs/swagger.json",
   "authorization": "https://raw.githubusercontent.com/lihongjie0209/authorization-service/6603b3c60901cbdd0321db3f71030d218fb92f77/docs/swagger.json",
   "application": "https://raw.githubusercontent.com/lihongjie0209/application-service/369ec16be28fa92e2cd3612c2691c319076c6128/docs/swagger.json",
   "audit": "https://raw.githubusercontent.com/lihongjie0209/audit-service/8fc620d578c6fe42006994ba35ebe500807a3c11/docs/swagger.json",

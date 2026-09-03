@@ -1181,6 +1181,16 @@ export function listGroupMembers(groupID: string) {
   );
 }
 
+export function batchGetGroupMembers(groupID: string, membershipIDs: string[]) {
+  return unwrap<{ group_members: GroupMember[] }>(
+    tenantRequest({
+      url: '/api/v1/groups/members/batch-get',
+      method: 'post',
+      data: { group_id: groupID, membership_ids: membershipIDs }
+    })
+  );
+}
+
 export async function addGroupMember(groupID: string, membershipID: string) {
   await unwrap<{ added: boolean }>(
     tenantRequest({

@@ -2,12 +2,12 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
-import { collectAllPages } from '@/platform/pagination';
+import { remoteSearchPage } from '@/platform/remote-search';
 import type { Group, GroupMember, Membership, UserIdentity } from '../../api';
 import {
   addGroupMember,
+  batchGetGroupMembers,
   batchGetUsers,
-  listGroupMembers,
   listGroups,
   listMemberships,
   removeGroupMember
@@ -18,6 +18,7 @@ defineOptions({ name: 'PlatformAdminGroupMembers' });
 const platformStore = usePlatformStore();
 const loading = ref(false);
 const changing = ref('');
+const groupSearching = ref(false);
 const groups = ref<Group[]>([]);
 const memberships = ref<Membership[]>([]);
 const assignments = ref<GroupMember[]>([]);
@@ -44,10 +45,8 @@ async function loadCatalogs() {
   }
   loading.value = true;
   try {
-    const groupItems = await collectAllPages((catalogPage, catalogPageSize) =>
-      listGroups({ tenantID: tenantID.value, page: catalogPage, pageSize: catalogPageSize })
-    );
-    groups.value = groupItems.filter(item => item.status === 'active');
+    const result = await listGroups({ tenantID: tenantID.value, ...remoteSearchPage(20), status: 'active' });
+    groups.value = result.items;
     if (!groups.value.some(item => item.id === groupID.value)) groupID.value = groups.value[0]?.id || '';
     await loadMemberships();
   } finally {
@@ -69,17 +68,36 @@ async function loadMemberships() {
     const directory = await batchGetUsers(ids);
     users.value = mergeUserDirectory(users.value, directory.items || []);
   }
+  await loadAssignments();
 }
 async function loadAssignments() {
-  if (!groupID.value) {
+  const membershipIDs = boundedDistinctIDs(memberships.value.map(item => String(item.id)));
+  if (!groupID.value || !membershipIDs.length) {
     assignments.value = [];
     return;
   }
   loading.value = true;
   try {
-    assignments.value = (await listGroupMembers(groupID.value)).group_members || [];
+    assignments.value = (await batchGetGroupMembers(groupID.value, membershipIDs)).group_members || [];
   } finally {
     loading.value = false;
+  }
+}
+async function searchGroups(keyword = '') {
+  if (!tenantID.value) return;
+  groupSearching.value = true;
+  try {
+    const result = await listGroups({
+      tenantID: tenantID.value,
+      ...remoteSearchPage(20),
+      keyword,
+      status: 'active'
+    });
+    const values = new Map(groups.value.map(item => [String(item.id), item]));
+    for (const item of result.items) values.set(String(item.id), item);
+    groups.value = [...values.values()];
+  } finally {
+    groupSearching.value = false;
   }
 }
 async function toggle(membership: Membership, enabled: boolean) {
@@ -129,7 +147,16 @@ onMounted(loadCatalogs);
           <p class="mb-0 mt-6px text-13px text-#999">将当前租户的活跃成员加入或移出成员组，移除后可以安全恢复。</p>
         </div>
         <div class="flex-y-center gap-8px">
-          <ElSelect v-model="groupID" class="w-260px" filterable placeholder="选择成员组">
+          <ElSelect
+            v-model="groupID"
+            class="w-260px"
+            filterable
+            remote
+            :remote-method="searchGroups"
+            :loading="groupSearching"
+            reserve-keyword
+            placeholder="选择成员组"
+          >
             <ElOption
               v-for="group in groups"
               :key="String(group.id)"
