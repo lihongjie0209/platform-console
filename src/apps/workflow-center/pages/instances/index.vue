@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { useAsyncAction } from '@/components/business';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformDateTime, formatPlatformTableDateTime } from '@/platform/date-time';
 import { ensureIdempotencyKey } from '@/platform/idempotency-key';
@@ -30,7 +31,9 @@ const history = ref<WorkflowTaskHistory[]>([]);
 const historyPage = ref(1);
 const historyPageSize = ref(20);
 const historyTotal = ref(0);
-const form = reactive({ definitionKey: '', businessKey: '', title: '', variables: '{}', idempotencyKey: '' });
+const form = reactive({ definitionKey: '', businessKey: '', title: '', variables: '{}' });
+const startIdempotencyKey = ref('');
+const { loading: starting, run: runStart } = useAsyncAction();
 const loadGuard = createLatestRequestGuard();
 const canStart = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.instance.start' }));
 const canCancel = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.instance.cancel' }));
@@ -72,32 +75,41 @@ function openStart() {
     definitionKey: '',
     businessKey: '',
     title: '',
-    variables: '{}',
-    idempotencyKey: crypto.randomUUID()
+    variables: '{}'
   });
   visible.value = true;
 }
 async function start() {
-  if (!canStart.value || !scopeReady.value) return;
-  let variables: Record<string, unknown>;
-  try {
-    variables = parseJSONObject(form.variables, '流程变量');
-  } catch (error) {
-    window.$message?.error(error instanceof Error ? error.message : '变量错误');
-    return;
-  }
-  await startInstance({
-    tenantID: tenantID.value,
-    applicationID: applicationID.value,
-    definitionKey: form.definitionKey,
-    businessKey: form.businessKey,
-    title: form.title,
-    variables,
-    idempotencyKey: ensureIdempotencyKey(form.idempotencyKey)
+  await runStart(async () => {
+    if (!canStart.value || !scopeReady.value) return;
+    let variables: Record<string, unknown>;
+    try {
+      variables = parseJSONObject(form.variables, '流程变量');
+    } catch (error) {
+      window.$message?.error(error instanceof Error ? error.message : '变量错误');
+      return;
+    }
+    startIdempotencyKey.value = ensureIdempotencyKey(startIdempotencyKey.value);
+    await startInstance({
+      tenantID: tenantID.value,
+      applicationID: applicationID.value,
+      definitionKey: form.definitionKey,
+      businessKey: form.businessKey,
+      title: form.title,
+      variables,
+      idempotencyKey: startIdempotencyKey.value
+    });
+    startIdempotencyKey.value = '';
+    visible.value = false;
+    await loadData();
   });
-  visible.value = false;
-  await loadData();
 }
+watch(
+  () => [form.definitionKey, form.businessKey, form.title, form.variables],
+  () => {
+    startIdempotencyKey.value = '';
+  }
+);
 async function cancel(row: WorkflowInstance) {
   if (!canCancel.value || !canRead.value) return;
   const reason = await promptUserInput(() =>
@@ -211,7 +223,7 @@ onMounted(loadData);
     </ElForm>
     <template #footer>
       <ElButton @click="visible = false">取消</ElButton>
-      <ElButton v-if="canStart" type="primary" @click="start">启动</ElButton>
+      <ElButton v-if="canStart" type="primary" :loading="starting" @click="start">启动</ElButton>
     </template>
   </ElDialog>
   <ElDrawer v-model="detailVisible" title="实例详情" size="760px">

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { useAsyncAction } from '@/components/business';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { parseJSONObject } from '@/platform/json';
 import { ensureIdempotencyKey } from '@/platform/idempotency-key';
@@ -38,6 +39,7 @@ const versionPage = ref(1);
 const versionPageSize = ref(20);
 const definition = ref('{\n  "rules": []\n}');
 const versionIdempotencyKey = ref('');
+const { loading: versionCreating, run: runVersionCreate } = useAsyncAction();
 const facts = ref('{}');
 const evaluation = ref('');
 const form = reactive({ code: '', name: '', description: '', status: 'draft' });
@@ -117,17 +119,19 @@ function resizeVersions() {
   reloadVersions();
 }
 async function createVersion() {
-  if (!canCreateVersion.value || !selected.value) return;
-  const value = parseJSONObject(definition.value, '规则定义');
-  const check = await validateRule(selected.value.tenant_id, selected.value.application_id, value);
-  if (!check.valid) {
-    window.$message?.error(check.issues.join('; ') || '规则无效');
-    return;
-  }
-  versionIdempotencyKey.value = ensureIdempotencyKey(versionIdempotencyKey.value);
-  await createRuleVersion(selected.value, value, versionIdempotencyKey.value);
-  versionIdempotencyKey.value = '';
-  await versionsFor(selected.value);
+  await runVersionCreate(async () => {
+    if (!canCreateVersion.value || !selected.value) return;
+    const value = parseJSONObject(definition.value, '规则定义');
+    const check = await validateRule(selected.value.tenant_id, selected.value.application_id, value);
+    if (!check.valid) {
+      window.$message?.error(check.issues.join('; ') || '规则无效');
+      return;
+    }
+    versionIdempotencyKey.value = ensureIdempotencyKey(versionIdempotencyKey.value);
+    await createRuleVersion(selected.value, value, versionIdempotencyKey.value);
+    versionIdempotencyKey.value = '';
+    await versionsFor(selected.value);
+  });
 }
 watch(definition, () => {
   versionIdempotencyKey.value = '';
@@ -236,7 +240,9 @@ onMounted(load);
   </ElDialog>
   <ElDrawer v-model="versionVisible" title="规则版本" size="760px">
     <ElInput v-model="definition" type="textarea" :rows="10" />
-    <ElButton v-if="canCreateVersion" class="my-12px" type="primary" @click="createVersion">校验并创建版本</ElButton>
+    <ElButton v-if="canCreateVersion" class="my-12px" type="primary" :loading="versionCreating" @click="createVersion">
+      校验并创建版本
+    </ElButton>
     <ElTable :data="versions" border>
       <ElTableColumn prop="version_number" label="版本" />
       <ElTableColumn prop="status" label="状态" />
