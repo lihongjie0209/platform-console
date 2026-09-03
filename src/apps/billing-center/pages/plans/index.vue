@@ -126,21 +126,35 @@ function editPrice(v?: UsagePrice) {
   );
 }
 async function savePrice() {
-  if (!canUpdate.value || !selected.value) return;
+  if (!canUpdate.value || !canRead.value || !selected.value) return;
+  const detail = await getPlan(selected.value.id);
+  const current = price.id ? detail.usage_prices.find(item => item.id === price.id) : undefined;
+  if (price.id && !current) {
+    window.$message?.warning('用量价格已被删除，请刷新后重试');
+    return;
+  }
   await upsertUsagePrice({
     ...price,
     plan_id: selected.value.id,
+    version: current?.version || 0,
     tiers_json: parseJSONArray(price.tiers, '阶梯')
   } as never);
   await manage(selected.value);
 }
 async function removePrice(v: UsagePrice) {
-  if (!canDelete.value) return;
+  if (!canDelete.value || !canRead.value || !selected.value) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm(`确认删除计量项“${v.meter_code}”的用量价格吗？`, '删除用量价格', { type: 'warning' })
   );
   if (!confirmed) return;
-  await deleteUsagePrice(v);
+  const detail = await getPlan(selected.value.id);
+  const current = detail.usage_prices.find(item => item.id === v.id);
+  if (!current) {
+    window.$message?.warning('用量价格已被删除');
+    await manage(selected.value);
+    return;
+  }
+  await deleteUsagePrice(current);
   if (selected.value) await manage(selected.value);
 }
 onMounted(load);
@@ -225,7 +239,7 @@ onMounted(load);
       <ElTableColumn label="操作">
         <template #default="{ row }">
           <ElButton v-if="canUpdate" link @click="editPrice(row)">编辑</ElButton>
-          <ElButton v-if="canDelete" link type="danger" @click="removePrice(row)">删除</ElButton>
+          <ElButton v-if="canDelete && canRead" link type="danger" @click="removePrice(row)">删除</ElButton>
         </template>
       </ElTableColumn>
     </ElTable>
