@@ -1491,6 +1491,16 @@ export function listQuotas(query: QuotaQuery) {
   );
 }
 
+export function getQuota(tenantID: string, key: string) {
+  return unwrap<Quota>(
+    tenantRequest({
+      url: '/api/v1/quotas/get',
+      method: 'post',
+      data: { tenant_id: tenantID, key }
+    })
+  );
+}
+
 export async function setQuota(tenantID: string, form: QuotaForm) {
   await unwrap<Quota>(
     tenantRequest({

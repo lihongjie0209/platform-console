@@ -5,7 +5,7 @@ import { BizCrudPage, BizRowActions } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { Quota, QuotaForm } from '../../api';
-import { listQuotas, setQuota } from '../../api';
+import { getQuota, listQuotas, setQuota } from '../../api';
 
 defineOptions({ name: 'PlatformAdminQuotas' });
 interface Query extends Record<string, unknown> {
@@ -55,7 +55,7 @@ const config: BizCrudConfig<Quota, Query, QuotaForm, string> = {
   },
   permissions: {
     create: { scope: 'tenant', codes: 'tenant.quota.update' },
-    update: { scope: 'tenant', codes: 'tenant.quota.update' }
+    update: { scope: 'tenant', codes: ['tenant.quota.read', 'tenant.quota.update'], strategy: 'all' }
   },
   mapRowToForm: row => ({ key: String(row.key), limit: Number(row.limit), version: Number(row.version) })
 };
@@ -68,6 +68,10 @@ const adapter: BizCrudAdapter<Quota, Query, QuotaForm, string> = {
       pageSize: query.size
     });
     return { items: result.quotas, total: result.total, page: result.page, pageSize: result.page_size };
+  },
+  detail: async key => {
+    const quota = await getQuota(tenantID.value, key);
+    return { key: String(quota.key), limit: Number(quota.limit), version: Number(quota.version) };
   },
   create: form => setQuota(tenantID.value, form),
   update: (_key, form) => setQuota(tenantID.value, form)

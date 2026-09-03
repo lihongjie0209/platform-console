@@ -126,19 +126,20 @@ function openCreate(parentID = '') {
 }
 async function openEdit(unit: OrganizationUnit) {
   if (!canUpdateUnit.value) return;
+  const current = await getOrganizationUnit(String(unit.id));
   resetForm({
-    id: String(unit.id),
-    parent_id: String(unit.parent_id || ''),
-    code: String(unit.code),
-    name: String(unit.name),
-    status: String(unit.status),
-    version: Number(unit.version)
+    id: String(current.id),
+    parent_id: String(current.parent_id || ''),
+    code: String(current.code),
+    name: String(current.name),
+    status: String(current.status),
+    version: Number(current.version)
   });
   editorVisible.value = true;
   parentOptions.value = [];
-  if (unit.parent_id) {
+  if (current.parent_id) {
     try {
-      parentOptions.value = [await getOrganizationUnit(unit.parent_id)];
+      parentOptions.value = [await getOrganizationUnit(current.parent_id)];
     } catch {
       parentOptions.value = [];
     }
