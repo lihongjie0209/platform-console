@@ -3,6 +3,8 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard } from '@/platform/application-context';
 import { parseJSONArray, parseJSONObject } from '@/platform/json';
+import { operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
+import { hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import { confirmUserAction } from '@/platform/user-action';
 import type { Plan, UsagePrice } from '../../api';
 import { deleteUsagePrice, getPlan, listPlans, savePlan, upsertUsagePrice } from '../../api';
@@ -19,12 +21,18 @@ const pageSize = ref(20);
 const status = ref('');
 const keyword = ref('');
 const visible = ref(false);
+const saving = ref(false);
+const savingPrice = ref(false);
+const deletingPriceID = ref('');
 const editing = ref<Plan>();
 const priceVisible = ref(false);
 const prices = ref<UsagePrice[]>([]);
 const selected = ref<Plan>();
 const loadGuard = createLatestRequestGuard();
 const detailGuard = createLatestRequestGuard();
+const formKeys = new Map<string, string>();
+const priceKeys = new Map<string, string>();
+const priceBaselines = new Map<string, Promise<UsagePrice | undefined>>();
 const form = reactive({
   code: '',
   name: '',
@@ -66,6 +74,7 @@ function search() {
 async function open(v?: Plan) {
   if ((v && (!canUpdate.value || !canRead.value)) || (!v && !canCreate.value)) return;
   const current = v ? (await getPlan(v.id)).plan : undefined;
+  formKeys.clear();
   editing.value = current;
   Object.assign(
     form,
@@ -86,21 +95,31 @@ async function open(v?: Plan) {
   visible.value = true;
 }
 async function save() {
-  if ((editing.value && !canUpdate.value) || (!editing.value && !canCreate.value)) return;
+  if (saving.value || (editing.value && !canUpdate.value) || (!editing.value && !canCreate.value)) return;
+  const operation = JSON.stringify(['plan', editing.value?.id || '', editing.value?.version || 0, form]);
+  saving.value = true;
   try {
     await savePlan(editing.value, {
       ...form,
-      entitlements_json: parseJSONObject(form.entitlements, '权益')
+      entitlements_json: parseJSONObject(form.entitlements, '权益'),
+      idempotencyKey: operationIdempotencyKey(formKeys, operation)
     } as never);
+    formKeys.clear();
     visible.value = false;
     await load();
   } catch (e) {
     window.$message?.error(e instanceof Error ? e.message : '保存失败');
+  } finally {
+    saving.value = false;
   }
 }
 async function manage(v: Plan) {
   if (!canRead.value) return;
   const request = detailGuard.begin();
+  if (selected.value?.id !== v.id) {
+    priceKeys.clear();
+    priceBaselines.clear();
+  }
   selected.value = v;
   const detail = await getPlan(v.id);
   if (!detailGuard.isCurrent(request) || selected.value?.id !== v.id) return;
@@ -108,7 +127,9 @@ async function manage(v: Plan) {
   priceVisible.value = true;
 }
 function editPrice(v?: UsagePrice) {
-  if (!canUpdate.value) return;
+  if (!canUpdate.value || savingPrice.value || deletingPriceID.value) return;
+  priceKeys.clear();
+  priceBaselines.clear();
   Object.assign(
     price,
     v
@@ -126,36 +147,72 @@ function editPrice(v?: UsagePrice) {
   );
 }
 async function savePrice() {
-  if (!canUpdate.value || !canRead.value || !selected.value) return;
-  const detail = await getPlan(selected.value.id);
-  const current = price.id ? detail.usage_prices.find(item => item.id === price.id) : undefined;
-  if (price.id && !current) {
-    window.$message?.warning('用量价格已被删除，请刷新后重试');
-    return;
+  if (savingPrice.value || deletingPriceID.value || !canUpdate.value || !canRead.value || !selected.value) return;
+  const selectedPlan = selected.value;
+  const operation = JSON.stringify(['usage-price', selectedPlan.id, price.id, price.version, price]);
+  savingPrice.value = true;
+  try {
+    const current = await operationPromise(priceBaselines, operation, async () => {
+      if (!price.id) return undefined;
+      const detail = await getPlan(selectedPlan.id);
+      return detail.usage_prices.find(item => item.id === price.id);
+    });
+    if (price.id && !current) {
+      window.$message?.warning('用量价格已被删除，请刷新后重试');
+      return;
+    }
+    if (current && hasPersistedVersionChanged(price.version, current.version)) {
+      window.$message?.warning('用量价格已发生变化，请刷新后重试');
+      return;
+    }
+    await upsertUsagePrice(
+      {
+        ...price,
+        plan_id: selectedPlan.id,
+        version: current?.version || 0,
+        tiers_json: parseJSONArray(price.tiers, '阶梯')
+      } as never,
+      operationIdempotencyKey(priceKeys, operation)
+    );
+    priceKeys.clear();
+    priceBaselines.clear();
+    await manage(selectedPlan);
+  } finally {
+    savingPrice.value = false;
   }
-  await upsertUsagePrice({
-    ...price,
-    plan_id: selected.value.id,
-    version: current?.version || 0,
-    tiers_json: parseJSONArray(price.tiers, '阶梯')
-  } as never);
-  await manage(selected.value);
 }
 async function removePrice(v: UsagePrice) {
-  if (!canDelete.value || !canRead.value || !selected.value) return;
+  if (savingPrice.value || deletingPriceID.value || !canDelete.value || !canRead.value || !selected.value) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm(`确认删除计量项“${v.meter_code}”的用量价格吗？`, '删除用量价格', { type: 'warning' })
   );
   if (!confirmed) return;
-  const detail = await getPlan(selected.value.id);
-  const current = detail.usage_prices.find(item => item.id === v.id);
-  if (!current) {
-    window.$message?.warning('用量价格已被删除');
-    await manage(selected.value);
-    return;
+  const selectedPlan = selected.value;
+  const operation = `delete-usage-price:${selectedPlan.id}:${v.id}:${v.version}`;
+  deletingPriceID.value = v.id;
+  try {
+    const current = await operationPromise(priceBaselines, operation, async () => {
+      const detail = await getPlan(selectedPlan.id);
+      return detail.usage_prices.find(item => item.id === v.id);
+    });
+    if (!current) {
+      window.$message?.warning('用量价格已被删除');
+      priceKeys.delete(operation);
+      priceBaselines.delete(operation);
+      await manage(selectedPlan);
+      return;
+    }
+    if (hasPersistedVersionChanged(v.version, current.version)) {
+      window.$message?.warning('用量价格已发生变化，请刷新后重试');
+      return;
+    }
+    await deleteUsagePrice(current, operationIdempotencyKey(priceKeys, operation));
+    priceKeys.delete(operation);
+    priceBaselines.delete(operation);
+    await manage(selectedPlan);
+  } finally {
+    deletingPriceID.value = '';
   }
-  await deleteUsagePrice(current);
-  if (selected.value) await manage(selected.value);
 }
 onMounted(load);
 </script>
@@ -219,7 +276,7 @@ onMounted(load);
     </ElForm>
     <template #footer>
       <ElButton @click="visible = false">取消</ElButton>
-      <ElButton v-if="editing ? canUpdate : canCreate" type="primary" @click="save">保存</ElButton>
+      <ElButton v-if="editing ? canUpdate : canCreate" type="primary" :loading="saving" @click="save">保存</ElButton>
     </template>
   </ElDialog>
   <ElDrawer v-model="priceVisible" title="用量价格" size="700px">
@@ -230,7 +287,7 @@ onMounted(load);
       <ElFormItem label="单位金额(分)"><ElInputNumber v-model="price.unit_amount_minor" /></ElFormItem>
       <ElFormItem label="模型"><ElInput v-model="price.pricing_model" /></ElFormItem>
       <ElFormItem label="阶梯 JSON"><ElInput v-model="price.tiers" /></ElFormItem>
-      <ElButton v-if="canUpdate" type="primary" @click="savePrice">保存价格</ElButton>
+      <ElButton v-if="canUpdate" type="primary" :loading="savingPrice" @click="savePrice">保存价格</ElButton>
     </ElForm>
     <ElTable :data="prices" border>
       <ElTableColumn prop="meter_code" label="计量项" />
@@ -238,8 +295,18 @@ onMounted(load);
       <ElTableColumn prop="unit_amount_minor" label="单位金额" />
       <ElTableColumn label="操作">
         <template #default="{ row }">
-          <ElButton v-if="canUpdate" link @click="editPrice(row)">编辑</ElButton>
-          <ElButton v-if="canDelete && canRead" link type="danger" @click="removePrice(row)">删除</ElButton>
+          <ElButton v-if="canUpdate" link :disabled="savingPrice || Boolean(deletingPriceID)" @click="editPrice(row)">
+            编辑
+          </ElButton>
+          <ElButton
+            v-if="canDelete && canRead"
+            link
+            type="danger"
+            :loading="deletingPriceID === row.id"
+            @click="removePrice(row)"
+          >
+            删除
+          </ElButton>
         </template>
       </ElTableColumn>
     </ElTable>

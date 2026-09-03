@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard } from '@/platform/application-context';
+import { operationIdempotencyKey } from '@/platform/idempotency-key';
 import type { Meter } from '../../api';
 import { getMeter, listMeters, saveMeter } from '../../api';
 defineOptions({ name: 'MeteringCenterMeters' });
@@ -17,8 +18,10 @@ const status = ref('');
 const keyword = ref('');
 const loading = ref(false);
 const visible = ref(false);
+const saving = ref(false);
 const editing = ref<Meter>();
 const loadGuard = createLatestRequestGuard();
+const formKeys = new Map<string, string>();
 const form = reactive({
   code: '',
   name: '',
@@ -53,6 +56,7 @@ function search() {
 async function open(row?: Meter) {
   if ((row && (!canUpdate.value || !canRead.value)) || (!row && !canCreate.value)) return;
   const current = row ? await getMeter(row.id) : undefined;
+  formKeys.clear();
   editing.value = current;
   Object.assign(
     form,
@@ -71,16 +75,31 @@ async function open(row?: Meter) {
   visible.value = true;
 }
 async function save() {
-  if ((editing.value && !canUpdate.value) || (!editing.value && !canCreate.value)) return;
-  await saveMeter(editing.value, {
-    ...form,
-    dimensionKeys: form.dimensionKeys
-      .split(',')
-      .map(v => v.trim())
-      .filter(Boolean)
-  });
-  visible.value = false;
-  await loadData();
+  if (saving.value || (editing.value && !canUpdate.value) || (!editing.value && !canCreate.value)) return;
+  const dimensionKeys = form.dimensionKeys
+    .split(',')
+    .map(v => v.trim())
+    .filter(Boolean);
+  const operation = JSON.stringify([
+    'meter',
+    editing.value?.id || '',
+    editing.value?.version || 0,
+    form,
+    dimensionKeys
+  ]);
+  saving.value = true;
+  try {
+    await saveMeter(editing.value, {
+      ...form,
+      dimensionKeys,
+      idempotencyKey: operationIdempotencyKey(formKeys, operation)
+    });
+    formKeys.clear();
+    visible.value = false;
+    await loadData();
+  } finally {
+    saving.value = false;
+  }
 }
 onMounted(loadData);
 </script>
@@ -153,7 +172,7 @@ onMounted(loadData);
     </ElForm>
     <template #footer>
       <ElButton @click="visible = false">取消</ElButton>
-      <ElButton v-if="editing ? canUpdate : canCreate" type="primary" @click="save">保存</ElButton>
+      <ElButton v-if="editing ? canUpdate : canCreate" type="primary" :loading="saving" @click="save">保存</ElButton>
     </template>
   </ElDialog>
 </template>

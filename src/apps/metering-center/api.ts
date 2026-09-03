@@ -58,12 +58,14 @@ export function saveMeter(
     aggregation: string;
     dimensionKeys: string[];
     status: string;
+    idempotencyKey: string;
   }
 ) {
   return unwrap<Meter>(
     request({
       url: current ? '/api/v1/meters/update' : '/api/v1/meters/create',
       method: 'post',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
       data: current
         ? {
             id: current.id,

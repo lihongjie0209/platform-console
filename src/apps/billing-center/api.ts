@@ -113,11 +113,12 @@ export const listPlans = (input: { status: string; keyword: string; page: number
       }
     })
   );
-export function savePlan(current: Plan | undefined, input: Omit<Plan, 'id' | 'version'>) {
+export function savePlan(current: Plan | undefined, input: Omit<Plan, 'id' | 'version'> & { idempotencyKey: string }) {
   return unwrap<Plan>(
     request({
       url: current ? '/api/v1/plans/update' : '/api/v1/plans/create',
       method: 'post',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
       data: current
         ? {
             id: current.id,
@@ -129,7 +130,17 @@ export function savePlan(current: Plan | undefined, input: Omit<Plan, 'id' | 've
             entitlements_json: input.entitlements_json,
             version: current.version
           }
-        : input
+        : {
+            code: input.code,
+            name: input.name,
+            description: input.description,
+            currency: input.currency,
+            billing_interval: input.billing_interval,
+            base_amount_minor: input.base_amount_minor,
+            trial_days: input.trial_days,
+            status: input.status,
+            entitlements_json: input.entitlements_json
+          }
     })
   );
 }
@@ -137,19 +148,24 @@ export const getPlan = (id: string) =>
   unwrap<{ plan: Plan; usage_prices: UsagePrice[] }>(
     request({ url: '/api/v1/plans/get', method: 'post', data: { id } })
   );
-export const upsertUsagePrice = (value: Partial<UsagePrice> & Pick<UsagePrice, 'plan_id' | 'meter_code'>) =>
+export const upsertUsagePrice = (
+  value: Partial<UsagePrice> & Pick<UsagePrice, 'plan_id' | 'meter_code'>,
+  idempotencyKey: string
+) =>
   unwrap<UsagePrice>(
     request({
       url: '/api/v1/plans/usage-prices/upsert',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { ...value, expected_version: value.version || 0 }
     })
   );
-export const deleteUsagePrice = (value: UsagePrice) =>
+export const deleteUsagePrice = (value: UsagePrice, idempotencyKey: string) =>
   unwrap<null>(
     request({
       url: '/api/v1/plans/usage-prices/delete',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { id: value.id, version: value.version }
     })
   );
