@@ -23,13 +23,13 @@ import {
   batchGetUsers,
   createMyBinding,
   listGroups,
-  listMemberships,
   listMyBindings,
   listMyRoles,
   listOrganizationUnits,
   listServiceAccounts,
   listUsers,
-  revokeMyBinding
+  revokeMyBinding,
+  searchMembershipDirectory
 } from '../../api';
 import { boundedDistinctIDs, mergeUserDirectory } from '../../user-directory';
 
@@ -218,19 +218,17 @@ async function searchSubjects(keyword = '') {
       groups.value = result.items;
       return;
     }
-    const userResult = await listUsers({ ...remoteSearchPage(20), keyword, status: 'active' });
-    const membershipResults = await Promise.all(
-      userResult.items.map(user =>
-        listMemberships({
-          tenantID: tenantID.value,
-          userID: String(user.id),
-          status: 'active',
-          ...remoteSearchPage(1)
-        })
-      )
+    const result = await searchMembershipDirectory(tenantID.value, keyword, 20);
+    memberships.value = result.items.map(item => item.membership);
+    users.value = mergeUserDirectory(
+      users.value,
+      result.items.map(item => ({
+        ...item.user,
+        email: '',
+        phone: '',
+        version: 0
+      }))
     );
-    users.value = mergeUserDirectory(users.value, userResult.items);
-    memberships.value = membershipResults.flatMap(result => result.memberships);
   } finally {
     subjectSearching.value = false;
   }

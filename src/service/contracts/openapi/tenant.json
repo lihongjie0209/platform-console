@@ -678,6 +678,54 @@
                 }
             }
         },
+        "/api/v1/memberships/directory/search": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "memberships"
+                ],
+                "summary": "Search active tenant members by user identity",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.SearchMembershipDirectoryRequest"
+                            }
+                        }
+                    },
+                    "description": "Tenant, identity keyword and result limit",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.MembershipDirectoryBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/memberships/list": {
             "post": {
                 "security": [
@@ -1896,6 +1944,23 @@
                     }
                 }
             },
+            "httptransport.DirectoryUserBody": {
+                "type": "object",
+                "properties": {
+                    "display_name": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "username": {
+                        "type": "string"
+                    }
+                }
+            },
             "httptransport.GetOrganizationUnitRequest": {
                 "type": "object",
                 "required": [
@@ -2302,6 +2367,28 @@
                     }
                 }
             },
+            "httptransport.MembershipDirectoryBody": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.MembershipDirectoryItemBody"
+                        }
+                    }
+                }
+            },
+            "httptransport.MembershipDirectoryItemBody": {
+                "type": "object",
+                "properties": {
+                    "membership": {
+                        "$ref": "#/components/schemas/httptransport.MembershipBody"
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/httptransport.DirectoryUserBody"
+                    }
+                }
+            },
             "httptransport.MembershipPageBody": {
                 "type": "object",
                 "properties": {
@@ -2500,6 +2587,23 @@
                     },
                     "status": {
                         "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.SearchMembershipDirectoryRequest": {
+                "type": "object",
+                "required": [
+                    "tenant_id"
+                ],
+                "properties": {
+                    "keyword": {
+                        "type": "string"
+                    },
+                    "limit": {
+                        "type": "integer"
                     },
                     "tenant_id": {
                         "type": "string"

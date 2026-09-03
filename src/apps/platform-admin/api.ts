@@ -229,6 +229,11 @@ export interface MembershipQuery {
   pageSize: number;
 }
 
+export interface MembershipDirectoryItem {
+  membership: Membership;
+  user: Pick<UserIdentity, 'id' | 'username' | 'display_name' | 'status'>;
+}
+
 export interface InvitationForm {
   email: string;
   expires_in_hours: number;
@@ -1226,6 +1231,16 @@ export function batchGetMemberships(tenantID: string, membershipIDs: string[]) {
       url: '/api/v1/memberships/batch-get',
       method: 'post',
       data: { tenant_id: tenantID, membership_ids: membershipIDs }
+    })
+  );
+}
+
+export function searchMembershipDirectory(tenantID: string, keyword: string, limit = 20) {
+  return unwrap<{ items: MembershipDirectoryItem[] }>(
+    tenantRequest({
+      url: '/api/v1/memberships/directory/search',
+      method: 'post',
+      data: { tenant_id: tenantID, keyword, limit }
     })
   );
 }

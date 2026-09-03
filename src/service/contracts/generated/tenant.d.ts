@@ -610,6 +610,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/memberships/directory/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Search active tenant members by user identity */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Tenant, identity keyword and result limit */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.SearchMembershipDirectoryRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.MembershipDirectoryBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/memberships/list": {
         parameters: {
             query?: never;
@@ -1562,6 +1605,12 @@ export interface components {
             owner_membership?: components["schemas"]["httptransport.MembershipBody"];
             tenant?: components["schemas"]["httptransport.TenantBody"];
         };
+        "httptransport.DirectoryUserBody": {
+            display_name?: string;
+            id?: string;
+            status?: string;
+            username?: string;
+        };
         "httptransport.GetOrganizationUnitRequest": {
             organization_unit_id: string;
         };
@@ -1688,6 +1737,13 @@ export interface components {
             user_id?: string;
             version?: number;
         };
+        "httptransport.MembershipDirectoryBody": {
+            items?: components["schemas"]["httptransport.MembershipDirectoryItemBody"][];
+        };
+        "httptransport.MembershipDirectoryItemBody": {
+            membership?: components["schemas"]["httptransport.MembershipBody"];
+            user?: components["schemas"]["httptransport.DirectoryUserBody"];
+        };
         "httptransport.MembershipPageBody": {
             memberships?: components["schemas"]["httptransport.MembershipBody"][];
             page?: number;
@@ -1751,6 +1807,11 @@ export interface components {
             page?: number;
             page_size?: number;
             status?: string;
+            tenant_id: string;
+        };
+        "httptransport.SearchMembershipDirectoryRequest": {
+            keyword?: string;
+            limit?: number;
             tenant_id: string;
         };
         "httptransport.SelectTenantRequest": {
