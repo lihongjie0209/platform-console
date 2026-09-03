@@ -2,6 +2,7 @@ import type { AxiosResponse } from 'axios';
 import { BACKEND_ERROR_CODE, createFlatRequest } from '@sa/axios';
 import { PlatformErrorCode, isAuthenticationFailure } from '@/platform/error-code';
 import { serviceBaseURL } from '@/platform/runtime-config';
+import { resolveRequestIdempotencyKey } from '@/platform/request-idempotency';
 import { authenticationFailureAction } from '@/platform/token-refresh';
 import type { AuthenticationRetryState } from '@/platform/token-refresh';
 import { getAuthorization, handleExpiredRequest, resetAuthentication, showErrorMsg } from './shared';
@@ -29,12 +30,11 @@ function createPlatformClient(service: PlatformService) {
         if (authorization) {
           config.headers.set('Authorization', authorization);
         }
-        if (
-          config.method &&
-          !['get', 'head', 'options'].includes(config.method.toLowerCase()) &&
-          !config.headers.has('Idempotency-Key')
-        ) {
-          config.headers.set('Idempotency-Key', crypto.randomUUID());
+        if (config.method && !['get', 'head', 'options'].includes(config.method.toLowerCase())) {
+          config.headers.set(
+            'Idempotency-Key',
+            resolveRequestIdempotencyKey(config.data, config.headers.get('Idempotency-Key')?.toString())
+          );
         }
         return config;
       },
