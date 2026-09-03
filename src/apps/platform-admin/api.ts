@@ -973,16 +973,6 @@ export async function updatePermission(id: string, form: PermissionForm) {
   );
 }
 
-export function listRolePermissions(roleID: string) {
-  return unwrap<{ role_permissions: RolePermission[] }>(
-    authorizationRequest({
-      url: '/api/v1/authorization/role-permissions/list',
-      method: 'post',
-      data: { role_id: roleID }
-    })
-  );
-}
-
 export function grantRolePermission(tenantID: string, roleID: string, permissionID: string) {
   return unwrap<RolePermission>(
     authorizationRequest({
@@ -1208,12 +1198,6 @@ export async function updateGroup(id: string, form: GroupForm) {
       method: 'post',
       data: { group_id: id, name: form.name, status: form.status, version: form.version }
     })
-  );
-}
-
-export function listGroupMembers(groupID: string) {
-  return unwrap<{ group_members: GroupMember[] }>(
-    tenantRequest({ url: '/api/v1/groups/members/list', method: 'post', data: { group_id: groupID } })
   );
 }
 
