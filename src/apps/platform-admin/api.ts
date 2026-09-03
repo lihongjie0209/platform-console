@@ -1253,6 +1253,47 @@ export function listOrganizationUnits(tenantID: string) {
   ).then(result => result.organization_units || []);
 }
 
+export interface OrganizationUnitTreeNode extends OrganizationUnit {
+  has_children: boolean;
+  children: OrganizationUnitTreeNode[];
+}
+
+export function treeOrganizationUnits(query: {
+  tenantID: string;
+  mode: 'lazy_children' | 'search_with_ancestors';
+  parentID?: string;
+  keyword?: string;
+  status?: string;
+  maxDepth: number;
+  maxNodes: number;
+}) {
+  return unwrap<{ nodes: OrganizationUnitTreeNode[]; truncated: boolean }>(
+    tenantRequest({
+      url: '/api/v1/organization-units/tree',
+      method: 'post',
+      data: {
+        tenant_id: query.tenantID,
+        mode: query.mode,
+        parent_id: query.parentID || '',
+        keyword: query.keyword || '',
+        status: query.status || '',
+        max_depth: query.maxDepth,
+        max_nodes: query.maxNodes
+      }
+    })
+  );
+}
+
+export function getOrganizationUnit(organizationUnitID: string) {
+  return unwrap<OrganizationUnit>(
+    tenantRequest({
+      url: '/api/v1/organization-units/get',
+      method: 'post',
+      data: { organization_unit_id: organizationUnitID }
+    })
+  );
+}
+
 export function createOrganizationUnit(tenantID: string, form: OrganizationUnitForm) {
   return unwrap<OrganizationUnit>(
     tenantRequest({

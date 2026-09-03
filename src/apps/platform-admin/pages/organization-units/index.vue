@@ -2,21 +2,19 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
-import type { OrganizationUnit, OrganizationUnitForm } from '../../api';
-import { createOrganizationUnit, listOrganizationUnits, updateOrganizationUnit } from '../../api';
-import { buildOrganizationTree, descendantOrganizationIDs } from '../../organization-tree';
+import { createLatestRequestGuard } from '@/platform/application-context';
+import type { OrganizationUnit, OrganizationUnitForm, OrganizationUnitTreeNode } from '../../api';
+import { createOrganizationUnit, getOrganizationUnit, treeOrganizationUnits, updateOrganizationUnit } from '../../api';
 
 defineOptions({ name: 'PlatformAdminOrganizationUnits' });
-interface ParentOption {
-  value: string;
-  label: string;
-  disabled: boolean;
-  children: ParentOption[];
-}
 const platformStore = usePlatformStore();
 const loading = ref(false);
 const saving = ref(false);
-const units = ref<OrganizationUnit[]>([]);
+const units = ref<OrganizationUnitTreeNode[]>([]);
+const keyword = ref('');
+const truncated = ref(false);
+const parentSearching = ref(false);
+const parentOptions = ref<OrganizationUnit[]>([]);
 const editorVisible = ref(false);
 const formRef = ref<FormInstance>();
 const form = reactive<OrganizationUnitForm>(emptyForm());
@@ -31,20 +29,8 @@ const canUpdateUnit = computed(() =>
     strategy: 'all'
   })
 );
-const tree = computed(() => buildOrganizationTree(units.value));
-const forbiddenParentIDs = computed(() =>
-  form.id ? descendantOrganizationIDs(units.value, form.id) : new Set<string>()
-);
-const parentOptions = computed<ParentOption[]>(() => {
-  const map = (nodes: ReturnType<typeof buildOrganizationTree>): ParentOption[] =>
-    nodes.map(node => ({
-      value: String(node.id),
-      label: `${node.name || node.code} (${node.code})`,
-      disabled: forbiddenParentIDs.value.has(String(node.id)),
-      children: map(node.children)
-    }));
-  return map(tree.value);
-});
+const treeGuard = createLatestRequestGuard();
+const parentGuard = createLatestRequestGuard();
 const rules: FormRules<OrganizationUnitForm> = {
   code: [{ required: true, message: '请输入组织编码', trigger: 'blur' }],
   name: [{ required: true, message: '请输入组织名称', trigger: 'blur' }]
@@ -63,18 +49,84 @@ async function loadData() {
     return;
   }
   loading.value = true;
+  const request = treeGuard.begin();
   try {
-    units.value = await listOrganizationUnits(tenantID.value);
+    const searchKeyword = keyword.value.trim();
+    const result = await treeOrganizationUnits({
+      tenantID: tenantID.value,
+      mode: searchKeyword ? 'search_with_ancestors' : 'lazy_children',
+      keyword: searchKeyword,
+      maxDepth: searchKeyword ? 32 : 1,
+      maxNodes: searchKeyword ? 500 : 100
+    });
+    if (treeGuard.isCurrent(request)) {
+      units.value = result.nodes || [];
+      truncated.value = result.truncated;
+    }
   } finally {
-    loading.value = false;
+    if (treeGuard.isCurrent(request)) loading.value = false;
   }
+}
+async function loadChildren(
+  row: OrganizationUnitTreeNode,
+  _treeNode: unknown,
+  resolve: (items: OrganizationUnitTreeNode[]) => void
+) {
+  const requestedTenantID = tenantID.value;
+  try {
+    const result = await treeOrganizationUnits({
+      tenantID: requestedTenantID,
+      mode: 'lazy_children',
+      parentID: row.id,
+      maxDepth: 1,
+      maxNodes: 100
+    });
+    if (tenantID.value !== requestedTenantID) {
+      resolve([]);
+      return;
+    }
+    if (result.truncated) window.$message?.warning('该节点下级超过 100 个，请使用搜索定位');
+    resolve(result.nodes || []);
+  } catch {
+    resolve([]);
+  }
+}
+function search() {
+  loadData();
+}
+async function searchParents(value = '') {
+  if (!tenantID.value) return;
+  const request = parentGuard.begin();
+  parentSearching.value = true;
+  try {
+    const result = await treeOrganizationUnits({
+      tenantID: tenantID.value,
+      mode: 'search_with_ancestors',
+      keyword: value.trim(),
+      status: 'active',
+      maxDepth: 32,
+      maxNodes: 100
+    });
+    if (!parentGuard.isCurrent(request)) return;
+    const selected = parentOptions.value.find(item => item.id === form.parent_id);
+    const options = flattenTree(result.nodes || []).filter(item => item.id !== form.id);
+    parentOptions.value = selected
+      ? Array.from(new Map([selected, ...options].map(item => [String(item.id), item])).values())
+      : options;
+  } finally {
+    if (parentGuard.isCurrent(request)) parentSearching.value = false;
+  }
+}
+function flattenTree(nodes: OrganizationUnitTreeNode[]): OrganizationUnit[] {
+  return nodes.flatMap(node => [node, ...flattenTree(node.children || [])]);
 }
 function openCreate(parentID = '') {
   if (!canCreateUnit.value) return;
   resetForm(emptyForm(parentID));
   editorVisible.value = true;
+  searchParents();
 }
-function openEdit(unit: OrganizationUnit) {
+async function openEdit(unit: OrganizationUnit) {
   if (!canUpdateUnit.value) return;
   resetForm({
     id: String(unit.id),
@@ -85,6 +137,14 @@ function openEdit(unit: OrganizationUnit) {
     version: Number(unit.version)
   });
   editorVisible.value = true;
+  parentOptions.value = [];
+  if (unit.parent_id) {
+    try {
+      parentOptions.value = [await getOrganizationUnit(unit.parent_id)];
+    } catch {
+      parentOptions.value = [];
+    }
+  }
 }
 async function save() {
   if ((form.id && !canUpdateUnit.value) || (!form.id && !canCreateUnit.value)) return;
@@ -103,7 +163,14 @@ async function save() {
 function statusType(status: unknown) {
   return status === 'active' ? 'success' : 'danger';
 }
-watch(tenantID, loadData);
+watch(tenantID, () => {
+  treeGuard.invalidate();
+  parentGuard.invalidate();
+  units.value = [];
+  parentOptions.value = [];
+  keyword.value = '';
+  loadData();
+});
 onMounted(loadData);
 </script>
 
@@ -116,6 +183,15 @@ onMounted(loadData);
           <p class="mb-0 mt-6px text-13px text-#999">维护当前租户的部门树；移动节点时禁止选择自身及其后代。</p>
         </div>
         <div class="flex-y-center gap-8px">
+          <ElInput
+            v-model="keyword"
+            class="w-240px"
+            clearable
+            placeholder="搜索组织编码或名称"
+            @keyup.enter="search"
+            @clear="search"
+          />
+          <ElButton @click="search">查询</ElButton>
           <ElButton :loading="loading" @click="loadData">刷新</ElButton>
           <ElButton v-if="canCreateUnit" type="primary" :disabled="!tenantID" @click="openCreate()">
             新增根节点
@@ -124,14 +200,23 @@ onMounted(loadData);
       </div>
     </template>
     <ElAlert v-if="!tenantID" title="请先在应用选择页选择租户" type="warning" show-icon :closable="false" />
+    <ElAlert
+      v-else-if="truncated"
+      class="mb-12px"
+      title="结果已达到节点上限，请缩小搜索范围"
+      type="warning"
+      show-icon
+      :closable="false"
+    />
     <ElTable
       v-else
       v-loading="loading"
-      :data="tree"
+      :data="units"
       row-key="id"
-      default-expand-all
+      lazy
       border
-      :tree-props="{ children: 'children' }"
+      :load="loadChildren"
+      :tree-props="{ children: 'children', hasChildren: 'has_children' }"
     >
       <ElTableColumn prop="name" label="组织名称" min-width="220" />
       <ElTableColumn prop="code" label="组织编码" min-width="160" />
@@ -154,14 +239,23 @@ onMounted(loadData);
   <ElDrawer v-model="editorVisible" :title="form.id ? '编辑组织单元' : '创建组织单元'" size="540px">
     <ElForm ref="formRef" :model="form" :rules="rules" label-position="top">
       <ElFormItem label="上级组织">
-        <ElTreeSelect
+        <ElSelect
           v-model="form.parent_id"
-          :data="parentOptions"
-          check-strictly
+          filterable
+          remote
+          reserve-keyword
           clearable
-          default-expand-all
+          :remote-method="searchParents"
+          :loading="parentSearching"
           placeholder="不选择表示根节点"
-        />
+        >
+          <ElOption
+            v-for="item in parentOptions"
+            :key="String(item.id)"
+            :label="`${item.name || item.code} (${item.path || item.code})`"
+            :value="String(item.id)"
+          />
+        </ElSelect>
       </ElFormItem>
       <ElFormItem label="组织编码" prop="code"><ElInput v-model="form.code" :disabled="Boolean(form.id)" /></ElFormItem>
       <ElFormItem label="组织名称" prop="name"><ElInput v-model="form.name" /></ElFormItem>

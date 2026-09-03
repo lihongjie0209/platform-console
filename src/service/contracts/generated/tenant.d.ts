@@ -911,6 +911,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organization-units/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read a bounded organization tree */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Lazy children or search with ancestors */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.TreeOrganizationUnitsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.OrganizationUnitTreeResponseBody"];
+                        };
+                    };
+                };
+                /** @description Code 10001: invalid tree limits */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organization-units/update": {
         parameters: {
             query?: never;
@@ -1811,6 +1863,26 @@ export interface components {
             updated_by?: string;
             version?: number;
         };
+        "httptransport.OrganizationUnitTreeNodeBody": {
+            children?: components["schemas"]["httptransport.OrganizationUnitTreeNodeBody"][];
+            code?: string;
+            created_at?: string;
+            created_by?: string;
+            has_children?: boolean;
+            id?: string;
+            name?: string;
+            parent_id?: string;
+            path?: string;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
+        "httptransport.OrganizationUnitTreeResponseBody": {
+            nodes?: components["schemas"]["httptransport.OrganizationUnitTreeNodeBody"][];
+            truncated?: boolean;
+        };
         "httptransport.OrganizationUnitsResponseBody": {
             organization_units?: components["schemas"]["httptransport.OrganizationUnitBody"][];
         };
@@ -1893,6 +1965,17 @@ export interface components {
             page_size?: number;
             tenants?: components["schemas"]["httptransport.TenantBody"][];
             total?: number;
+        };
+        "httptransport.TreeOrganizationUnitsRequest": {
+            keyword?: string;
+            max_depth?: number;
+            max_nodes?: number;
+            /** @enum {string} */
+            mode: "lazy_children" | "search_with_ancestors";
+            parent_id?: string;
+            /** @enum {string} */
+            status?: "active" | "disabled";
+            tenant_id: string;
         };
         "httptransport.UpdateGroupRequest": {
             group_id: string;
