@@ -208,11 +208,14 @@ async function searchSubjects(keyword = '') {
       return;
     }
     if (form.subject_type === 'group') {
-      const result = await listGroups(tenantID.value, remoteSearchPage(50).page, remoteSearchPage(50).pageSize);
-      const normalized = keyword.trim().toLocaleLowerCase();
-      groups.value = normalized
-        ? result.items.filter(item => `${item.name} ${item.code}`.toLocaleLowerCase().includes(normalized))
-        : result.items;
+      const searchPage = remoteSearchPage(50);
+      const result = await listGroups({
+        tenantID: tenantID.value,
+        ...searchPage,
+        keyword,
+        status: 'active'
+      });
+      groups.value = result.items;
       return;
     }
     const userResult = await listUsers({ ...remoteSearchPage(20), keyword, status: 'active' });

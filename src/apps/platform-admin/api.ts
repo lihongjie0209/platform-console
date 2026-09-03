@@ -196,6 +196,14 @@ export interface GroupForm extends Record<string, unknown> {
   version: number;
 }
 
+export interface GroupQuery {
+  tenantID: string;
+  page: number;
+  pageSize: number;
+  keyword?: string;
+  status?: string;
+}
+
 export interface OrganizationUnitForm {
   id: string;
   parent_id: string;
@@ -1096,20 +1104,25 @@ export function revokeMyBinding(request: {
   );
 }
 
-export async function listGroups(tenantID: string, page: number, pageSize: number): Promise<ResourcePage<Group>> {
-  const data = await unwrap<{ groups: Group[] }>(
-    tenantRequest<{ groups: Group[] }>({
-      url: '/api/v1/groups/list',
+export async function listGroups(query: GroupQuery): Promise<ResourcePage<Group>> {
+  const data = await unwrap<{ groups: Group[]; total: number; page: number; page_size: number }>(
+    tenantRequest({
+      url: '/api/v1/groups/search',
       method: 'post',
-      data: { tenant_id: tenantID }
+      data: {
+        tenant_id: query.tenantID,
+        keyword: query.keyword || '',
+        status: query.status || '',
+        page: query.page,
+        page_size: query.pageSize
+      }
     })
   );
-  const start = (page - 1) * pageSize;
   return {
-    items: data.groups.slice(start, start + pageSize),
-    total: data.groups.length,
-    page,
-    page_size: pageSize
+    items: data.groups,
+    total: data.total,
+    page: data.page,
+    page_size: data.page_size
   };
 }
 

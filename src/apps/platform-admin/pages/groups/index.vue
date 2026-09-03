@@ -61,7 +61,7 @@ const config: BizCrudConfig<Group, Query, GroupForm, string> = {
 };
 const adapter: BizCrudAdapter<Group, Query, GroupForm, string> = {
   async list(query) {
-    const result = await listGroups(tenantID.value, query.current, query.size);
+    const result = await listGroups({ tenantID: tenantID.value, page: query.current, pageSize: query.size });
     return { items: result.items, total: result.total, page: result.page, pageSize: result.page_size };
   },
   create: form => createGroup(tenantID.value, form),

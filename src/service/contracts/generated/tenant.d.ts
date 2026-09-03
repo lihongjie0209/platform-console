@@ -219,6 +219,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/groups/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Search tenant member groups with pagination */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Tenant, filters and pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.SearchGroupsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.GroupPageBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/groups/update": {
         parameters: {
             query?: never;
@@ -1560,6 +1603,12 @@ export interface components {
         "httptransport.GroupMembersResponseBody": {
             group_members?: components["schemas"]["httptransport.GroupMemberBody"][];
         };
+        "httptransport.GroupPageBody": {
+            groups?: components["schemas"]["httptransport.GroupBody"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
         "httptransport.GroupsResponseBody": {
             groups?: components["schemas"]["httptransport.GroupBody"][];
         };
@@ -1696,6 +1745,13 @@ export interface components {
         "httptransport.RevokeInvitationRequest": {
             invitation_id: string;
             version: number;
+        };
+        "httptransport.SearchGroupsRequest": {
+            keyword?: string;
+            page?: number;
+            page_size?: number;
+            status?: string;
+            tenant_id: string;
         };
         "httptransport.SelectTenantRequest": {
             tenant_id: string;

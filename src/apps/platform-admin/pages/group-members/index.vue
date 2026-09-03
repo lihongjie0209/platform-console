@@ -45,7 +45,7 @@ async function loadCatalogs() {
   loading.value = true;
   try {
     const groupItems = await collectAllPages((catalogPage, catalogPageSize) =>
-      listGroups(tenantID.value, catalogPage, catalogPageSize)
+      listGroups({ tenantID: tenantID.value, page: catalogPage, pageSize: catalogPageSize })
     );
     groups.value = groupItems.filter(item => item.status === 'active');
     if (!groups.value.some(item => item.id === groupID.value)) groupID.value = groups.value[0]?.id || '';
