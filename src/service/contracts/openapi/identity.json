@@ -1227,6 +1227,54 @@
                 }
             }
         },
+        "/api/v1/service-accounts/batch-get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "service-accounts"
+                ],
+                "summary": "Get a bounded set of service accounts by ID",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.BatchGetServiceAccountsRequest"
+                            }
+                        }
+                    },
+                    "description": "Service account IDs (maximum 100)",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.ServiceAccountBatchResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/service-accounts/create": {
             "post": {
                 "security": [
@@ -1764,6 +1812,20 @@
                 ],
                 "properties": {
                     "user_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "httptransport.BatchGetServiceAccountsRequest": {
+                "type": "object",
+                "required": [
+                    "service_account_ids"
+                ],
+                "properties": {
+                    "service_account_ids": {
                         "type": "array",
                         "items": {
                             "type": "string"
@@ -2375,6 +2437,17 @@
                     },
                     "version": {
                         "type": "integer"
+                    }
+                }
+            },
+            "httptransport.ServiceAccountBatchResponseBody": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.ServiceAccountResponseBody"
+                        }
                     }
                 }
             },

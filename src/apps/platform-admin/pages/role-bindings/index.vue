@@ -21,6 +21,7 @@ import type {
 import {
   batchGetMemberships,
   batchGetMyRoles,
+  batchGetServiceAccounts,
   batchGetUsers,
   createMyBinding,
   listGroups,
@@ -186,22 +187,34 @@ async function hydrateVisibleSubjects(bindings: Binding[]) {
     bindings.filter(item => item.subject_type === 'membership').map(item => String(item.subject_id))
   );
   const roleIDs = boundedDistinctIDs(bindings.map(item => String(item.role_id)));
-  const [userResult, membershipResult, roleResult] = await Promise.all([
+  const serviceAccountIDs = boundedDistinctIDs(
+    bindings.filter(item => item.subject_type === 'service_account').map(item => String(item.subject_id))
+  );
+  const [userResult, membershipResult, roleResult, serviceAccountResult] = await Promise.all([
     userIDs.length ? batchGetUsers(userIDs) : Promise.resolve({ items: [] }),
     membershipIDs.length
       ? batchGetMemberships(currentTenantID, membershipIDs)
       : Promise.resolve({ memberships: [] as Membership[] }),
     roleIDs.length
       ? batchGetMyRoles(currentTenantID, bindingScope.value, roleIDs)
-      : Promise.resolve({ items: [] as Role[] })
+      : Promise.resolve({ items: [] as Role[] }),
+    serviceAccountIDs.length
+      ? batchGetServiceAccounts(serviceAccountIDs)
+      : Promise.resolve({ items: [] as ServiceAccount[] })
   ]);
   roles.value = mergeRoleDirectory(roles.value, roleResult.items);
+  serviceAccounts.value = mergeServiceAccountDirectory(serviceAccounts.value, serviceAccountResult.items);
   memberships.value = membershipResult.memberships;
   const membershipUserIDs = boundedDistinctIDs(membershipResult.memberships.map(item => String(item.user_id)));
   const membershipUsers = membershipUserIDs.length ? await batchGetUsers(membershipUserIDs) : { items: [] };
   users.value = mergeUserDirectory(users.value, [...userResult.items, ...membershipUsers.items]);
 }
 function mergeRoleDirectory(current: Role[], incoming: Role[]) {
+  const values = new Map(current.map(item => [String(item.id), item]));
+  for (const item of incoming) values.set(String(item.id), item);
+  return [...values.values()];
+}
+function mergeServiceAccountDirectory(current: ServiceAccount[], incoming: ServiceAccount[]) {
   const values = new Map(current.map(item => [String(item.id), item]));
   for (const item of incoming) values.set(String(item.id), item);
   return [...values.values()];
@@ -233,7 +246,7 @@ async function searchSubjects(keyword = '') {
     }
     if (form.subject_type === 'service_account') {
       const result = await listServiceAccounts({ ...remoteSearchPage(20), keyword, status: 'active' });
-      serviceAccounts.value = result.items;
+      serviceAccounts.value = mergeServiceAccountDirectory(serviceAccounts.value, result.items);
       return;
     }
     if (form.subject_type === 'group') {

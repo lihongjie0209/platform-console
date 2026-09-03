@@ -554,6 +554,16 @@ export function listServiceAccounts(query: ServiceAccountQuery) {
   );
 }
 
+export function batchGetServiceAccounts(serviceAccountIDs: string[]) {
+  return unwrap<{ items: ServiceAccount[] }>(
+    identityRequest({
+      url: '/api/v1/service-accounts/batch-get',
+      method: 'post',
+      data: { service_account_ids: serviceAccountIDs }
+    })
+  );
+}
+
 export function createServiceAccount(form: ServiceAccountForm) {
   return unwrap<CreateServiceAccountResult>(
     identityRequest({

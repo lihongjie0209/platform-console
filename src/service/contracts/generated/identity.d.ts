@@ -1145,6 +1145,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/service-accounts/batch-get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a bounded set of service accounts by ID */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Service account IDs (maximum 100) */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.BatchGetServiceAccountsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ServiceAccountBatchResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/service-accounts/create": {
         parameters: {
             query?: never;
@@ -1575,6 +1618,9 @@ export interface components {
         "httptransport.BatchGetIdentitiesRequest": {
             user_ids: string[];
         };
+        "httptransport.BatchGetServiceAccountsRequest": {
+            service_account_ids: string[];
+        };
         "httptransport.ChangePasswordRequest": {
             current_password: string;
             new_password: string;
@@ -1762,6 +1808,9 @@ export interface components {
         "httptransport.RotateServiceAccountSecretResponseBody": {
             client_secret?: string;
             version?: number;
+        };
+        "httptransport.ServiceAccountBatchResponseBody": {
+            items?: components["schemas"]["httptransport.ServiceAccountResponseBody"][];
         };
         "httptransport.ServiceAccountPageResponseBody": {
             items?: components["schemas"]["httptransport.ServiceAccountResponseBody"][];
