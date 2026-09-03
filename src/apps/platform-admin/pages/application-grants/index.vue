@@ -2,15 +2,15 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
-import { collectAllPages } from '@/platform/pagination';
+import { remoteSearchPage } from '@/platform/remote-search';
 import { confirmUserAction } from '@/platform/user-action';
 import type { Application, ApplicationGrant, ApplicationGrantForm, TenantDirectoryItem } from '../../api';
 import {
+  batchGetTenantApplicationGrants,
   grantApplication,
-  listApplications,
-  listTenantApplicationGrants,
   listTenantDirectory,
-  revokeApplicationGrant
+  revokeApplicationGrant,
+  searchApplications
 } from '../../api';
 import { parseJSONRecord } from '../../metadata';
 
@@ -22,11 +22,15 @@ interface GrantRow extends Application {
 
 const loading = ref(false);
 const submitting = ref(false);
+const tenantSearching = ref(false);
 const tenants = ref<TenantDirectoryItem[]>([]);
 const applications = ref<Application[]>([]);
 const grants = ref<ApplicationGrant[]>([]);
 const tenantID = ref('');
 const keyword = ref('');
+const page = ref(1);
+const pageSize = ref(20);
+const total = ref(0);
 const dialogVisible = ref(false);
 const editingApplication = ref<GrantRow>();
 const formRef = ref<FormInstance>();
@@ -37,16 +41,10 @@ const canRevoke = computed(() => platformStore.hasPermission({ scope: 'platform'
 
 const rows = computed<GrantRow[]>(() => {
   const grantByApplication = new Map(grants.value.map(item => [String(item.application_id), item]));
-  const normalizedKeyword = keyword.value.trim().toLowerCase();
-  return applications.value
-    .map(application => ({ ...application, grant: grantByApplication.get(String(application.id)) }))
-    .filter(item => {
-      if (!normalizedKeyword) return true;
-      return (
-        String(item.name).toLowerCase().includes(normalizedKeyword) ||
-        String(item.code).toLowerCase().includes(normalizedKeyword)
-      );
-    });
+  return applications.value.map(application => ({
+    ...application,
+    grant: grantByApplication.get(String(application.id))
+  }));
 });
 
 const rules: FormRules<ApplicationGrantForm> = {
@@ -71,29 +69,59 @@ function emptyForm(): ApplicationGrantForm {
 }
 
 async function loadCatalogs() {
-  const [tenantItems, applicationItems] = await Promise.all([
-    collectAllPages((page, pageSize) => listTenantDirectory({ page, pageSize })),
-    collectAllPages((page, pageSize) => listApplications(page, pageSize))
-  ]);
-  tenants.value = tenantItems;
-  applications.value = applicationItems;
+  const result = await listTenantDirectory({ ...remoteSearchPage(20) });
+  tenants.value = result.items;
   if (!tenants.value.some(item => item.id === tenantID.value)) tenantID.value = tenants.value[0]?.id || '';
+  await loadApplications();
 }
 
-async function loadGrants() {
+async function loadApplications() {
   if (!tenantID.value) {
     grants.value = [];
+    applications.value = [];
+    total.value = 0;
     return;
   }
   loading.value = true;
   try {
-    grants.value = await collectAllPages(async (page, pageSize) => {
-      const result = await listTenantApplicationGrants(tenantID.value, page, pageSize);
-      return result.grants;
+    const result = await searchApplications({
+      page: page.value,
+      pageSize: pageSize.value,
+      keyword: keyword.value.trim()
     });
+    applications.value = result.items;
+    total.value = result.total;
+    const applicationIDs = result.items.map(item => String(item.id));
+    grants.value = applicationIDs.length
+      ? (await batchGetTenantApplicationGrants(tenantID.value, applicationIDs)).items
+      : [];
   } finally {
     loading.value = false;
   }
+}
+async function searchTenants(value = '') {
+  tenantSearching.value = true;
+  try {
+    const result = await listTenantDirectory({ ...remoteSearchPage(20), keyword: value });
+    const values = new Map(tenants.value.map(item => [item.id, item]));
+    for (const item of result.items) values.set(item.id, item);
+    tenants.value = [...values.values()];
+  } finally {
+    tenantSearching.value = false;
+  }
+}
+async function searchApplicationsPage() {
+  page.value = 1;
+  await loadApplications();
+}
+async function changePage(value: number) {
+  page.value = value;
+  await loadApplications();
+}
+async function changePageSize(value: number) {
+  page.value = 1;
+  pageSize.value = value;
+  await loadApplications();
 }
 
 function openGrant(row: GrantRow) {
@@ -129,7 +157,7 @@ async function submitGrant() {
     });
     dialogVisible.value = false;
     window.$message?.success(editingApplication.value.grant ? '授权已更新' : '应用已授权');
-    await loadGrants();
+    await loadApplications();
   } finally {
     submitting.value = false;
   }
@@ -145,7 +173,7 @@ async function revoke(row: GrantRow) {
   if (!confirmed) return;
   await revokeApplicationGrant(tenantID.value, String(row.id), Number(row.grant.version));
   window.$message?.success('应用授权已撤销');
-  await loadGrants();
+  await loadApplications();
 }
 
 function grantStatusType(status?: unknown) {
@@ -154,7 +182,10 @@ function grantStatusType(status?: unknown) {
   return 'info';
 }
 
-watch(tenantID, loadGrants);
+watch(tenantID, async () => {
+  page.value = 1;
+  await loadApplications();
+});
 onMounted(loadCatalogs);
 </script>
 
@@ -167,7 +198,16 @@ onMounted(loadCatalogs);
           <p class="mb-0 mt-6px text-13px text-#999">为租户分配应用，更新和撤销均使用当前授权版本。</p>
         </div>
         <div class="flex-y-center gap-8px">
-          <ElSelect v-model="tenantID" class="w-260px" filterable placeholder="选择租户">
+          <ElSelect
+            v-model="tenantID"
+            class="w-260px"
+            filterable
+            remote
+            :remote-method="searchTenants"
+            :loading="tenantSearching"
+            reserve-keyword
+            placeholder="选择租户"
+          >
             <ElOption
               v-for="tenant in tenants"
               :key="tenant.id"
@@ -175,8 +215,16 @@ onMounted(loadCatalogs);
               :value="tenant.id"
             />
           </ElSelect>
-          <ElInput v-model="keyword" class="w-220px" clearable placeholder="搜索应用" />
-          <ElButton :loading="loading" @click="loadGrants">刷新</ElButton>
+          <ElInput
+            v-model="keyword"
+            class="w-220px"
+            clearable
+            placeholder="搜索应用"
+            @keyup.enter="searchApplicationsPage"
+            @clear="searchApplicationsPage"
+          />
+          <ElButton @click="searchApplicationsPage">搜索</ElButton>
+          <ElButton :loading="loading" @click="loadApplications">刷新</ElButton>
         </div>
       </div>
     </template>
@@ -214,6 +262,18 @@ onMounted(loadCatalogs);
         </template>
       </ElTableColumn>
     </ElTable>
+    <div v-if="tenants.length" class="mt-16px flex justify-end">
+      <ElPagination
+        background
+        layout="total, sizes, prev, pager, next"
+        :total="total"
+        :current-page="page"
+        :page-size="pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        @update:current-page="changePage"
+        @update:page-size="changePageSize"
+      />
+    </div>
   </ElCard>
 
   <ElDialog v-model="dialogVisible" :title="`应用授权：${editingApplication?.name || ''}`" width="600px">

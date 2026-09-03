@@ -345,11 +345,20 @@ async function unwrap<T>(request: PromiseLike<{ data: T | null; error: unknown }
 }
 
 export function listApplications(page: number, pageSize: number, status = '') {
+  return searchApplications({ page, pageSize, status });
+}
+
+export function searchApplications(query: { page: number; pageSize: number; keyword?: string; status?: string }) {
   return unwrap(
     applicationRequest<ResourcePage<Application>>({
       url: '/api/v1/applications/list',
       method: 'post',
-      data: { page, page_size: pageSize, status }
+      data: {
+        page: query.page,
+        page_size: query.pageSize,
+        keyword: query.keyword || '',
+        status: query.status || ''
+      }
     })
   );
 }
@@ -675,6 +684,16 @@ export function listTenantApplicationGrants(tenantID: string, page = 1, pageSize
         page,
         page_size: pageSize
       }
+    })
+  );
+}
+
+export function batchGetTenantApplicationGrants(tenantID: string, applicationIDs: string[]) {
+  return unwrap<{ items: ApplicationGrant[] }>(
+    applicationRequest({
+      url: '/api/v1/applications/tenant-grants/manage/batch-get',
+      method: 'post',
+      data: { tenant_id: tenantID, application_ids: applicationIDs }
     })
   );
 }

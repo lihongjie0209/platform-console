@@ -517,6 +517,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/applications/tenant-grants/manage/batch-get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get grant state for a bounded application set */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Tenant and application IDs (maximum 100) */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.BatchTenantGrantsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.BatchTenantGrantsResponse"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/applications/tenant-grants/manage/list": {
         parameters: {
             query?: never;
@@ -885,6 +928,13 @@ export interface components {
         "httptransport.BatchNavigationResponse": {
             items?: components["schemas"]["httptransport.NavigationResponse"][];
         };
+        "httptransport.BatchTenantGrantsRequest": {
+            application_ids: string[];
+            tenant_id: string;
+        };
+        "httptransport.BatchTenantGrantsResponse": {
+            items?: components["schemas"]["httptransport.GrantBody"][];
+        };
         "httptransport.CreateApplicationRequest": {
             code: string;
             default_route?: string;
@@ -937,6 +987,7 @@ export interface components {
             id: string;
         };
         "httptransport.ListApplicationsRequest": {
+            keyword?: string;
             page?: number;
             page_size?: number;
             status?: string;

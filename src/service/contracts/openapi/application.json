@@ -571,6 +571,54 @@
                 }
             }
         },
+        "/api/v1/applications/tenant-grants/manage/batch-get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "tenant-applications"
+                ],
+                "summary": "Get grant state for a bounded application set",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.BatchTenantGrantsRequest"
+                            }
+                        }
+                    },
+                    "description": "Tenant and application IDs (maximum 100)",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.BatchTenantGrantsResponse"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/applications/tenant-grants/manage/list": {
             "post": {
                 "security": [
@@ -1097,6 +1145,35 @@
                     }
                 }
             },
+            "httptransport.BatchTenantGrantsRequest": {
+                "type": "object",
+                "required": [
+                    "application_ids",
+                    "tenant_id"
+                ],
+                "properties": {
+                    "application_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.BatchTenantGrantsResponse": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.GrantBody"
+                        }
+                    }
+                }
+            },
             "httptransport.CreateApplicationRequest": {
                 "type": "object",
                 "required": [
@@ -1264,6 +1341,9 @@
             "httptransport.ListApplicationsRequest": {
                 "type": "object",
                 "properties": {
+                    "keyword": {
+                        "type": "string"
+                    },
                     "page": {
                         "type": "integer"
                     },
