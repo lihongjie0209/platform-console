@@ -235,6 +235,7 @@ async function openDetail(job: ExportJob) {
 }
 async function action(job: ExportJob, type: 'cancel' | 'retry' | 'download') {
   if (
+    !canRead.value ||
     (type === 'cancel' && !canCancel.value) ||
     (type === 'retry' && !canRetry.value) ||
     (type === 'download' && !canDownload.value)
@@ -243,10 +244,11 @@ async function action(job: ExportJob, type: 'cancel' | 'retry' | 'download') {
   const key = `${job.id}:${type}`;
   await runTaskAction(key, async () => {
     try {
-      if (type === 'cancel') await cancelExport(job);
-      if (type === 'retry') await retryExport(job);
+      const current = await getExport(job);
+      if (type === 'cancel') await cancelExport(current);
+      if (type === 'retry') await retryExport(current);
       if (type === 'download') {
-        const value = await downloadExport(job);
+        const value = await downloadExport(current);
         window.open(value.url, '_blank', 'noopener');
         return;
       }
@@ -316,7 +318,7 @@ onMounted(load);
           <template #default="{ row }">
             <ElButton v-if="canRead" link @click="openDetail(row)">详情</ElButton>
             <ElButton
-              v-if="canDownload && row.status === 'succeeded'"
+              v-if="canRead && canDownload && row.status === 'succeeded'"
               link
               :loading="actionLoading === `${row.id}:download`"
               :disabled="Boolean(actionLoading)"
@@ -325,7 +327,7 @@ onMounted(load);
               下载
             </ElButton>
             <ElButton
-              v-if="canCancel && ['queued', 'running'].includes(row.status)"
+              v-if="canRead && canCancel && ['queued', 'running'].includes(row.status)"
               link
               type="danger"
               :loading="actionLoading === `${row.id}:cancel`"
@@ -335,7 +337,7 @@ onMounted(load);
               取消
             </ElButton>
             <ElButton
-              v-if="canRetry && ['failed', 'canceled'].includes(row.status)"
+              v-if="canRead && canRetry && ['failed', 'canceled'].includes(row.status)"
               link
               :loading="actionLoading === `${row.id}:retry`"
               :disabled="Boolean(actionLoading)"

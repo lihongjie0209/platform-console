@@ -234,6 +234,7 @@ async function openDetail(job: ImportJob) {
 }
 async function action(job: ImportJob, type: 'confirm' | 'cancel' | 'retry' | 'report') {
   if (
+    !canRead.value ||
     (type === 'confirm' && !canConfirm.value) ||
     (type === 'cancel' && !canCancel.value) ||
     (type === 'retry' && !canRetry.value) ||
@@ -243,19 +244,20 @@ async function action(job: ImportJob, type: 'confirm' | 'cancel' | 'retry' | 're
   const key = `${job.id}:${type}`;
   await runTaskAction(key, async () => {
     try {
-      if (type === 'confirm') await confirmImport(job);
-      if (type === 'cancel') await cancelImport(job);
+      const current = await getImport(job);
+      if (type === 'confirm') await confirmImport(current);
+      if (type === 'cancel') await cancelImport(current);
       if (type === 'retry') {
         if (!source.value) {
           window.$message?.warning('请先选择修正后的文件');
           return;
         }
-        const auth = await retryImport(job);
+        const auth = await retryImport(current);
         await putImportFile(auth, source.value);
         await completeImportUpload(auth.job, source.value.size, await sha256Hex(source.value));
       }
       if (type === 'report') {
-        const value = await errorReport(job);
+        const value = await errorReport(current);
         window.open(value.url, '_blank', 'noopener');
         return;
       }
@@ -394,7 +396,7 @@ onMounted(() => {
           <template #default="{ row }">
             <ElButton v-if="canRead" link @click="openDetail(row)">详情</ElButton>
             <ElButton
-              v-if="canConfirm && row.status === 'ready'"
+              v-if="canRead && canConfirm && row.status === 'ready'"
               link
               :loading="actionLoading === `${row.id}:confirm`"
               :disabled="Boolean(actionLoading)"
@@ -403,7 +405,7 @@ onMounted(() => {
               确认导入
             </ElButton>
             <ElButton
-              v-if="canCancel && ['uploading', 'queued', 'validating', 'ready'].includes(row.status)"
+              v-if="canRead && canCancel && ['uploading', 'queued', 'validating', 'ready'].includes(row.status)"
               link
               type="danger"
               :loading="actionLoading === `${row.id}:cancel`"
@@ -413,7 +415,7 @@ onMounted(() => {
               取消
             </ElButton>
             <ElButton
-              v-if="canRetry && ['failed', 'validation_failed', 'canceled'].includes(row.status)"
+              v-if="canRead && canRetry && ['failed', 'validation_failed', 'canceled'].includes(row.status)"
               link
               :loading="actionLoading === `${row.id}:retry`"
               :disabled="Boolean(actionLoading)"
@@ -422,7 +424,7 @@ onMounted(() => {
               重试
             </ElButton>
             <ElButton
-              v-if="canDownloadReport && row.invalid_rows > 0"
+              v-if="canRead && canDownloadReport && row.invalid_rows > 0"
               link
               :loading="actionLoading === `${row.id}:report`"
               :disabled="Boolean(actionLoading)"
