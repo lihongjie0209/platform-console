@@ -45,6 +45,9 @@ export function listMeters(input: { status: string; keyword: string; page: numbe
     })
   );
 }
+export function getMeter(id: string) {
+  return unwrap<Meter>(request({ url: '/api/v1/meters/get', method: 'post', data: { id } }));
+}
 export function saveMeter(
   current: Meter | undefined,
   input: {

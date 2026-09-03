@@ -3,10 +3,11 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard } from '@/platform/application-context';
 import type { Meter } from '../../api';
-import { listMeters, saveMeter } from '../../api';
+import { getMeter, listMeters, saveMeter } from '../../api';
 defineOptions({ name: 'MeteringCenterMeters' });
 const platformStore = usePlatformStore();
 const canCreate = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'metering.meter.create' }));
+const canRead = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'metering.meter.read' }));
 const canUpdate = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'metering.meter.update' }));
 const rows = ref<Meter[]>([]);
 const total = ref(0);
@@ -49,13 +50,14 @@ function search() {
   page.value = 1;
   loadData();
 }
-function open(row?: Meter) {
-  if ((row && !canUpdate.value) || (!row && !canCreate.value)) return;
-  editing.value = row;
+async function open(row?: Meter) {
+  if ((row && (!canUpdate.value || !canRead.value)) || (!row && !canCreate.value)) return;
+  const current = row ? await getMeter(row.id) : undefined;
+  editing.value = current;
   Object.assign(
     form,
-    row
-      ? { ...row, dimensionKeys: row.dimension_keys.join(',') }
+    current
+      ? { ...current, dimensionKeys: current.dimension_keys.join(',') }
       : {
           code: '',
           name: '',
@@ -112,7 +114,7 @@ onMounted(loadData);
       <ElTableColumn prop="status" label="状态" />
       <ElTableColumn label="操作">
         <template #default="{ row }">
-          <ElButton v-if="canUpdate" link type="primary" @click="open(row)">编辑</ElButton>
+          <ElButton v-if="canUpdate && canRead" link type="primary" @click="open(row)">编辑</ElButton>
           <span v-else>-</span>
         </template>
       </ElTableColumn>
