@@ -2,9 +2,7 @@ export function canRefundPayment(status: string) {
   return status.trim().toLowerCase() === 'succeeded';
 }
 
-export function ensureIdempotencyKey(current: string, generate: () => string = () => crypto.randomUUID()) {
-  return current || generate();
-}
+export { ensureIdempotencyKey } from '@/platform/idempotency-key';
 
 export function validatePaymentInput(input: { invoiceID: string; provider: string; paymentMethodReference: string }) {
   if (!input.invoiceID.trim()) return '请输入账单 ID';

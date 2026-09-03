@@ -5,6 +5,7 @@ import { createLatestRequestGuard, hasApplicationScope } from '@/platform/applic
 import { formatPlatformDateTime } from '@/platform/date-time';
 import { formatPlatformBytes } from '@/platform/display';
 import { sha256Hex } from '@/platform/file';
+import { ensureIdempotencyKey, operationIdempotencyKey } from '@/platform/idempotency-key';
 import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
 import { hasPersistedStateChanged } from '@/platform/optimistic-mutation';
 import { remoteSearchPage } from '@/platform/remote-search';
@@ -59,6 +60,8 @@ const source = ref<File>();
 const uploading = ref(false);
 const catalogLoading = ref(false);
 const fileInputKey = ref(0);
+const createIdempotencyKey = ref('');
+const actionIdempotencyKeys = new Map<string, string>();
 let loadVersion = 0;
 const uploadGuard = createLatestRequestGuard();
 const descriptorGuard = createLatestRequestGuard();
@@ -150,6 +153,7 @@ function changePageSize() {
 }
 function chooseFile(e: Event) {
   source.value = (e.target as HTMLInputElement).files?.[0];
+  createIdempotencyKey.value = source.value ? crypto.randomUUID() : '';
 }
 async function create() {
   if (!canCreate.value || !scopeReady.value || !source.value) return;
@@ -159,6 +163,7 @@ async function create() {
   const application = applicationID.value;
   const dataset = selectedImportDataset(datasets.value, selectedDataset.value);
   if (!dataset || !dataset.formats.includes(format.value)) return;
+  createIdempotencyKey.value = ensureIdempotencyKey(createIdempotencyKey.value);
   uploading.value = true;
   try {
     const auth = await createImport({
@@ -166,13 +171,15 @@ async function create() {
       applicationID: application,
       dataset,
       format: format.value,
-      filename: selectedFile.name
+      filename: selectedFile.name,
+      idempotencyKey: createIdempotencyKey.value
     });
     await putImportFile(auth, selectedFile);
     const checksum = await sha256Hex(selectedFile);
     await completeImportUpload(auth.job, selectedFile.size, checksum);
     if (!uploadGuard.isCurrent(request)) return;
     window.$message?.success('文件已上传，正在校验');
+    createIdempotencyKey.value = '';
     await load();
   } catch (error) {
     if (uploadGuard.isCurrent(request)) {
@@ -251,14 +258,14 @@ async function action(job: ImportJob, type: 'confirm' | 'cancel' | 'retry' | 're
         await load();
         return;
       }
-      if (type === 'confirm') await confirmImport(current);
+      if (type === 'confirm') await confirmImport(current, operationIdempotencyKey(actionIdempotencyKeys, key));
       if (type === 'cancel') await cancelImport(current);
       if (type === 'retry') {
         if (!source.value) {
           window.$message?.warning('请先选择修正后的文件');
           return;
         }
-        const auth = await retryImport(current);
+        const auth = await retryImport(current, operationIdempotencyKey(actionIdempotencyKeys, key));
         await putImportFile(auth, source.value);
         await completeImportUpload(auth.job, source.value.size, await sha256Hex(source.value));
       }
@@ -267,6 +274,7 @@ async function action(job: ImportJob, type: 'confirm' | 'cancel' | 'retry' | 're
         window.open(value.url, '_blank', 'noopener');
         return;
       }
+      actionIdempotencyKeys.delete(key);
       await load();
     } catch (error) {
       window.$message?.error(error instanceof Error ? error.message : '导入任务操作失败');
@@ -281,6 +289,8 @@ watch([tenantID, applicationID], () => {
   detailVisible.value = false;
   detail.value = undefined;
   resetTaskAction();
+  createIdempotencyKey.value = '';
+  actionIdempotencyKeys.clear();
   loadVersion += 1;
   rows.value = [];
   listLoading.value = false;

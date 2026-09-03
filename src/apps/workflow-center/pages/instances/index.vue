@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformDateTime, formatPlatformTableDateTime } from '@/platform/date-time';
+import { ensureIdempotencyKey } from '@/platform/idempotency-key';
 import { promptUserInput } from '@/platform/user-action';
 import type { WorkflowInstance, WorkflowTaskHistory } from '../../api';
 import { cancelInstance, getInstance, listInstanceTaskHistory, listInstances, startInstance } from '../../api';
@@ -29,7 +30,7 @@ const history = ref<WorkflowTaskHistory[]>([]);
 const historyPage = ref(1);
 const historyPageSize = ref(20);
 const historyTotal = ref(0);
-const form = reactive({ definitionKey: '', businessKey: '', title: '', variables: '{}' });
+const form = reactive({ definitionKey: '', businessKey: '', title: '', variables: '{}', idempotencyKey: '' });
 const loadGuard = createLatestRequestGuard();
 const canStart = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.instance.start' }));
 const canCancel = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.instance.cancel' }));
@@ -67,7 +68,13 @@ function search() {
 }
 function openStart() {
   if (!canStart.value) return;
-  Object.assign(form, { definitionKey: '', businessKey: '', title: '', variables: '{}' });
+  Object.assign(form, {
+    definitionKey: '',
+    businessKey: '',
+    title: '',
+    variables: '{}',
+    idempotencyKey: crypto.randomUUID()
+  });
   visible.value = true;
 }
 async function start() {
@@ -85,7 +92,8 @@ async function start() {
     definitionKey: form.definitionKey,
     businessKey: form.businessKey,
     title: form.title,
-    variables
+    variables,
+    idempotencyKey: ensureIdempotencyKey(form.idempotencyKey)
   });
   visible.value = false;
   await loadData();

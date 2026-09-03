@@ -124,6 +124,7 @@ export const createExport = (input: {
   filename: string;
   query: Record<string, unknown>;
   columns: string[];
+  idempotencyKey: string;
 }) =>
   unwrap<{ job: ExportJob; duplicate: boolean }>(
     request({
@@ -137,7 +138,7 @@ export const createExport = (input: {
         filename: input.filename,
         query: input.query,
         selected_columns: input.columns,
-        idempotency_key: crypto.randomUUID()
+        idempotency_key: input.idempotencyKey
       }
     })
   );
@@ -149,7 +150,7 @@ export const cancelExport = (job: ExportJob) =>
       data: { ...applicationScope(job.tenant_id, job.application_id), id: job.id, version: job.version }
     })
   );
-export const retryExport = (job: ExportJob) =>
+export const retryExport = (job: ExportJob, idempotencyKey: string) =>
   unwrap<{ job: ExportJob; duplicate: boolean }>(
     request({
       url: '/api/v1/exports/retry',
@@ -158,7 +159,7 @@ export const retryExport = (job: ExportJob) =>
         ...applicationScope(job.tenant_id, job.application_id),
         id: job.id,
         version: job.version,
-        idempotency_key: crypto.randomUUID()
+        idempotency_key: idempotencyKey
       }
     })
   );

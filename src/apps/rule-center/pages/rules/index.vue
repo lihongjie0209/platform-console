@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { parseJSONObject } from '@/platform/json';
+import { ensureIdempotencyKey } from '@/platform/idempotency-key';
 import type { RuleSet, RuleVersion } from '../../api';
 import {
   createRuleVersion,
@@ -36,6 +37,7 @@ const versionTotal = ref(0);
 const versionPage = ref(1);
 const versionPageSize = ref(20);
 const definition = ref('{\n  "rules": []\n}');
+const versionIdempotencyKey = ref('');
 const facts = ref('{}');
 const evaluation = ref('');
 const form = reactive({ code: '', name: '', description: '', status: 'draft' });
@@ -122,9 +124,14 @@ async function createVersion() {
     window.$message?.error(check.issues.join('; ') || '规则无效');
     return;
   }
-  await createRuleVersion(selected.value, value);
+  versionIdempotencyKey.value = ensureIdempotencyKey(versionIdempotencyKey.value);
+  await createRuleVersion(selected.value, value, versionIdempotencyKey.value);
+  versionIdempotencyKey.value = '';
   await versionsFor(selected.value);
 }
+watch(definition, () => {
+  versionIdempotencyKey.value = '';
+});
 async function publish(v: RuleVersion) {
   if (!canPublish.value || !canRead.value || !canReadVersion.value || !selected.value) return;
   const current = await getRuleSet(selected.value);

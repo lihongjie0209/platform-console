@@ -6,6 +6,7 @@ import { createLatestRequestGuard, hasApplicationScope } from '@/platform/applic
 import { formatPlatformDateTime, formatPlatformTableDateTime } from '@/platform/date-time';
 import { BizCopyText } from '@/components/business';
 import { formatFileSize, sha256Hex } from '@/platform/file';
+import { ensureIdempotencyKey } from '@/platform/idempotency-key';
 import { confirmUserAction } from '@/platform/user-action';
 import type { FileMetadata } from '../../api';
 import {
@@ -45,6 +46,7 @@ const detailVisible = ref(false);
 const uploadVisible = ref(false);
 const uploadFiles = ref<UploadUserFile[]>([]);
 const selectedFile = ref<File>();
+const uploadIdempotencyKey = ref('');
 const filter = reactive({ keyword: '', status: '', scanStatus: '', contentType: '', ownerID: '' });
 const loadGuard = createLatestRequestGuard();
 const uploadGuard = createLatestRequestGuard();
@@ -103,6 +105,8 @@ function openUpload() {
   if (!canUpload.value) return;
   uploadFiles.value = [];
   selectedFile.value = undefined;
+  uploadIdempotencyKey.value = '';
+  uploadIdempotencyKey.value = '';
   uploadVisible.value = true;
 }
 
@@ -110,6 +114,7 @@ function selectUploadFile(file: UploadFile) {
   const source = file.raw;
   if (!source) return;
   selectedFile.value = source;
+  uploadIdempotencyKey.value = crypto.randomUUID();
 }
 
 async function uploadDirect(source: File, checksum: string, context: UploadContext) {
@@ -120,7 +125,7 @@ async function uploadDirect(source: File, checksum: string, context: UploadConte
     contentType: source.type || 'application/octet-stream',
     size: source.size,
     checksumSHA256: checksum,
-    idempotencyKey: crypto.randomUUID()
+    idempotencyKey: ensureIdempotencyKey(uploadIdempotencyKey.value)
   });
   await putAuthorizedFile(authorization, source);
   await completeUpload(authorization.file, checksum);
@@ -135,7 +140,7 @@ async function uploadMultipart(source: File, checksum: string, context: UploadCo
     contentType: source.type || 'application/octet-stream',
     size: source.size,
     checksumSHA256: checksum,
-    idempotencyKey: crypto.randomUUID(),
+    idempotencyKey: ensureIdempotencyKey(uploadIdempotencyKey.value),
     partSize: multipartPartSize
   });
   const ranges = multipartRanges(source.size, session.part_size);

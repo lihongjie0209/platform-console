@@ -197,6 +197,7 @@ export function startInstance(input: {
   businessKey: string;
   title: string;
   variables: Record<string, unknown>;
+  idempotencyKey: string;
 }) {
   return unwrap<WorkflowInstance>(
     request({
@@ -208,7 +209,7 @@ export function startInstance(input: {
         business_key: input.businessKey,
         title: input.title,
         variables_json: input.variables,
-        idempotency_key: crypto.randomUUID()
+        idempotency_key: input.idempotencyKey
       }
     })
   );

@@ -127,7 +127,7 @@ export const validateRule = (tenantID: string, applicationID: string, definition
       data: { ...applicationScope(tenantID, applicationID), definition }
     })
   );
-export const createRuleVersion = (value: RuleSet, definition: Record<string, unknown>) =>
+export const createRuleVersion = (value: RuleSet, definition: Record<string, unknown>, idempotencyKey: string) =>
   unwrap<{ rule_version: RuleVersion; duplicate: boolean }>(
     request({
       url: '/api/v1/rule-versions/create',
@@ -136,7 +136,7 @@ export const createRuleVersion = (value: RuleSet, definition: Record<string, unk
         ...applicationScope(value.tenant_id, value.application_id),
         rule_set_id: value.id,
         definition,
-        idempotency_key: crypto.randomUUID()
+        idempotency_key: idempotencyKey
       }
     })
   );

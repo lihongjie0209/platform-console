@@ -4,6 +4,7 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformDateTime } from '@/platform/date-time';
 import { formatPlatformBytes } from '@/platform/display';
+import { ensureIdempotencyKey, operationIdempotencyKey } from '@/platform/idempotency-key';
 import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
 import { hasPersistedStateChanged } from '@/platform/optimistic-mutation';
 import { remoteSearchPage } from '@/platform/remote-search';
@@ -56,8 +57,10 @@ const form = reactive({
   format: '',
   filename: '',
   query: {} as Record<string, ExportQueryValue>,
-  columns: [] as string[]
+  columns: [] as string[],
+  idempotencyKey: ''
 });
+const actionIdempotencyKeys = new Map<string, string>();
 const loadGuard = createLatestRequestGuard();
 const catalogGuard = createLatestRequestGuard();
 const descriptorGuard = createLatestRequestGuard();
@@ -138,6 +141,7 @@ async function openCreate() {
   form.format = '';
   form.columns = [];
   form.query = {};
+  form.idempotencyKey = crypto.randomUUID();
   descriptor.value = undefined;
   await searchDatasets('');
 }
@@ -208,7 +212,8 @@ async function create() {
       format: form.format,
       filename: form.filename,
       query: buildExportQuery(descriptor.value, form.query),
-      columns: form.columns
+      columns: form.columns,
+      idempotencyKey: ensureIdempotencyKey(form.idempotencyKey)
     });
     visible.value = false;
     await load();
@@ -252,12 +257,13 @@ async function action(job: ExportJob, type: 'cancel' | 'retry' | 'download') {
         return;
       }
       if (type === 'cancel') await cancelExport(current);
-      if (type === 'retry') await retryExport(current);
+      if (type === 'retry') await retryExport(current, operationIdempotencyKey(actionIdempotencyKeys, key));
       if (type === 'download') {
         const value = await downloadExport(current);
         window.open(value.url, '_blank', 'noopener');
         return;
       }
+      actionIdempotencyKeys.delete(key);
       await load();
     } catch (error) {
       window.$message?.error(error instanceof Error ? error.message : '导出任务操作失败');
@@ -278,6 +284,7 @@ watch([tenantID, applicationID], () => {
   detailVisible.value = false;
   detail.value = undefined;
   resetTaskAction();
+  actionIdempotencyKeys.clear();
   load();
 });
 onMounted(load);

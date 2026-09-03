@@ -127,6 +127,7 @@ export const createImport = (input: {
   dataset: ImportDataset;
   format: string;
   filename: string;
+  idempotencyKey: string;
 }) =>
   unwrap<UploadResult>(
     request({
@@ -138,7 +139,7 @@ export const createImport = (input: {
         provider_service: input.dataset.provider_service,
         format: input.format,
         filename: input.filename,
-        idempotency_key: crypto.randomUUID()
+        idempotency_key: input.idempotencyKey
       }
     })
   );
@@ -162,7 +163,7 @@ export const completeImportUpload = (job: ImportJob, size: number, checksum: str
       }
     })
   );
-export const confirmImport = (job: ImportJob) =>
+export const confirmImport = (job: ImportJob, idempotencyKey: string) =>
   unwrap<{ job: ImportJob; duplicate: boolean }>(
     request({
       url: '/api/v1/imports/confirm',
@@ -171,7 +172,7 @@ export const confirmImport = (job: ImportJob) =>
         ...applicationScope(job.tenant_id, job.application_id),
         id: job.id,
         version: job.version,
-        idempotency_key: crypto.randomUUID()
+        idempotency_key: idempotencyKey
       }
     })
   );
@@ -183,7 +184,7 @@ export const cancelImport = (job: ImportJob) =>
       data: { ...applicationScope(job.tenant_id, job.application_id), id: job.id, version: job.version }
     })
   );
-export const retryImport = (job: ImportJob) =>
+export const retryImport = (job: ImportJob, idempotencyKey: string) =>
   unwrap<UploadResult>(
     request({
       url: '/api/v1/imports/retry',
@@ -192,7 +193,7 @@ export const retryImport = (job: ImportJob) =>
         ...applicationScope(job.tenant_id, job.application_id),
         id: job.id,
         version: job.version,
-        idempotency_key: crypto.randomUUID()
+        idempotency_key: idempotencyKey
       }
     })
   );
