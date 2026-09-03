@@ -26,17 +26,35 @@ async function unwrap<T>(value: PromiseLike<{ data: T | null; error: unknown }>)
   if (data === null) throw new Error('service registry returned an empty response');
   return data;
 }
-export function listServices(prefix: string) {
-  return unwrap<{ services: ServiceSummary[]; revision: number }>(
-    request({ url: '/api/v1/registry/services/list', method: 'post', data: { prefix } })
+export function listServices(prefix: string, page: number, pageSize: number) {
+  return unwrap<{ services: ServiceSummary[]; revision: number; total: number; page: number; page_size: number }>(
+    request({ url: '/api/v1/registry/services/list', method: 'post', data: { prefix, page, page_size: pageSize } })
   );
 }
-export function listInstances(serviceName: string, metadata: Record<string, string>, includeDraining: boolean) {
-  return unwrap<{ instances: ServiceInstance[]; revision: number }>(
+export function listInstances(query: {
+  serviceName: string;
+  metadata: Record<string, string>;
+  includeDraining: boolean;
+  page: number;
+  pageSize: number;
+}) {
+  return unwrap<{
+    instances: ServiceInstance[];
+    revision: number;
+    total: number;
+    page: number;
+    page_size: number;
+  }>(
     request({
       url: '/api/v1/registry/instances/list',
       method: 'post',
-      data: { service_name: serviceName, metadata, include_draining: includeDraining }
+      data: {
+        service_name: query.serviceName,
+        metadata: query.metadata,
+        include_draining: query.includeDraining,
+        page: query.page,
+        page_size: query.pageSize
+      }
     })
   );
 }

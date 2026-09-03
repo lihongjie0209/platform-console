@@ -389,7 +389,16 @@
                             "$ref": "#/components/schemas/httptransport.InstanceBody"
                         }
                     },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
                     "revision": {
+                        "type": "integer"
+                    },
+                    "total": {
                         "type": "integer"
                     }
                 }
@@ -406,6 +415,15 @@
                             "type": "string"
                         }
                     },
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "maximum": 100,
+                        "minimum": 1
+                    },
                     "service_name": {
                         "type": "string"
                     }
@@ -414,6 +432,12 @@
             "httptransport.ListServicesBody": {
                 "type": "object",
                 "properties": {
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
                     "revision": {
                         "type": "integer"
                     },
@@ -422,12 +446,24 @@
                         "items": {
                             "$ref": "#/components/schemas/httptransport.ServiceSummaryBody"
                         }
+                    },
+                    "total": {
+                        "type": "integer"
                     }
                 }
             },
             "httptransport.ListServicesRequest": {
                 "type": "object",
                 "properties": {
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "page_size": {
+                        "type": "integer",
+                        "maximum": 100,
+                        "minimum": 1
+                    },
                     "prefix": {
                         "type": "string"
                     }

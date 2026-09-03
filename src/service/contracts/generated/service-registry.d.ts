@@ -307,20 +307,30 @@ export interface components {
         };
         "httptransport.ListInstancesBody": {
             instances?: components["schemas"]["httptransport.InstanceBody"][];
+            page?: number;
+            page_size?: number;
             revision?: number;
+            total?: number;
         };
         "httptransport.ListInstancesRequest": {
             include_draining?: boolean;
             metadata?: {
                 [key: string]: string;
             };
+            page?: number;
+            page_size?: number;
             service_name?: string;
         };
         "httptransport.ListServicesBody": {
+            page?: number;
+            page_size?: number;
             revision?: number;
             services?: components["schemas"]["httptransport.ServiceSummaryBody"][];
+            total?: number;
         };
         "httptransport.ListServicesRequest": {
+            page?: number;
+            page_size?: number;
             prefix?: string;
         };
         "httptransport.MeResponseBody": {
