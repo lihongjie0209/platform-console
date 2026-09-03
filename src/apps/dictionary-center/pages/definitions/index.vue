@@ -9,6 +9,7 @@ import {
   createDefinition,
   deleteItem,
   getDefinition,
+  getItem,
   listDefinitions,
   listDraftItems,
   publishDefinition,
@@ -76,6 +77,7 @@ const canListItems = computed(() => platformStore.hasPermission({ scope: 'tenant
 const canUpdateItems = computed(() =>
   platformStore.hasPermission({ scope: 'tenant', codes: 'dictionary.item.update' })
 );
+const canReadItem = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'dictionary.item.read' }));
 const canDeleteItems = computed(() =>
   platformStore.hasPermission({ scope: 'tenant', codes: 'dictionary.item.delete' })
 );
@@ -218,19 +220,20 @@ function openNewItem() {
   });
   itemVisible.value = true;
 }
-function editItem(row: DictionaryItem) {
-  if (!canUpdateItems.value) return;
-  editingItem.value = row;
+async function editItem(row: DictionaryItem) {
+  if (!canUpdateItems.value || !canReadItem.value) return;
+  const current = await getItem(row.id);
+  editingItem.value = current;
   Object.assign(itemForm, {
-    code: row.code,
-    name: row.name,
-    parentID: row.parent_id || '',
-    parentCode: row.parent_code || '',
-    status: row.status,
-    metadata: JSON.stringify(row.metadata_json || {}, null, 2),
-    leaf: row.leaf,
-    disabled: row.disabled,
-    sortOrder: row.sort_order
+    code: current.code,
+    name: current.name,
+    parentID: current.parent_id || '',
+    parentCode: current.parent_code || '',
+    status: current.status,
+    metadata: JSON.stringify(current.metadata_json || {}, null, 2),
+    leaf: current.leaf,
+    disabled: current.disabled,
+    sortOrder: current.sort_order
   });
   itemVisible.value = true;
 }
@@ -259,12 +262,13 @@ async function saveItem() {
   await loadItems();
 }
 async function removeItem(row: DictionaryItem) {
-  if (!canDeleteItems.value) return;
+  if (!canDeleteItems.value || !canReadItem.value) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm(`确认删除条目“${row.name}”吗？`, '删除条目', { type: 'warning' })
   );
   if (!confirmed) return;
-  await deleteItem(row);
+  const current = await getItem(row.id);
+  await deleteItem(current);
   if (selected.value) await loadItems();
 }
 async function publish(row: DictionaryDefinition) {
@@ -434,8 +438,8 @@ onMounted(loadData);
       <ElTableColumn prop="sort_order" label="排序" width="80" />
       <ElTableColumn label="操作" width="130">
         <template #default="{ row }">
-          <ElButton v-if="canUpdateItems" link type="primary" @click="editItem(row)">编辑</ElButton>
-          <ElButton v-if="canDeleteItems" link type="danger" @click="removeItem(row)">删除</ElButton>
+          <ElButton v-if="canUpdateItems && canReadItem" link type="primary" @click="editItem(row)">编辑</ElButton>
+          <ElButton v-if="canDeleteItems && canReadItem" link type="danger" @click="removeItem(row)">删除</ElButton>
         </template>
       </ElTableColumn>
     </ElTable>

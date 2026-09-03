@@ -179,6 +179,54 @@
                 }
             }
         },
+        "/api/v1/dictionaries/items/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "dictionary-items"
+                ],
+                "summary": "Get an editable dictionary draft item",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GetItemRequest"
+                            }
+                        }
+                    },
+                    "description": "Item ID",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.ItemView"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/dictionaries/items/list": {
             "post": {
                 "security": [
@@ -1184,6 +1232,17 @@
                         "type": "string"
                     },
                     "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.GetItemRequest": {
+                "type": "object",
+                "required": [
+                    "id"
+                ],
+                "properties": {
+                    "id": {
                         "type": "string"
                     }
                 }

@@ -173,6 +173,9 @@ export function deleteItem(item: DictionaryItem) {
     request({ url: '/api/v1/dictionaries/items/delete', method: 'post', data: { id: item.id, version: item.version } })
   );
 }
+export function getItem(id: string) {
+  return unwrap<DictionaryItem>(request({ url: '/api/v1/dictionaries/items/get', method: 'post', data: { id } }));
+}
 export function publishDefinition(value: DictionaryDefinition, comment: string) {
   return unwrap<{ release_version: number; items: DictionaryItem[] }>(
     request({

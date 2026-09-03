@@ -167,6 +167,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dictionaries/items/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get an editable dictionary draft item */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Item ID */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetItemRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ItemView"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dictionaries/items/list": {
         parameters: {
             query?: never;
@@ -951,6 +994,9 @@ export interface components {
             application_id?: string;
             code: string;
             tenant_id?: string;
+        };
+        "httptransport.GetItemRequest": {
+            id: string;
         };
         "httptransport.ItemListView": {
             items?: components["schemas"]["httptransport.ItemView"][];
