@@ -66,6 +66,10 @@ export function listConfigEntries(scope: ConfigScope, page: number, pageSize: nu
   );
 }
 
+export function getConfigEntry(id: string) {
+  return unwrap<ConfigEntry>(configRequest({ url: '/api/v1/config/entries/get', method: 'post', data: { id } }));
+}
+
 export function putConfigDraft(input: ConfigDraftInput) {
   return unwrap<ConfigEntry>(
     configRequest({

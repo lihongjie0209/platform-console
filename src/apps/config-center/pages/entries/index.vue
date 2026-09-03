@@ -7,6 +7,7 @@ import { promptUserInput } from '@/platform/user-action';
 import type { ConfigDraftInput, ConfigEntry } from '../../api';
 import {
   approveConfig,
+  getConfigEntry,
   listConfigEntries,
   publishConfig,
   putConfigDraft,
@@ -35,6 +36,7 @@ const valueMode = ref<'json' | 'secret'>('json');
 const form = reactive({ id: '', key: '', jsonValue: '{}', secretRef: '', rolloutPercentage: 100, version: 0 });
 const loadGuard = createLatestRequestGuard();
 const canUpdate = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'config.entry.update' }));
+const canRead = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'config.entry.read' }));
 const canSubmit = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'config.entry.submit' }));
 const canApprove = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'config.entry.approve' }));
 const canReject = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'config.entry.reject' }));
@@ -87,17 +89,18 @@ function openCreate() {
   editorVisible.value = true;
 }
 
-function openEdit(entry: ConfigEntry) {
-  if (!canUpdate.value) return;
+async function openEdit(entry: ConfigEntry) {
+  if (!canUpdate.value || !canRead.value) return;
+  const current = await getConfigEntry(entry.id);
   Object.assign(form, {
-    id: entry.id,
-    key: entry.key,
-    jsonValue: JSON.stringify(entry.value ?? {}, null, 2),
-    secretRef: entry.secret_ref || '',
-    rolloutPercentage: entry.rollout_percentage,
-    version: entry.version
+    id: current.id,
+    key: current.key,
+    jsonValue: JSON.stringify(current.value ?? {}, null, 2),
+    secretRef: current.secret_ref || '',
+    rolloutPercentage: current.rollout_percentage,
+    version: current.version
   });
-  valueMode.value = entry.secret_ref ? 'secret' : 'json';
+  valueMode.value = current.secret_ref ? 'secret' : 'json';
   editorVisible.value = true;
 }
 
@@ -144,11 +147,26 @@ async function saveDraft() {
   }
 }
 
-async function runAction(allowed: boolean, action: () => Promise<ConfigEntry>, message: string) {
-  if (!allowed) return;
-  await action();
+async function runEntryAction(
+  entry: ConfigEntry,
+  action: (current: ConfigEntry) => Promise<ConfigEntry>,
+  message: string
+) {
+  if (!canRead.value) return;
+  const current = await getConfigEntry(entry.id);
+  await action(current);
   window.$message?.success(message);
   await loadData();
+}
+
+async function submitEntry(entry: ConfigEntry) {
+  if (!canSubmit.value) return;
+  await runEntryAction(entry, submitConfig, '已提交审批');
+}
+
+async function publishEntry(entry: ConfigEntry) {
+  if (!canPublish.value) return;
+  await runEntryAction(entry, publishConfig, '已发布');
 }
 
 async function review(entry: ConfigEntry, approve: boolean) {
@@ -159,9 +177,9 @@ async function review(entry: ConfigEntry, approve: boolean) {
     })
   );
   if (comment === undefined) return;
-  await runAction(
-    approve ? canApprove.value : canReject.value,
-    () => (approve ? approveConfig(entry, comment) : rejectConfig(entry, comment)),
+  await runEntryAction(
+    entry,
+    current => (approve ? approveConfig(current, comment) : rejectConfig(current, comment)),
     approve ? '审批通过' : '已驳回'
   );
 }
@@ -175,7 +193,7 @@ async function rollback(entry: ConfigEntry) {
     })
   );
   if (!revision) return;
-  await runAction(canRollback.value, () => rollbackConfig(entry, Number(revision)), '配置已回滚');
+  await runEntryAction(entry, current => rollbackConfig(current, Number(revision)), '配置已回滚');
 }
 
 function statusType(status: string) {
@@ -251,27 +269,29 @@ onMounted(loadData);
         <ElTableColumn prop="updated_at" label="更新时间" min-width="180" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn label="操作" width="310" fixed="right">
           <template #default="{ row }">
-            <ElButton v-if="canUpdate" link type="primary" @click="openEdit(row)">编辑</ElButton>
+            <ElButton v-if="canUpdate && canRead" link type="primary" @click="openEdit(row)">编辑</ElButton>
             <ElButton
-              v-if="canSubmit && ['draft', 'rejected'].includes(row.status)"
+              v-if="canSubmit && canRead && ['draft', 'rejected'].includes(row.status)"
               link
-              @click="runAction(canSubmit, () => submitConfig(row), '已提交审批')"
+              @click="submitEntry(row)"
             >
               提交
             </ElButton>
             <template v-if="row.status === 'pending_approval'">
-              <ElButton v-if="canApprove" link type="success" @click="review(row, true)">通过</ElButton>
-              <ElButton v-if="canReject" link type="danger" @click="review(row, false)">驳回</ElButton>
+              <ElButton v-if="canApprove && canRead" link type="success" @click="review(row, true)">通过</ElButton>
+              <ElButton v-if="canReject && canRead" link type="danger" @click="review(row, false)">驳回</ElButton>
             </template>
             <ElButton
-              v-if="canPublish && row.status === 'approved'"
+              v-if="canPublish && canRead && row.status === 'approved'"
               link
               type="success"
-              @click="runAction(canPublish, () => publishConfig(row), '已发布')"
+              @click="publishEntry(row)"
             >
               发布
             </ElButton>
-            <ElButton v-if="canRollback && row.published_revision > 0" link @click="rollback(row)">回滚</ElButton>
+            <ElButton v-if="canRollback && canRead && row.published_revision > 0" link @click="rollback(row)">
+              回滚
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>
