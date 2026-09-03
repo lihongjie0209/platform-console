@@ -572,6 +572,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/authorization/my-role-permissions/batch-get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get role-permission state for a bounded permission set */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Scoped role and permission IDs (maximum 100) */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.BatchGetMyRolePermissionsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RolePermissionsBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/authorization/my-role-permissions/grant": {
         parameters: {
             query?: never;
@@ -1455,6 +1498,13 @@ export interface components {
         };
         "httptransport.BatchCheckAuthorizationRequest": {
             checks: components["schemas"]["httptransport.CheckAuthorizationRequest"][];
+        };
+        "httptransport.BatchGetMyRolePermissionsRequest": {
+            permission_ids: string[];
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
+            role_id: string;
+            tenant_id: string;
         };
         "httptransport.BatchGetMyRolesRequest": {
             /** @enum {string} */

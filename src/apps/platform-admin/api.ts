@@ -1002,6 +1002,23 @@ export function listMyRolePermissions(request: Omit<ScopedRolePermissionRequest,
   );
 }
 
+export function batchGetMyRolePermissions(
+  request: Omit<ScopedRolePermissionRequest, 'permissionID'> & { permissionIDs: string[] }
+) {
+  return unwrap<{ role_permissions: RolePermission[] }>(
+    authorizationRequest({
+      url: '/api/v1/authorization/my-role-permissions/batch-get',
+      method: 'post',
+      data: {
+        tenant_id: request.tenantID,
+        permission_scope: request.permissionScope,
+        role_id: request.roleID,
+        permission_ids: request.permissionIDs
+      }
+    })
+  );
+}
+
 export function grantMyRolePermission(request: ScopedRolePermissionRequest) {
   return unwrap<RolePermission>(
     authorizationRequest({

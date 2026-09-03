@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { collectAllPages } from '@/platform/pagination';
+import { remoteSearchPage } from '@/platform/remote-search';
 import { confirmUserAction } from '@/platform/user-action';
 import {
   type AuthorizationManagementScope,
@@ -9,9 +9,9 @@ import {
 } from '@/platform/authorization-management';
 import type { Permission, Role, RolePermission } from '../../api';
 import {
+  batchGetMyRolePermissions,
   grantMyRolePermission,
-  listMyPermissions,
-  listMyRolePermissions,
+  listMyPermissionCatalog,
   listMyRoles,
   revokeMyRolePermission
 } from '../../api';
@@ -20,11 +20,15 @@ defineOptions({ name: 'PlatformAdminRolePermissions' });
 const platformStore = usePlatformStore();
 const loading = ref(false);
 const changing = ref('');
+const roleSearching = ref(false);
 const roles = ref<Role[]>([]);
 const permissions = ref<Permission[]>([]);
 const assignments = ref<RolePermission[]>([]);
 const roleID = ref('');
 const keyword = ref('');
+const page = ref(1);
+const pageSize = ref(20);
+const total = ref(0);
 const assignmentScope = ref<AuthorizationManagementScope>('tenant');
 const tenantID = computed(() => platformStore.selectedTenantId);
 const canGrantPermission = computed(() =>
@@ -34,12 +38,6 @@ const canRevokePermission = computed(() =>
   platformStore.hasPermission({ scope: assignmentScope.value, codes: 'authorization.role-permission.revoke' })
 );
 const assignmentByPermission = computed(() => new Map(assignments.value.map(item => [item.permission_id, item])));
-const rows = computed(() => {
-  const value = keyword.value.trim().toLowerCase();
-  return permissions.value.filter(
-    item => !value || `${item.code} ${item.name} ${item.resource_type} ${item.action}`.toLowerCase().includes(value)
-  );
-});
 
 async function loadCatalogs() {
   if (!tenantID.value) {
@@ -49,39 +47,88 @@ async function loadCatalogs() {
   }
   loading.value = true;
   try {
-    const [roleItems, permissionItems] = await Promise.all([
-      collectAllPages((page, pageSize) =>
-        listMyRoles({ tenantID: tenantID.value, permissionScope: assignmentScope.value, page, pageSize })
-      ),
-      collectAllPages((page, pageSize) =>
-        listMyPermissions({ tenantID: tenantID.value, permissionScope: assignmentScope.value, page, pageSize })
-      )
-    ]);
-    roles.value = roleItems;
-    permissions.value = permissionItems;
+    const rolePage = await listMyRoles({
+      tenantID: tenantID.value,
+      permissionScope: assignmentScope.value,
+      ...remoteSearchPage(20),
+      status: 'active'
+    });
+    roles.value = rolePage.items;
     if (!roles.value.some(item => item.id === roleID.value)) roleID.value = roles.value[0]?.id || '';
+    await loadPermissions();
+  } finally {
+    loading.value = false;
+  }
+}
+async function searchRoles(value = '') {
+  if (!tenantID.value) return;
+  roleSearching.value = true;
+  try {
+    const result = await listMyRoles({
+      tenantID: tenantID.value,
+      permissionScope: assignmentScope.value,
+      ...remoteSearchPage(20),
+      keyword: value,
+      status: 'active'
+    });
+    const catalog = new Map(roles.value.map(item => [item.id, item]));
+    for (const item of result.items) catalog.set(item.id, item);
+    roles.value = [...catalog.values()];
+  } finally {
+    roleSearching.value = false;
+  }
+}
+async function loadPermissions() {
+  if (!tenantID.value) return;
+  loading.value = true;
+  try {
+    const result = await listMyPermissionCatalog({
+      tenantID: tenantID.value,
+      permissionScope: assignmentScope.value,
+      search: keyword.value.trim(),
+      page: page.value,
+      pageSize: pageSize.value
+    });
+    permissions.value = result.items;
+    total.value = result.total;
+    await loadAssignments();
   } finally {
     loading.value = false;
   }
 }
 
 async function loadAssignments() {
-  if (!roleID.value) {
+  const permissionIDs = permissions.value.map(item => item.id);
+  if (!roleID.value || !permissionIDs.length) {
     assignments.value = [];
     return;
   }
   loading.value = true;
   try {
     assignments.value = (
-      await listMyRolePermissions({
+      await batchGetMyRolePermissions({
         tenantID: tenantID.value,
         permissionScope: assignmentScope.value,
-        roleID: roleID.value
+        roleID: roleID.value,
+        permissionIDs
       })
     ).role_permissions;
   } finally {
     loading.value = false;
   }
+}
+async function searchPermissions() {
+  page.value = 1;
+  await loadPermissions();
+}
+async function changePage(value: number) {
+  page.value = value;
+  await loadPermissions();
+}
+async function changePageSize(value: number) {
+  page.value = 1;
+  pageSize.value = value;
+  await loadPermissions();
 }
 
 async function toggle(permission: Permission, enabled: boolean) {
@@ -119,6 +166,7 @@ async function toggle(permission: Permission, enabled: boolean) {
 
 watch([tenantID, assignmentScope], async () => {
   roleID.value = '';
+  page.value = 1;
   assignments.value = [];
   await loadCatalogs();
   await loadAssignments();
@@ -137,10 +185,27 @@ onMounted(loadCatalogs);
         </div>
         <div class="flex-y-center gap-8px">
           <ElSegmented v-model="assignmentScope" :options="authorizationManagementScopeOptions" />
-          <ElSelect v-model="roleID" class="w-260px" filterable placeholder="选择角色">
+          <ElSelect
+            v-model="roleID"
+            class="w-260px"
+            filterable
+            remote
+            :remote-method="searchRoles"
+            :loading="roleSearching"
+            reserve-keyword
+            placeholder="选择角色"
+          >
             <ElOption v-for="role in roles" :key="role.id" :label="`${role.name} (${role.code})`" :value="role.id" />
           </ElSelect>
-          <ElInput v-model="keyword" class="w-220px" clearable placeholder="搜索权限" />
+          <ElInput
+            v-model="keyword"
+            class="w-220px"
+            clearable
+            placeholder="搜索权限"
+            @keyup.enter="searchPermissions"
+            @clear="searchPermissions"
+          />
+          <ElButton @click="searchPermissions">搜索</ElButton>
           <ElButton :loading="loading" @click="loadAssignments">刷新</ElButton>
         </div>
       </div>
@@ -150,25 +215,39 @@ onMounted(loadCatalogs);
       v-else-if="!roles.length"
       :description="`${assignmentScope === 'platform' ? '平台' : '当前租户'}暂无角色，请先创建角色`"
     />
-    <ElTable v-else v-loading="loading" :data="rows" border stripe>
-      <ElTableColumn prop="code" label="权限编码" min-width="190" />
-      <ElTableColumn prop="name" label="权限名称" min-width="160" />
-      <ElTableColumn prop="resource_type" label="资源类型" min-width="150" />
-      <ElTableColumn prop="action" label="操作" width="120" />
-      <ElTableColumn label="授权状态" width="130" fixed="right">
-        <template #default="{ row }">
-          <ElSwitch
-            v-if="canGrantPermission || canRevokePermission"
-            :model-value="assignmentByPermission.get(row.id)?.status === 'active'"
-            :loading="changing === row.id"
-            :disabled="
-              assignmentByPermission.get(row.id)?.status === 'active' ? !canRevokePermission : !canGrantPermission
-            "
-            @change="value => toggle(row, Boolean(value))"
-          />
-          <span v-else>-</span>
-        </template>
-      </ElTableColumn>
-    </ElTable>
+    <template v-else>
+      <ElTable v-loading="loading" :data="permissions" border stripe>
+        <ElTableColumn prop="code" label="权限编码" min-width="190" />
+        <ElTableColumn prop="name" label="权限名称" min-width="160" />
+        <ElTableColumn prop="resource_type" label="资源类型" min-width="150" />
+        <ElTableColumn prop="action" label="操作" width="120" />
+        <ElTableColumn label="授权状态" width="130" fixed="right">
+          <template #default="{ row }">
+            <ElSwitch
+              v-if="canGrantPermission || canRevokePermission"
+              :model-value="assignmentByPermission.get(row.id)?.status === 'active'"
+              :loading="changing === row.id"
+              :disabled="
+                assignmentByPermission.get(row.id)?.status === 'active' ? !canRevokePermission : !canGrantPermission
+              "
+              @change="value => toggle(row, Boolean(value))"
+            />
+            <span v-else>-</span>
+          </template>
+        </ElTableColumn>
+      </ElTable>
+      <div class="mt-16px flex justify-end">
+        <ElPagination
+          background
+          layout="total, sizes, prev, pager, next"
+          :total="total"
+          :current-page="page"
+          :page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          @update:current-page="changePage"
+          @update:page-size="changePageSize"
+        />
+      </div>
+    </template>
   </ElCard>
 </template>
