@@ -37,6 +37,11 @@ const form = reactive({ code: '', name: '', description: '', status: 'draft', me
 const itemsVisible = ref(false);
 const selected = ref<DictionaryDefinition>();
 const items = ref<DictionaryItem[]>([]);
+const itemsLoading = ref(false);
+const itemsKeyword = ref('');
+const itemsTotal = ref(0);
+const itemsPage = ref(1);
+const itemsPageSize = ref(20);
 const itemVisible = ref(false);
 const editingItem = ref<DictionaryItem>();
 const itemForm = reactive({
@@ -160,11 +165,39 @@ async function save() {
 }
 async function openItems(row: DictionaryDefinition) {
   if (!canListItems.value) return;
-  const request = itemsGuard.begin();
   selected.value = row;
   itemsVisible.value = true;
-  const result = await listDraftItems(row.id);
-  if (itemsGuard.isCurrent(request) && selected.value?.id === row.id) items.value = result.items || [];
+  itemsKeyword.value = '';
+  itemsPage.value = 1;
+  await loadItems();
+}
+async function loadItems() {
+  if (!canListItems.value || !selected.value) return;
+  const request = itemsGuard.begin();
+  const dictionaryID = selected.value.id;
+  itemsLoading.value = true;
+  try {
+    const result = await listDraftItems({
+      dictionaryID,
+      keyword: itemsKeyword.value.trim(),
+      page: itemsPage.value,
+      pageSize: itemsPageSize.value
+    });
+    if (itemsGuard.isCurrent(request) && selected.value?.id === dictionaryID) {
+      items.value = result.items || [];
+      itemsTotal.value = result.total || 0;
+    }
+  } finally {
+    if (itemsGuard.isCurrent(request)) itemsLoading.value = false;
+  }
+}
+function searchItems() {
+  itemsPage.value = 1;
+  loadItems();
+}
+function resizeItems() {
+  itemsPage.value = 1;
+  loadItems();
 }
 function openNewItem() {
   if (!canUpdateItems.value) return;
@@ -220,7 +253,7 @@ async function saveItem() {
     sort_order: itemForm.sortOrder
   });
   itemVisible.value = false;
-  await openItems(selected.value);
+  await loadItems();
 }
 async function removeItem(row: DictionaryItem) {
   if (!canDeleteItems.value) return;
@@ -229,7 +262,7 @@ async function removeItem(row: DictionaryItem) {
   );
   if (!confirmed) return;
   await deleteItem(row);
-  if (selected.value) await openItems(selected.value);
+  if (selected.value) await loadItems();
 }
 async function publish(row: DictionaryDefinition) {
   if (!canPublish.value) return;
@@ -279,6 +312,8 @@ watch([tenantID, applicationID], () => {
   previewVisible.value = false;
   selected.value = undefined;
   items.value = [];
+  itemsTotal.value = 0;
+  itemsPage.value = 1;
   previewItems.value = [];
   previewTotal.value = 0;
   previewPage.value = 1;
@@ -373,10 +408,21 @@ onMounted(loadData);
     </template>
   </ElDialog>
   <ElDrawer v-model="itemsVisible" :title="`${selected?.name || ''} · 草稿条目`" size="900px">
-    <div class="mb-12px text-right">
+    <div class="mb-12px flex justify-between gap-8px">
+      <div class="flex gap-8px">
+        <ElInput
+          v-model="itemsKeyword"
+          class="w-260px"
+          clearable
+          placeholder="搜索条目编码或名称"
+          @keyup.enter="searchItems"
+          @clear="searchItems"
+        />
+        <ElButton @click="searchItems">查询</ElButton>
+      </div>
       <ElButton v-if="canUpdateItems" type="primary" @click="openNewItem">新增条目</ElButton>
     </div>
-    <ElTable :data="items" border>
+    <ElTable v-loading="itemsLoading" :data="items" border>
       <ElTableColumn prop="code" label="编码" />
       <ElTableColumn prop="name" label="名称" />
       <ElTableColumn prop="parent_code" label="父编码" />
@@ -389,6 +435,16 @@ onMounted(loadData);
         </template>
       </ElTableColumn>
     </ElTable>
+    <ElPagination
+      v-model:current-page="itemsPage"
+      v-model:page-size="itemsPageSize"
+      class="mt-16px justify-end"
+      :total="itemsTotal"
+      :page-sizes="[20, 50, 100]"
+      layout="total, sizes, prev, pager, next, jumper"
+      @current-change="loadItems"
+      @size-change="resizeItems"
+    />
   </ElDrawer>
   <ElDialog v-model="itemVisible" :title="editingItem ? '编辑条目' : '新增条目'" width="650px">
     <ElForm label-width="100px">

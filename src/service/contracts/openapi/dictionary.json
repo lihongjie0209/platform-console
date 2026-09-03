@@ -263,7 +263,7 @@
                                             "type": "object",
                                             "properties": {
                                                 "body": {
-                                                    "$ref": "#/components/schemas/httptransport.ItemListView"
+                                                    "$ref": "#/components/schemas/httptransport.ItemPageView"
                                                 }
                                             }
                                         }
@@ -1199,6 +1199,26 @@
                     }
                 }
             },
+            "httptransport.ItemPageView": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.ItemView"
+                        }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "total": {
+                        "type": "integer"
+                    }
+                }
+            },
             "httptransport.ItemView": {
                 "type": "object",
                 "properties": {
@@ -1283,6 +1303,15 @@
                 "properties": {
                     "dictionary_id": {
                         "type": "string"
+                    },
+                    "keyword": {
+                        "type": "string"
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
                     }
                 }
             },

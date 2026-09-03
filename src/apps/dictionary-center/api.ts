@@ -119,9 +119,18 @@ export function updateDefinition(
     })
   );
 }
-export function listDraftItems(dictionaryID: string) {
-  return unwrap<{ items: DictionaryItem[] }>(
-    request({ url: '/api/v1/dictionaries/items/list', method: 'post', data: { dictionary_id: dictionaryID } })
+export function listDraftItems(query: { dictionaryID: string; keyword: string; page: number; pageSize: number }) {
+  return unwrap<Page<DictionaryItem>>(
+    request({
+      url: '/api/v1/dictionaries/items/list',
+      method: 'post',
+      data: {
+        dictionary_id: query.dictionaryID,
+        keyword: query.keyword,
+        page: query.page,
+        page_size: query.pageSize
+      }
+    })
   );
 }
 export function upsertItem(dictionaryID: string, item: Partial<DictionaryItem> & { code: string; name: string }) {

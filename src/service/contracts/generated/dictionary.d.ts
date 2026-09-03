@@ -241,7 +241,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
-                            body?: components["schemas"]["httptransport.ItemListView"];
+                            body?: components["schemas"]["httptransport.ItemPageView"];
                         };
                     };
                 };
@@ -955,6 +955,12 @@ export interface components {
         "httptransport.ItemListView": {
             items?: components["schemas"]["httptransport.ItemView"][];
         };
+        "httptransport.ItemPageView": {
+            items?: components["schemas"]["httptransport.ItemView"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
         "httptransport.ItemView": {
             code?: string;
             created_at?: string;
@@ -983,6 +989,9 @@ export interface components {
         };
         "httptransport.ListDraftItemsRequest": {
             dictionary_id: string;
+            keyword?: string;
+            page?: number;
+            page_size?: number;
         };
         "httptransport.ListProvidersRequest": {
             page?: number;
