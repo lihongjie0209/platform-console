@@ -78,6 +78,15 @@ export function listDefinitions(input: {
     })
   );
 }
+export function getDefinition(value: Pick<DictionaryDefinition, 'tenant_id' | 'application_id' | 'code'>) {
+  return unwrap<DictionaryDefinition>(
+    request({
+      url: '/api/v1/dictionaries/get',
+      method: 'post',
+      data: { ...applicationScope(value.tenant_id, value.application_id), code: value.code }
+    })
+  );
+}
 export function createDefinition(input: {
   tenantID: string;
   applicationID: string;

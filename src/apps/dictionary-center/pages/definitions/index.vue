@@ -8,6 +8,7 @@ import type { DictionaryDefinition, DictionaryItem } from '../../api';
 import {
   createDefinition,
   deleteItem,
+  getDefinition,
   listDefinitions,
   listDraftItems,
   publishDefinition,
@@ -67,6 +68,7 @@ const previewGuard = createLatestRequestGuard();
 const canCreate = computed(() =>
   platformStore.hasPermission({ scope: 'tenant', codes: 'dictionary.definition.create' })
 );
+const canRead = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'dictionary.definition.read' }));
 const canUpdate = computed(() =>
   platformStore.hasPermission({ scope: 'tenant', codes: 'dictionary.definition.update' })
 );
@@ -118,15 +120,16 @@ function openCreate() {
   Object.assign(form, { code: '', name: '', description: '', status: 'draft', metadata: '{}' });
   formVisible.value = true;
 }
-function openEdit(row: DictionaryDefinition) {
-  if (!canUpdate.value) return;
-  editing.value = row;
+async function openEdit(row: DictionaryDefinition) {
+  if (!canUpdate.value || !canRead.value) return;
+  const current = await getDefinition(row);
+  editing.value = current;
   Object.assign(form, {
-    code: row.code,
-    name: row.name,
-    description: row.description || '',
-    status: row.status,
-    metadata: JSON.stringify(row.metadata_json || {}, null, 2)
+    code: current.code,
+    name: current.name,
+    description: current.description || '',
+    status: current.status,
+    metadata: JSON.stringify(current.metadata_json || {}, null, 2)
   });
   formVisible.value = true;
 }
@@ -265,10 +268,11 @@ async function removeItem(row: DictionaryItem) {
   if (selected.value) await loadItems();
 }
 async function publish(row: DictionaryDefinition) {
-  if (!canPublish.value) return;
+  if (!canPublish.value || !canRead.value) return;
   const comment = await promptUserInput(() => ElMessageBox.prompt('请输入发布说明', '发布字典', { inputValue: '' }));
   if (comment === undefined) return;
-  await publishDefinition(row, comment);
+  const current = await getDefinition(row);
+  await publishDefinition(current, comment);
   window.$message?.success('字典版本已发布');
   await loadData();
 }
@@ -355,11 +359,11 @@ onMounted(loadData);
         <ElTableColumn prop="updated_at" label="更新时间" min-width="180" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn label="操作" width="270" fixed="right">
           <template #default="{ row }">
-            <ElButton v-if="canUpdate" link type="primary" @click="openEdit(row)">编辑</ElButton>
+            <ElButton v-if="canUpdate && canRead" link type="primary" @click="openEdit(row)">编辑</ElButton>
             <ElButton v-if="canListItems && row.kind === 'static'" link type="primary" @click="openItems(row)">
               条目
             </ElButton>
-            <ElButton v-if="canPublish && row.kind === 'static'" link type="primary" @click="publish(row)">
+            <ElButton v-if="canPublish && canRead && row.kind === 'static'" link type="primary" @click="publish(row)">
               发布
             </ElButton>
             <ElButton v-if="canQuery" link type="primary" @click="preview(row)">查询验证</ElButton>
