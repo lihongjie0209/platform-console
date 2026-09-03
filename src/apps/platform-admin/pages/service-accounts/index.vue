@@ -7,6 +7,7 @@ import { confirmUserAction } from '@/platform/user-action';
 import type { ServiceAccount, ServiceAccountForm } from '../../api';
 import {
   createServiceAccount,
+  getServiceAccount,
   listServiceAccounts,
   rotateServiceAccountSecret,
   updateServiceAccountStatus
@@ -37,6 +38,9 @@ const rules: FormRules<ServiceAccountForm> = {
 const platformStore = usePlatformStore();
 const canCreateAccount = computed(() =>
   platformStore.hasPermission({ scope: 'platform', codes: 'identity.service-account.create' })
+);
+const canReadAccount = computed(() =>
+  platformStore.hasPermission({ scope: 'platform', codes: 'identity.service-account.read' })
 );
 const canUpdateAccount = computed(() =>
   platformStore.hasPermission({ scope: 'platform', codes: 'identity.service-account.update-status' })
@@ -96,7 +100,7 @@ async function submit() {
 }
 
 async function rotateSecret(row: ServiceAccount) {
-  if (!canRotateSecret.value || rotatingID.value) return;
+  if (!canRotateSecret.value || !canReadAccount.value || rotatingID.value) return;
   const confirmed = await confirmUserAction(() =>
     window.$messageBox!.confirm(`轮换后 ${row.name} 的旧 Client Secret 会立即失效，确认继续？`, '轮换客户端密钥', {
       type: 'warning',
@@ -108,8 +112,9 @@ async function rotateSecret(row: ServiceAccount) {
 
   rotatingID.value = row.id;
   try {
-    const result = await rotateServiceAccountSecret(row.id, row.version);
-    createdClientID.value = row.client_id;
+    const current = await getServiceAccount(row.id);
+    const result = await rotateServiceAccountSecret(current.id, current.version);
+    createdClientID.value = current.client_id;
     createdSecret.value = result.client_secret || '';
     credentialTitle.value = '请立即保存轮换后的客户端密钥';
     credentialVisible.value = true;
@@ -120,9 +125,15 @@ async function rotateSecret(row: ServiceAccount) {
 }
 
 async function changeStatus(row: ServiceAccount) {
-  if (!canUpdateAccount.value) return;
+  if (!canUpdateAccount.value || !canReadAccount.value) return;
   const nextStatus = row.status === 'active' ? 'disabled' : 'active';
-  await updateServiceAccountStatus(row.id, nextStatus, row.version);
+  const current = await getServiceAccount(row.id);
+  if (current.status !== row.status) {
+    window.$message?.warning('服务账号状态已变化，请确认最新状态后重试');
+    await loadData();
+    return;
+  }
+  await updateServiceAccountStatus(current.id, nextStatus, current.version);
   window.$message?.success(nextStatus === 'active' ? '服务账号已启用' : '服务账号已停用');
   await loadData();
 }
@@ -200,7 +211,7 @@ onMounted(loadData);
       <ElTableColumn label="操作" width="190" fixed="right">
         <template #default="{ row }">
           <ElPopconfirm
-            v-if="canUpdateAccount"
+            v-if="canUpdateAccount && canReadAccount"
             :title="row.status === 'active' ? '确认停用该服务账号？' : '确认启用该服务账号？'"
             @confirm="changeStatus(row)"
           >
@@ -211,7 +222,7 @@ onMounted(loadData);
             </template>
           </ElPopconfirm>
           <ElButton
-            v-if="canRotateSecret"
+            v-if="canRotateSecret && canReadAccount"
             class="ml-8px"
             link
             type="warning"

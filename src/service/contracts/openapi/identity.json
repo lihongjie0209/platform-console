@@ -831,6 +831,54 @@
                 }
             }
         },
+        "/api/v1/identities/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "identities"
+                ],
+                "summary": "Get a user identity by ID",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GetIdentityRequest"
+                            }
+                        }
+                    },
+                    "description": "User ID",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.IdentityResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/identities/list": {
             "post": {
                 "security": [
@@ -1312,6 +1360,54 @@
                                             "properties": {
                                                 "body": {
                                                     "$ref": "#/components/schemas/httptransport.CreateServiceAccountResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/service-accounts/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "service-accounts"
+                ],
+                "summary": "Get a service account by ID",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GetServiceAccountRequest"
+                            }
+                        }
+                    },
+                    "description": "Service account ID",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.ServiceAccountResponseBody"
                                                 }
                                             }
                                         }
@@ -1973,6 +2069,28 @@
                     },
                     "revoked_sessions": {
                         "type": "integer"
+                    }
+                }
+            },
+            "httptransport.GetIdentityRequest": {
+                "type": "object",
+                "required": [
+                    "id"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.GetServiceAccountRequest": {
+                "type": "object",
+                "required": [
+                    "id"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string"
                     }
                 }
             },

@@ -14,6 +14,7 @@ import type { UserProfileForm } from '../../user-profile';
 import type { UserForm, UserIdentity } from '../../api';
 import {
   createUser,
+  getUser,
   getUserMFAStatus,
   issueUserPasswordReset,
   listUsers,
@@ -45,6 +46,7 @@ const authStore = useAuthStore();
 const canResetPassword = computed(() =>
   platformStore.hasPermission({ scope: 'platform', codes: 'identity.user.password-reset' })
 );
+const canReadUser = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'identity.user.read' }));
 const canResetMFA = computed(() =>
   platformStore.hasPermission({ scope: 'platform', codes: 'identity.user.mfa-reset' })
 );
@@ -139,7 +141,11 @@ const config: BizCrudConfig<UserIdentity, Query, UserForm, string> = {
   },
   permissions: {
     create: { scope: 'platform', codes: 'identity.user.create' },
-    update: { scope: 'platform', codes: 'identity.user.update-status' }
+    update: {
+      scope: 'platform',
+      codes: ['identity.user.read', 'identity.user.update-status'],
+      strategy: 'all'
+    }
   },
   mapRowToForm: row => ({ ...emptyForm(), ...row })
 };
@@ -153,6 +159,7 @@ const adapter: BizCrudAdapter<UserIdentity, Query, UserForm, string> = {
     });
     return { items: result.items, total: result.total, page: result.page, pageSize: result.page_size };
   },
+  detail: getUser,
   create: createUser,
   update: updateUserStatus
 };
@@ -187,10 +194,11 @@ function closePasswordResetIssue() {
   passwordResetExpiresAt.value = '';
 }
 
-function openProfile(row: UserIdentity) {
-  if (!canUpdateProfile.value || profileSaving.value) return;
-  profileRow.value = row;
-  Object.assign(profileForm, createUserProfileForm(row));
+async function openProfile(row: UserIdentity) {
+  if (!canUpdateProfile.value || !canReadUser.value || profileSaving.value) return;
+  const current = await getUser(row.id);
+  profileRow.value = current;
+  Object.assign(profileForm, createUserProfileForm(current));
   profileVisible.value = true;
   profileFormRef.value?.clearValidate();
 }
@@ -296,7 +304,7 @@ async function resetMFA(row: UserIdentity) {
       />
     </template>
     <template #cell-actions="{ row, edit, canEdit }">
-      <ElButton v-if="canUpdateProfile" link type="primary" @click="openProfile(row)">编辑资料</ElButton>
+      <ElButton v-if="canUpdateProfile && canReadUser" link type="primary" @click="openProfile(row)">编辑资料</ElButton>
       <ElButton v-if="canEdit" link @click="edit(row)">变更状态</ElButton>
       <ElButton v-if="canResetPassword" link :loading="passwordResetUserID === row.id" @click="issuePasswordReset(row)">
         重置密码

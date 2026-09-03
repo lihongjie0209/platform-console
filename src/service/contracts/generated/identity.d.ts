@@ -788,6 +788,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/identities/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a user identity by ID */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description User ID */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetIdentityRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.IdentityResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/identities/list": {
         parameters: {
             query?: never;
@@ -1231,6 +1274,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/service-accounts/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a service account by ID */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Service account ID */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetServiceAccountRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ServiceAccountResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/service-accounts/list": {
         parameters: {
             query?: never;
@@ -1662,6 +1748,12 @@ export interface components {
         "httptransport.DisableMFAResponseBody": {
             disabled?: boolean;
             revoked_sessions?: number;
+        };
+        "httptransport.GetIdentityRequest": {
+            id: string;
+        };
+        "httptransport.GetServiceAccountRequest": {
+            id: string;
         };
         "httptransport.IdentityBatchResponseBody": {
             items?: components["schemas"]["httptransport.IdentityResponseBody"][];

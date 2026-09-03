@@ -465,6 +465,10 @@ export function listUsers(query: UserQuery) {
   );
 }
 
+export function getUser(id: string) {
+  return unwrap<UserIdentity>(identityRequest({ url: '/api/v1/identities/get', method: 'post', data: { id } }));
+}
+
 export function batchGetUsers(userIDs: string[]) {
   return unwrap<{ items: UserIdentity[] }>(
     identityRequest({
@@ -561,6 +565,10 @@ export function listServiceAccounts(query: ServiceAccountQuery) {
       }
     })
   );
+}
+
+export function getServiceAccount(id: string) {
+  return unwrap<ServiceAccount>(identityRequest({ url: '/api/v1/service-accounts/get', method: 'post', data: { id } }));
 }
 
 export function batchGetServiceAccounts(serviceAccountIDs: string[]) {
