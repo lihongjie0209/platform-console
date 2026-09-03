@@ -108,6 +108,10 @@ export function listJobs(query: SchedulerJobQuery) {
   );
 }
 
+export function getJob(id: string) {
+  return unwrap<ScheduledJob>(schedulerRequest({ url: '/api/v1/scheduler/jobs/get', method: 'post', data: { id } }));
+}
+
 export function createJob(scope: SchedulerScope, input: JobInput) {
   return unwrap<ScheduledJob>(
     schedulerRequest({
@@ -151,5 +155,11 @@ export function listExecutions(jobID: string, page: number, pageSize: number) {
       method: 'post',
       data: { job_id: jobID, page, page_size: pageSize }
     })
+  );
+}
+
+export function getExecution(id: string) {
+  return unwrap<JobExecution>(
+    schedulerRequest({ url: '/api/v1/scheduler/executions/get', method: 'post', data: { id } })
   );
 }

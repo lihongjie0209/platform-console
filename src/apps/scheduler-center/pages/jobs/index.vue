@@ -5,7 +5,7 @@ import { createLatestRequestGuard } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
 import { confirmUserAction } from '@/platform/user-action';
 import type { JobExecution, JobInput, ScheduledJob } from '../../api';
-import { createJob, deleteJob, listExecutions, listJobs, triggerJob, updateJob } from '../../api';
+import { createJob, deleteJob, getExecution, getJob, listExecutions, listJobs, triggerJob, updateJob } from '../../api';
 import { normalizeRequestJSON } from '../../request-json';
 
 defineOptions({ name: 'SchedulerCenterJobs' });
@@ -33,11 +33,15 @@ const executionDetailVisible = ref(false);
 const loadGuard = createLatestRequestGuard();
 const executionGuard = createLatestRequestGuard();
 const canCreate = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.job.create' }));
+const canRead = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.job.read' }));
 const canUpdate = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.job.update' }));
 const canDelete = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.job.delete' }));
 const canTrigger = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.job.trigger' }));
 const canListExecutions = computed(() =>
   platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.execution.list' })
+);
+const canReadExecution = computed(() =>
+  platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.execution.read' })
 );
 const form = reactive<JobInput>({
   name: '',
@@ -95,18 +99,19 @@ function openCreate() {
   });
   formVisible.value = true;
 }
-function openEdit(row: ScheduledJob) {
-  if (!canUpdate.value) return;
-  editing.value = row;
+async function openEdit(row: ScheduledJob) {
+  if (!canUpdate.value || !canRead.value) return;
+  const current = await getJob(row.id);
+  editing.value = current;
   Object.assign(form, {
-    name: row.name,
-    cronExpression: row.cron_expression,
-    timezone: row.timezone,
-    upstream: row.upstream,
-    fullMethod: row.full_method,
-    requestJSON: row.request_json,
-    timeoutMilliseconds: row.timeout_milliseconds,
-    enabled: row.status === 'enabled'
+    name: current.name,
+    cronExpression: current.cron_expression,
+    timezone: current.timezone,
+    upstream: current.upstream,
+    fullMethod: current.full_method,
+    requestJSON: current.request_json,
+    timeoutMilliseconds: current.timeout_milliseconds,
+    enabled: current.status === 'enabled'
   });
   formVisible.value = true;
 }
@@ -177,9 +182,16 @@ function showExecutions(row: ScheduledJob) {
   executionsVisible.value = true;
   loadExecutions();
 }
-function showExecution(row: JobExecution) {
-  executionDetail.value = row;
+async function showExecution(row: JobExecution) {
+  if (!canReadExecution.value) return;
   executionDetailVisible.value = true;
+  executionDetail.value = undefined;
+  try {
+    executionDetail.value = await getExecution(row.id);
+  } catch (error) {
+    executionDetailVisible.value = false;
+    throw error;
+  }
 }
 watch([tenantID, applicationID], () => {
   executionGuard.invalidate();
@@ -244,7 +256,7 @@ onMounted(loadData);
       </ElTableColumn>
       <ElTableColumn label="操作" width="250" fixed="right">
         <template #default="{ row }">
-          <ElButton v-if="canUpdate" link type="primary" @click="openEdit(row)">编辑</ElButton>
+          <ElButton v-if="canUpdate && canRead" link type="primary" @click="openEdit(row)">编辑</ElButton>
           <ElButton v-if="canTrigger" link type="primary" @click="trigger(row)">立即执行</ElButton>
           <ElButton v-if="canListExecutions" link type="primary" @click="showExecutions(row)">记录</ElButton>
           <ElButton v-if="canDelete" link type="danger" @click="remove(row)">删除</ElButton>
@@ -306,7 +318,7 @@ onMounted(loadData);
       <ElTableColumn prop="error_code" label="错误码" width="130" />
       <ElTableColumn label="操作" width="80">
         <template #default="{ row }">
-          <ElButton link type="primary" @click="showExecution(row)">详情</ElButton>
+          <ElButton v-if="canReadExecution" link type="primary" @click="showExecution(row)">详情</ElButton>
         </template>
       </ElTableColumn>
     </ElTable>
