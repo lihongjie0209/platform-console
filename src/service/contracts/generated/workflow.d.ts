@@ -986,6 +986,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workflow/instances/task-history/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List task audit history for one workflow instance */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Instance identity and pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListInstanceTaskHistoryRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PageDTO-httptransport_TaskHistoryDTO"];
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workflow/tasks/claim": {
         parameters: {
             query?: never;
@@ -1365,6 +1453,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workflow/tasks/history/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List the audit history for one task */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Task identity and pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListTaskHistoryRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PageDTO-httptransport_TaskHistoryDTO"];
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workflow/tasks/list": {
         parameters: {
             query?: never;
@@ -1656,6 +1832,13 @@ export interface components {
             status?: string;
             tenant_id: string;
         };
+        "httptransport.ListInstanceTaskHistoryRequest": {
+            application_id: string;
+            instance_id: string;
+            page?: number;
+            page_size?: number;
+            tenant_id: string;
+        };
         "httptransport.ListInstancesRequest": {
             application_id: string;
             definition_id?: string;
@@ -1666,6 +1849,13 @@ export interface components {
             started_until?: string;
             starter_id?: string;
             status?: string;
+            tenant_id: string;
+        };
+        "httptransport.ListTaskHistoryRequest": {
+            application_id: string;
+            page?: number;
+            page_size?: number;
+            task_id: string;
             tenant_id: string;
         };
         "httptransport.ListTasksRequest": {
@@ -1694,6 +1884,12 @@ export interface components {
         };
         "httptransport.PageDTO-httptransport_TaskDTO": {
             items?: components["schemas"]["httptransport.TaskDTO"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
+        "httptransport.PageDTO-httptransport_TaskHistoryDTO": {
+            items?: components["schemas"]["httptransport.TaskHistoryDTO"][];
             page?: number;
             page_size?: number;
             total?: number;
@@ -1732,6 +1928,23 @@ export interface components {
             output_json?: Record<string, never>;
             status?: string;
             tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            version?: number;
+        };
+        "httptransport.TaskHistoryDTO": {
+            action?: string;
+            actor_id?: string;
+            application_id?: string;
+            created_at?: string;
+            created_by?: string;
+            detail_json?: Record<string, never>;
+            from_status?: string;
+            id?: string;
+            instance_id?: string;
+            task_id?: string;
+            tenant_id?: string;
+            to_status?: string;
             updated_at?: string;
             updated_by?: string;
             version?: number;

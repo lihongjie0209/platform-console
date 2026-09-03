@@ -2,10 +2,10 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
-import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { formatPlatformDateTime, formatPlatformTableDateTime } from '@/platform/date-time';
 import { promptUserInput } from '@/platform/user-action';
-import type { WorkflowInstance } from '../../api';
-import { cancelInstance, listInstances, startInstance } from '../../api';
+import type { WorkflowInstance, WorkflowTaskHistory } from '../../api';
+import { cancelInstance, getInstance, listInstanceTaskHistory, listInstances, startInstance } from '../../api';
 import { parseJSONObject } from '../../json';
 defineOptions({ name: 'WorkflowCenterInstances' });
 const store = usePlatformStore();
@@ -24,10 +24,16 @@ const definitionID = ref('');
 const visible = ref(false);
 const detail = ref<WorkflowInstance>();
 const detailVisible = ref(false);
+const detailLoading = ref(false);
+const history = ref<WorkflowTaskHistory[]>([]);
+const historyPage = ref(1);
+const historyPageSize = ref(20);
+const historyTotal = ref(0);
 const form = reactive({ definitionKey: '', businessKey: '', title: '', variables: '{}' });
 const loadGuard = createLatestRequestGuard();
 const canStart = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.instance.start' }));
 const canCancel = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.instance.cancel' }));
+const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.instance.read' }));
 async function loadData() {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
@@ -97,15 +103,38 @@ async function cancel(row: WorkflowInstance) {
   await cancelInstance(row, reason);
   await loadData();
 }
-function show(row: WorkflowInstance) {
-  detail.value = row;
+async function loadHistory() {
+  if (!detail.value) return;
+  const result = await listInstanceTaskHistory({
+    tenantID: detail.value.tenant_id,
+    applicationID: detail.value.application_id,
+    instanceID: detail.value.id,
+    page: historyPage.value,
+    pageSize: historyPageSize.value
+  });
+  history.value = result.items || [];
+  historyTotal.value = result.total || 0;
+}
+async function show(row: WorkflowInstance) {
+  if (!canRead.value) return;
   detailVisible.value = true;
+  detailLoading.value = true;
+  history.value = [];
+  historyTotal.value = 0;
+  historyPage.value = 1;
+  try {
+    detail.value = await getInstance(row);
+    await loadHistory();
+  } finally {
+    detailLoading.value = false;
+  }
 }
 watch([tenantID, applicationID], () => {
   rows.value = [];
   total.value = 0;
   visible.value = false;
   detail.value = undefined;
+  history.value = [];
   detailVisible.value = false;
   search();
 });
@@ -140,7 +169,7 @@ onMounted(loadData);
         <ElTableColumn prop="starter_id" label="发起人" min-width="150" />
         <ElTableColumn label="操作" width="130">
           <template #default="{ row }">
-            <ElButton link type="primary" @click="show(row)">详情</ElButton>
+            <ElButton v-if="canRead" link type="primary" @click="show(row)">详情</ElButton>
             <ElButton v-if="canCancel && row.status === 'running'" link type="danger" @click="cancel(row)">
               取消
             </ElButton>
@@ -176,17 +205,50 @@ onMounted(loadData);
       <ElButton v-if="canStart" type="primary" @click="start">启动</ElButton>
     </template>
   </ElDialog>
-  <ElDrawer v-model="detailVisible" title="实例详情" size="700px">
-    <ElDescriptions v-if="detail" :column="1" border>
-      <ElDescriptionsItem label="实例 ID">{{ detail.id }}</ElDescriptionsItem>
-      <ElDescriptionsItem label="状态">{{ detail.status }}</ElDescriptionsItem>
-      <ElDescriptionsItem label="变量">
-        <pre>{{ JSON.stringify(detail.variables_json, null, 2) }}</pre>
-      </ElDescriptionsItem>
-      <ElDescriptionsItem label="结果">
-        <pre>{{ JSON.stringify(detail.result_json, null, 2) }}</pre>
-      </ElDescriptionsItem>
-      <ElDescriptionsItem label="错误">{{ detail.error_code }} {{ detail.error_message }}</ElDescriptionsItem>
-    </ElDescriptions>
+  <ElDrawer v-model="detailVisible" title="实例详情" size="760px">
+    <div v-loading="detailLoading">
+      <ElDescriptions v-if="detail" :column="1" border>
+        <ElDescriptionsItem label="实例 ID">{{ detail.id }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="状态">{{ detail.status }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="变量">
+          <pre>{{ JSON.stringify(detail.variables_json, null, 2) }}</pre>
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="结果">
+          <pre>{{ JSON.stringify(detail.result_json, null, 2) }}</pre>
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="错误">{{ detail.error_code }} {{ detail.error_message }}</ElDescriptionsItem>
+      </ElDescriptions>
+      <h3 class="mb-12px mt-20px">任务处理轨迹</h3>
+      <ElTimeline v-if="history.length">
+        <ElTimelineItem
+          v-for="item in history"
+          :key="item.id"
+          :timestamp="formatPlatformDateTime(item.created_at)"
+          placement="top"
+        >
+          <div class="font-medium">{{ item.action }} · {{ item.from_status }} → {{ item.to_status }}</div>
+          <div class="mt-4px text-13px text-#999">操作者：{{ item.actor_id }}</div>
+          <pre v-if="Object.keys(item.detail_json || {}).length" class="mt-8px">{{
+            JSON.stringify(item.detail_json, null, 2)
+          }}</pre>
+        </ElTimelineItem>
+      </ElTimeline>
+      <ElEmpty v-else description="暂无任务处理记录" :image-size="72" />
+      <div v-if="historyTotal > historyPageSize" class="flex justify-end">
+        <ElPagination
+          small
+          layout="total, prev, pager, next"
+          :total="historyTotal"
+          :current-page="historyPage"
+          :page-size="historyPageSize"
+          @update:current-page="
+            value => {
+              historyPage = value;
+              loadHistory();
+            }
+          "
+        />
+      </div>
+    </div>
   </ElDrawer>
 </template>

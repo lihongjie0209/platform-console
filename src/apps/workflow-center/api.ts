@@ -4,6 +4,7 @@ import { applicationScope } from '@/platform/application-context';
 type DefinitionSchema = WorkflowContract['schemas']['httptransport.DefinitionDTO'];
 type InstanceSchema = WorkflowContract['schemas']['httptransport.InstanceDTO'];
 type TaskSchema = WorkflowContract['schemas']['httptransport.TaskDTO'];
+type TaskHistorySchema = WorkflowContract['schemas']['httptransport.TaskHistoryDTO'];
 export type WorkflowNode = Omit<
   WorkflowContract['schemas']['httptransport.WorkflowNodeDTO'],
   'request_template_json' | 'config_json'
@@ -47,6 +48,19 @@ export interface WorkflowTask extends Omit<TaskSchema, 'input_json' | 'output_js
   status: string;
   input_json: Record<string, unknown>;
   output_json: Record<string, unknown>;
+  version: number;
+}
+export interface WorkflowTaskHistory extends Omit<TaskHistorySchema, 'detail_json'>, Record<string, unknown> {
+  id: string;
+  tenant_id: string;
+  application_id: string;
+  task_id: string;
+  instance_id: string;
+  action: string;
+  actor_id: string;
+  from_status: string;
+  to_status: string;
+  detail_json: Record<string, unknown>;
   version: number;
 }
 interface Page<T> {
@@ -158,6 +172,15 @@ export function listInstances(input: {
     })
   );
 }
+export function getInstance(value: Pick<WorkflowInstance, 'id' | 'tenant_id' | 'application_id'>) {
+  return unwrap<WorkflowInstance>(
+    request({
+      url: '/api/v1/workflow/instances/get',
+      method: 'post',
+      data: { id: value.id, ...applicationScope(value.tenant_id, value.application_id) }
+    })
+  );
+}
 export function startInstance(input: {
   tenantID: string;
   applicationID: string;
@@ -213,6 +236,55 @@ export function listTasks(input: {
         instance_id: input.instanceID,
         status: input.status,
         search: input.search,
+        page: input.page,
+        page_size: input.pageSize
+      }
+    })
+  );
+}
+export function getTask(value: Pick<WorkflowTask, 'id' | 'tenant_id' | 'application_id'>) {
+  return unwrap<WorkflowTask>(
+    request({
+      url: '/api/v1/workflow/tasks/get',
+      method: 'post',
+      data: { id: value.id, ...applicationScope(value.tenant_id, value.application_id) }
+    })
+  );
+}
+export function listTaskHistory(input: {
+  tenantID: string;
+  applicationID: string;
+  taskID: string;
+  page: number;
+  pageSize: number;
+}) {
+  return unwrap<Page<WorkflowTaskHistory>>(
+    request({
+      url: '/api/v1/workflow/tasks/history/list',
+      method: 'post',
+      data: {
+        ...applicationScope(input.tenantID, input.applicationID),
+        task_id: input.taskID,
+        page: input.page,
+        page_size: input.pageSize
+      }
+    })
+  );
+}
+export function listInstanceTaskHistory(input: {
+  tenantID: string;
+  applicationID: string;
+  instanceID: string;
+  page: number;
+  pageSize: number;
+}) {
+  return unwrap<Page<WorkflowTaskHistory>>(
+    request({
+      url: '/api/v1/workflow/instances/task-history/list',
+      method: 'post',
+      data: {
+        ...applicationScope(input.tenantID, input.applicationID),
+        instance_id: input.instanceID,
         page: input.page,
         page_size: input.pageSize
       }

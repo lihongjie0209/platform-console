@@ -2,9 +2,9 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
-import { formatPlatformTableDateTime } from '@/platform/date-time';
-import type { WorkflowTask } from '../../api';
-import { claimTask, completeTask, delegateTask, listTasks } from '../../api';
+import { formatPlatformDateTime, formatPlatformTableDateTime } from '@/platform/date-time';
+import type { WorkflowTask, WorkflowTaskHistory } from '../../api';
+import { claimTask, completeTask, delegateTask, getTask, listTaskHistory, listTasks } from '../../api';
 import { parseJSONObject } from '../../json';
 defineOptions({ name: 'WorkflowCenterTasks' });
 const store = usePlatformStore();
@@ -23,12 +23,20 @@ const instanceID = ref('');
 const selected = ref<WorkflowTask>();
 const completeVisible = ref(false);
 const delegateVisible = ref(false);
+const detailVisible = ref(false);
+const detailLoading = ref(false);
+const detail = ref<WorkflowTask>();
+const history = ref<WorkflowTaskHistory[]>([]);
+const historyPage = ref(1);
+const historyPageSize = ref(20);
+const historyTotal = ref(0);
 const form = reactive({ decision: 'approved', comment: '', output: '{}' });
 const delegation = reactive({ userID: '', reason: '' });
 const loadGuard = createLatestRequestGuard();
 const canClaim = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.task.claim' }));
 const canComplete = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.task.complete' }));
 const canDelegate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.task.delegate' }));
+const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.task.read' }));
 async function loadData() {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
@@ -65,6 +73,32 @@ async function claim(row: WorkflowTask) {
   await claimTask(row);
   await loadData();
 }
+async function loadHistory() {
+  if (!detail.value) return;
+  const result = await listTaskHistory({
+    tenantID: detail.value.tenant_id,
+    applicationID: detail.value.application_id,
+    taskID: detail.value.id,
+    page: historyPage.value,
+    pageSize: historyPageSize.value
+  });
+  history.value = result.items || [];
+  historyTotal.value = result.total || 0;
+}
+async function showDetail(row: WorkflowTask) {
+  if (!canRead.value) return;
+  detailVisible.value = true;
+  detailLoading.value = true;
+  history.value = [];
+  historyTotal.value = 0;
+  historyPage.value = 1;
+  try {
+    detail.value = await getTask(row);
+    await loadHistory();
+  } finally {
+    detailLoading.value = false;
+  }
+}
 function openComplete(row: WorkflowTask) {
   if (!canComplete.value) return;
   selected.value = row;
@@ -94,6 +128,9 @@ async function delegate() {
   if (!canDelegate.value || !selected.value) return;
   await delegateTask(selected.value, delegation.userID, delegation.reason);
   delegateVisible.value = false;
+  detailVisible.value = false;
+  detail.value = undefined;
+  history.value = [];
   await loadData();
 }
 watch([tenantID, applicationID], () => {
@@ -141,8 +178,9 @@ onMounted(loadData);
         <ElTableColumn prop="claimed_by" label="领取人" min-width="150" />
         <ElTableColumn prop="status" label="状态" width="110" />
         <ElTableColumn prop="due_at" label="截止时间" min-width="180" :formatter="formatPlatformTableDateTime" />
-        <ElTableColumn label="操作" width="190">
+        <ElTableColumn label="操作" width="240">
           <template #default="{ row }">
+            <ElButton v-if="canRead" link type="primary" @click="showDetail(row)">详情</ElButton>
             <ElButton v-if="canClaim && row.status === 'pending'" link type="primary" @click="claim(row)">
               领取
             </ElButton>
@@ -208,4 +246,55 @@ onMounted(loadData);
       <ElButton v-if="canDelegate" type="primary" @click="delegate">转交</ElButton>
     </template>
   </ElDialog>
+  <ElDrawer v-model="detailVisible" title="任务详情" size="760px">
+    <div v-loading="detailLoading">
+      <ElDescriptions v-if="detail" :column="1" border>
+        <ElDescriptionsItem label="任务 ID">{{ detail.id }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="实例 ID">{{ detail.instance_id }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="节点">{{ detail.node_id }} · {{ detail.name }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="状态">{{ detail.status }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="分配">{{ detail.assignee_type }} · {{ detail.assignee }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="领取人">{{ detail.claimed_by || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="决定">{{ detail.decision || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="意见">{{ detail.comment || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="输入">
+          <pre>{{ JSON.stringify(detail.input_json, null, 2) }}</pre>
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="输出">
+          <pre>{{ JSON.stringify(detail.output_json, null, 2) }}</pre>
+        </ElDescriptionsItem>
+      </ElDescriptions>
+      <h3 class="mb-12px mt-20px">处理历史</h3>
+      <ElTimeline v-if="history.length">
+        <ElTimelineItem
+          v-for="item in history"
+          :key="item.id"
+          :timestamp="formatPlatformDateTime(item.created_at)"
+          placement="top"
+        >
+          <div class="font-medium">{{ item.action }} · {{ item.from_status }} → {{ item.to_status }}</div>
+          <div class="mt-4px text-13px text-#999">操作者：{{ item.actor_id }}</div>
+          <pre v-if="Object.keys(item.detail_json || {}).length" class="mt-8px">{{
+            JSON.stringify(item.detail_json, null, 2)
+          }}</pre>
+        </ElTimelineItem>
+      </ElTimeline>
+      <ElEmpty v-else description="暂无处理历史" :image-size="72" />
+      <div v-if="historyTotal > historyPageSize" class="flex justify-end">
+        <ElPagination
+          small
+          layout="total, prev, pager, next"
+          :total="historyTotal"
+          :current-page="historyPage"
+          :page-size="historyPageSize"
+          @update:current-page="
+            value => {
+              historyPage = value;
+              loadHistory();
+            }
+          "
+        />
+      </div>
+    </div>
+  </ElDrawer>
 </template>
