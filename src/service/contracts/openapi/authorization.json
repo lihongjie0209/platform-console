@@ -103,6 +103,54 @@
                 }
             }
         },
+        "/api/v1/authorization/bindings/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "authorization-bindings"
+                ],
+                "summary": "Get a role binding by ID",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GetMyBindingRequest"
+                            }
+                        }
+                    },
+                    "description": "Scoped binding ID",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.BindingBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/authorization/bindings/list": {
             "post": {
                 "security": [
@@ -267,6 +315,54 @@
                         }
                     },
                     "description": "Scoped binding",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.BindingBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/authorization/my-bindings/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "authorization-bindings"
+                ],
+                "summary": "Get a role binding in the current authorization context",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GetBindingRequest"
+                            }
+                        }
+                    },
+                    "description": "Binding ID",
                     "required": true
                 },
                 "responses": {
@@ -2107,6 +2203,40 @@
                         "items": {
                             "$ref": "#/components/schemas/httptransport.DecisionBody"
                         }
+                    }
+                }
+            },
+            "httptransport.GetBindingRequest": {
+                "type": "object",
+                "required": [
+                    "binding_id"
+                ],
+                "properties": {
+                    "binding_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.GetMyBindingRequest": {
+                "type": "object",
+                "required": [
+                    "binding_id",
+                    "permission_scope",
+                    "tenant_id"
+                ],
+                "properties": {
+                    "binding_id": {
+                        "type": "string"
+                    },
+                    "permission_scope": {
+                        "type": "string",
+                        "enum": [
+                            "tenant",
+                            "platform"
+                        ]
+                    },
+                    "tenant_id": {
+                        "type": "string"
                     }
                 }
             },

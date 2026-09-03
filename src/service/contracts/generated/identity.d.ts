@@ -1446,6 +1446,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sessions/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get an administrative session by ID */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Session ID */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetSessionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.SessionResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sessions/list": {
         parameters: {
             query?: never;
@@ -1754,6 +1797,9 @@ export interface components {
         };
         "httptransport.GetServiceAccountRequest": {
             id: string;
+        };
+        "httptransport.GetSessionRequest": {
+            session_id: string;
         };
         "httptransport.IdentityBatchResponseBody": {
             items?: components["schemas"]["httptransport.IdentityResponseBody"][];

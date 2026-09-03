@@ -90,6 +90,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/authorization/bindings/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a role binding by ID */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Scoped binding ID */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetMyBindingRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.BindingBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/authorization/bindings/list": {
         parameters: {
             query?: never;
@@ -240,6 +283,49 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["httptransport.CreateMyBindingRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.BindingBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/authorization/my-bindings/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a role binding in the current authorization context */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Binding ID */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetBindingRequest"];
                 };
             };
             responses: {
@@ -1609,6 +1695,15 @@ export interface components {
         };
         "httptransport.DecisionsBody": {
             decisions?: components["schemas"]["httptransport.DecisionBody"][];
+        };
+        "httptransport.GetBindingRequest": {
+            binding_id: string;
+        };
+        "httptransport.GetMyBindingRequest": {
+            binding_id: string;
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
+            tenant_id: string;
         };
         "httptransport.GrantMyRolePermissionRequest": {
             permission_id: string;

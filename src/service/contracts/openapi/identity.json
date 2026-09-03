@@ -1563,6 +1563,54 @@
                 }
             }
         },
+        "/api/v1/sessions/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Get an administrative session by ID",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GetSessionRequest"
+                            }
+                        }
+                    },
+                    "description": "Session ID",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.SessionResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/sessions/list": {
             "post": {
                 "security": [
@@ -2090,6 +2138,17 @@
                 ],
                 "properties": {
                     "id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.GetSessionRequest": {
+                "type": "object",
+                "required": [
+                    "session_id"
+                ],
+                "properties": {
+                    "session_id": {
                         "type": "string"
                     }
                 }

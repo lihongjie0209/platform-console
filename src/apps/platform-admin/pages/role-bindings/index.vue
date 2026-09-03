@@ -26,6 +26,7 @@ import {
   batchGetServiceAccounts,
   batchGetUsers,
   createMyBinding,
+  getMyBinding,
   listGroups,
   listMyBindings,
   listMyRoles,
@@ -71,6 +72,9 @@ const canCreateBinding = computed(() =>
 );
 const canRevokeBinding = computed(() =>
   platformStore.hasPermission({ scope: bindingScope.value, codes: 'authorization.binding.revoke' })
+);
+const canReadBinding = computed(() =>
+  platformStore.hasPermission({ scope: bindingScope.value, codes: 'authorization.binding.read' })
 );
 const roleByID = computed(() => new Map(roles.value.map(item => [String(item.id), item])));
 const groupByID = computed(() => new Map(groups.value.map(item => [String(item.id), item])));
@@ -335,18 +339,28 @@ async function submit() {
   }
 }
 async function revoke(row: Binding) {
-  if (!canRevokeBinding.value) return;
+  if (!canRevokeBinding.value || !canReadBinding.value) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm('撤销后目标主体将立即失去该角色授予的权限，确认继续吗？', '撤销角色绑定', {
       type: 'warning'
     })
   );
   if (!confirmed) return;
+  const current = await getMyBinding({
+    tenantID: tenantID.value,
+    permissionScope: bindingScope.value,
+    bindingID: String(row.id)
+  });
+  if (current.status !== 'active') {
+    window.$message?.warning('角色绑定状态已发生变化，请刷新后重试');
+    await loadRows();
+    return;
+  }
   await revokeMyBinding({
     tenantID: tenantID.value,
     permissionScope: bindingScope.value,
     bindingID: String(row.id),
-    version: Number(row.version)
+    version: Number(current.version)
   });
   window.$message?.success('角色绑定已撤销');
   await loadRows();
@@ -410,7 +424,7 @@ onMounted(() => Promise.all([loadCatalogs(), loadRows()]));
         <ElTableColumn label="操作" width="100" fixed="right">
           <template #default="{ row }">
             <ElPopconfirm
-              v-if="canRevokeBinding && row.status === 'active'"
+              v-if="canRevokeBinding && canReadBinding && row.status === 'active'"
               title="确认撤销该角色绑定？"
               @confirm="revoke(row)"
             >

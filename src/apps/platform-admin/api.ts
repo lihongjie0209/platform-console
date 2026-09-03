@@ -637,6 +637,16 @@ export function listSessions(query: SessionQuery) {
   );
 }
 
+export function getSession(sessionID: string) {
+  return unwrap<UserSession>(
+    identityRequest({
+      url: '/api/v1/sessions/get',
+      method: 'post',
+      data: { session_id: sessionID }
+    })
+  );
+}
+
 export function revokeSession(sessionID: string, reason: string, version: number) {
   return unwrap<UserSession>(
     identityRequest({
@@ -1182,6 +1192,20 @@ export function revokeMyBinding(request: {
         permission_scope: request.permissionScope,
         binding_id: request.bindingID,
         version: request.version
+      }
+    })
+  );
+}
+
+export function getMyBinding(request: { tenantID: string; permissionScope: 'tenant' | 'platform'; bindingID: string }) {
+  return unwrap<Binding>(
+    authorizationRequest({
+      url: '/api/v1/authorization/my-bindings/get',
+      method: 'post',
+      data: {
+        tenant_id: request.tenantID,
+        permission_scope: request.permissionScope,
+        binding_id: request.bindingID
       }
     })
   );

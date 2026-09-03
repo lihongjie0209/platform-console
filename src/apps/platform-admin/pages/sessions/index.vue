@@ -7,7 +7,7 @@ import { createLatestRequestGuard } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
 import { remoteSearchPage } from '@/platform/remote-search';
 import type { TenantDirectoryItem, UserIdentity, UserSession } from '../../api';
-import { listSessions, listTenantDirectory, listUsers, revokeSession } from '../../api';
+import { getSession, listSessions, listTenantDirectory, listUsers, revokeSession } from '../../api';
 import { sessionUserLabel as formatSessionUserLabel } from '../../session-display';
 
 defineOptions({ name: 'PlatformAdminSessions' });
@@ -43,6 +43,9 @@ const userByID = computed(() => new Map(users.value.map(item => [item.id, item])
 const tenantByID = computed(() => new Map(tenants.value.map(item => [item.id, item])));
 const canRevokeSession = computed(() =>
   platformStore.hasPermission({ scope: 'platform', codes: 'identity.session.revoke' })
+);
+const canReadSession = computed(() =>
+  platformStore.hasPermission({ scope: 'platform', codes: 'identity.session.read' })
 );
 
 function userLabel(id: string) {
@@ -125,7 +128,7 @@ function resetSearch() {
 }
 
 function openRevoke(row: UserSession) {
-  if (!canRevokeSession.value) return;
+  if (!canRevokeSession.value || !canReadSession.value) return;
   selected.value = row;
   form.reason = '';
   formRef.value?.clearValidate();
@@ -133,10 +136,17 @@ function openRevoke(row: UserSession) {
 }
 
 async function submitRevoke() {
-  if (!canRevokeSession.value || !selected.value || !(await formRef.value?.validate())) return;
+  if (!canRevokeSession.value || !canReadSession.value || !selected.value || !(await formRef.value?.validate())) return;
   submitting.value = true;
   try {
-    await revokeSession(selected.value.session_id, form.reason, selected.value.version);
+    const current = await getSession(selected.value.session_id);
+    if (current.status !== 'active') {
+      window.$message?.warning('会话状态已发生变化，请刷新后重试');
+      revokeVisible.value = false;
+      await loadData();
+      return;
+    }
+    await revokeSession(current.session_id, form.reason, current.version);
     revokeVisible.value = false;
     selected.value = undefined;
     window.$message?.success('会话已撤销');
@@ -248,7 +258,12 @@ onMounted(() => Promise.all([searchUsers(''), searchTenants(''), loadData()]));
       <ElTableColumn prop="version" label="版本" width="90" />
       <ElTableColumn label="操作" width="100" fixed="right">
         <template #default="{ row }">
-          <ElButton v-if="canRevokeSession && row.status === 'active'" link type="danger" @click="openRevoke(row)">
+          <ElButton
+            v-if="canRevokeSession && canReadSession && row.status === 'active'"
+            link
+            type="danger"
+            @click="openRevoke(row)"
+          >
             撤销
           </ElButton>
           <span v-else>-</span>
@@ -284,7 +299,9 @@ onMounted(() => Promise.all([searchUsers(''), searchTenants(''), loadData()]));
     </ElForm>
     <template #footer>
       <ElButton @click="revokeVisible = false">取消</ElButton>
-      <ElButton v-if="canRevokeSession" type="danger" :loading="submitting" @click="submitRevoke">确认撤销</ElButton>
+      <ElButton v-if="canRevokeSession && canReadSession" type="danger" :loading="submitting" @click="submitRevoke">
+        确认撤销
+      </ElButton>
     </template>
   </ElDialog>
 </template>
