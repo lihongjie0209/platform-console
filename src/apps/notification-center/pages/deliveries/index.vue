@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { ensureIdempotencyKey } from '@/platform/idempotency-key';
 import type { NotificationDelivery } from '../../api';
 import { getDelivery, listDeliveries, sendNotification } from '../../api';
 import { parseNotificationVariables } from '../../variables';
@@ -72,7 +73,7 @@ function openSend() {
     locale: 'zh-cn',
     recipient: '',
     variables: '{}',
-    idempotencyKey: crypto.randomUUID()
+    idempotencyKey: ''
   });
   visible.value = true;
 }
@@ -87,6 +88,7 @@ async function send() {
   }
   sending.value = true;
   try {
+    form.idempotencyKey = ensureIdempotencyKey(form.idempotencyKey);
     await sendNotification({
       tenantID: tenantID.value,
       applicationID: applicationID.value,
@@ -100,6 +102,12 @@ async function send() {
     sending.value = false;
   }
 }
+watch(
+  () => [form.templateCode, form.channel, form.locale, form.recipient, form.variables],
+  () => {
+    form.idempotencyKey = '';
+  }
+);
 async function showDetail(row: NotificationDelivery) {
   if (!canRead.value) return;
   detailVisible.value = true;

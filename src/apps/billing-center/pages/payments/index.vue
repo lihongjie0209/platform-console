@@ -90,7 +90,7 @@ function openPaymentDialog() {
   paymentForm.invoiceID = '';
   paymentForm.provider = '';
   paymentForm.paymentMethodReference = '';
-  paymentForm.idempotencyKey = ensureIdempotencyKey('');
+  paymentForm.idempotencyKey = '';
   paymentDialogVisible.value = true;
 }
 
@@ -130,7 +130,7 @@ async function openRefundDialog(payment: PaymentAttempt) {
   refundForm.amountMinor = current.amount_minor;
   refundForm.reason = '';
   refundForm.status = 'succeeded';
-  refundForm.idempotencyKey = ensureIdempotencyKey('');
+  refundForm.idempotencyKey = '';
   refundDialogVisible.value = true;
 }
 
@@ -157,6 +157,19 @@ async function submitRefund() {
     await load();
   });
 }
+
+watch(
+  () => [paymentForm.invoiceID, paymentForm.provider, paymentForm.paymentMethodReference],
+  () => {
+    paymentForm.idempotencyKey = '';
+  }
+);
+watch(
+  () => [refundForm.providerRefundID, refundForm.amountMinor, refundForm.reason, refundForm.status],
+  () => {
+    refundForm.idempotencyKey = '';
+  }
+);
 
 watch([tenantID, applicationID], () => {
   payments.value = [];

@@ -141,7 +141,7 @@ async function openCreate() {
   form.format = '';
   form.columns = [];
   form.query = {};
-  form.idempotencyKey = crypto.randomUUID();
+  form.idempotencyKey = '';
   descriptor.value = undefined;
   await searchDatasets('');
 }
@@ -204,6 +204,7 @@ async function create() {
   const selected = findDataset(datasets.value, form.datasetKey);
   if (!selected || !descriptor.value) return;
   try {
+    form.idempotencyKey = ensureIdempotencyKey(form.idempotencyKey);
     await createExport({
       tenantID: tenantID.value,
       applicationID: applicationID.value,
@@ -213,7 +214,7 @@ async function create() {
       filename: form.filename,
       query: buildExportQuery(descriptor.value, form.query),
       columns: form.columns,
-      idempotencyKey: ensureIdempotencyKey(form.idempotencyKey)
+      idempotencyKey: form.idempotencyKey
     });
     visible.value = false;
     await load();
@@ -221,6 +222,12 @@ async function create() {
     window.$message?.error(e instanceof Error ? e.message : '创建失败');
   }
 }
+watch(
+  () => [form.datasetKey, form.format, form.filename, JSON.stringify(form.query), form.columns.join('\u0000')],
+  () => {
+    form.idempotencyKey = '';
+  }
+);
 async function openDetail(job: ExportJob) {
   if (!canRead.value) return;
   detailVisible.value = true;

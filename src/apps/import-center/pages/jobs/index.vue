@@ -153,7 +153,7 @@ function changePageSize() {
 }
 function chooseFile(e: Event) {
   source.value = (e.target as HTMLInputElement).files?.[0];
-  createIdempotencyKey.value = source.value ? crypto.randomUUID() : '';
+  createIdempotencyKey.value = '';
 }
 async function create() {
   if (!canCreate.value || !scopeReady.value || !source.value) return;
@@ -189,6 +189,9 @@ async function create() {
     if (uploadGuard.isCurrent(request)) uploading.value = false;
   }
 }
+watch([selectedDataset, format], () => {
+  createIdempotencyKey.value = '';
+});
 async function changeDataset() {
   if (!canCreate.value) return;
   const selected = selectedImportDataset(datasets.value, selectedDataset.value);
