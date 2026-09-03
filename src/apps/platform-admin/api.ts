@@ -752,6 +752,8 @@ export interface ScopedRoleListQuery {
   permissionScope: 'tenant' | 'platform';
   page: number;
   pageSize: number;
+  keyword?: string;
+  status?: string;
 }
 
 export function listMyRoles(query: ScopedRoleListQuery) {
@@ -762,9 +764,21 @@ export function listMyRoles(query: ScopedRoleListQuery) {
       data: {
         tenant_id: query.tenantID,
         permission_scope: query.permissionScope,
+        keyword: query.keyword || '',
+        status: query.status || '',
         page: query.page,
         page_size: query.pageSize
       }
+    })
+  );
+}
+
+export function batchGetMyRoles(tenantID: string, permissionScope: 'tenant' | 'platform', roleIDs: string[]) {
+  return unwrap<{ items: Role[] }>(
+    authorizationRequest({
+      url: '/api/v1/authorization/my-roles/batch-get',
+      method: 'post',
+      data: { tenant_id: tenantID, permission_scope: permissionScope, role_ids: roleIDs }
     })
   );
 }

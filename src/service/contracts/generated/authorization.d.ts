@@ -701,6 +701,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/authorization/my-roles/batch-get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a bounded set of roles in the authenticated user's management scope */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Scoped role IDs (maximum 100) */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.BatchGetMyRolesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RoleBatchBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/authorization/my-roles/create": {
         parameters: {
             query?: never;
@@ -1413,6 +1456,12 @@ export interface components {
         "httptransport.BatchCheckAuthorizationRequest": {
             checks: components["schemas"]["httptransport.CheckAuthorizationRequest"][];
         };
+        "httptransport.BatchGetMyRolesRequest": {
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
+            role_ids: string[];
+            tenant_id: string;
+        };
         "httptransport.BindingBody": {
             created_at?: string;
             created_by?: string;
@@ -1561,10 +1610,12 @@ export interface components {
             tenant_id: string;
         };
         "httptransport.ListMyRolesRequest": {
+            keyword?: string;
             page?: number;
             page_size?: number;
             /** @enum {string} */
             permission_scope: "tenant" | "platform";
+            status?: string;
             tenant_id: string;
         };
         "httptransport.ListPermissionsRequest": {
@@ -1635,6 +1686,9 @@ export interface components {
         "httptransport.RevokeRolePermissionRequest": {
             role_permission_id: string;
             version: number;
+        };
+        "httptransport.RoleBatchBody": {
+            items?: components["schemas"]["httptransport.RoleBody"][];
         };
         "httptransport.RoleBody": {
             code?: string;

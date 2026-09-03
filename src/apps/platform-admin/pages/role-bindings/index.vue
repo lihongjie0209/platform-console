@@ -20,6 +20,7 @@ import type {
 } from '../../api';
 import {
   batchGetMemberships,
+  batchGetMyRoles,
   batchGetUsers,
   createMyBinding,
   listGroups,
@@ -38,6 +39,7 @@ const platformStore = usePlatformStore();
 const loading = ref(false);
 const submitting = ref(false);
 const subjectSearching = ref(false);
+const roleSearching = ref(false);
 const rows = ref<Binding[]>([]);
 const total = ref(0);
 const page = ref(1);
@@ -162,7 +164,8 @@ async function loadCatalogs() {
   const result = await listMyRoles({
     tenantID: tenantID.value,
     permissionScope: bindingScope.value,
-    ...remoteSearchPage(100)
+    ...remoteSearchPage(100),
+    status: 'active'
   });
   roles.value = result.items;
   if (bindingScope.value === 'platform') {
@@ -182,16 +185,42 @@ async function hydrateVisibleSubjects(bindings: Binding[]) {
   const membershipIDs = boundedDistinctIDs(
     bindings.filter(item => item.subject_type === 'membership').map(item => String(item.subject_id))
   );
-  const [userResult, membershipResult] = await Promise.all([
+  const roleIDs = boundedDistinctIDs(bindings.map(item => String(item.role_id)));
+  const [userResult, membershipResult, roleResult] = await Promise.all([
     userIDs.length ? batchGetUsers(userIDs) : Promise.resolve({ items: [] }),
     membershipIDs.length
       ? batchGetMemberships(currentTenantID, membershipIDs)
-      : Promise.resolve({ memberships: [] as Membership[] })
+      : Promise.resolve({ memberships: [] as Membership[] }),
+    roleIDs.length
+      ? batchGetMyRoles(currentTenantID, bindingScope.value, roleIDs)
+      : Promise.resolve({ items: [] as Role[] })
   ]);
+  roles.value = mergeRoleDirectory(roles.value, roleResult.items);
   memberships.value = membershipResult.memberships;
   const membershipUserIDs = boundedDistinctIDs(membershipResult.memberships.map(item => String(item.user_id)));
   const membershipUsers = membershipUserIDs.length ? await batchGetUsers(membershipUserIDs) : { items: [] };
   users.value = mergeUserDirectory(users.value, [...userResult.items, ...membershipUsers.items]);
+}
+function mergeRoleDirectory(current: Role[], incoming: Role[]) {
+  const values = new Map(current.map(item => [String(item.id), item]));
+  for (const item of incoming) values.set(String(item.id), item);
+  return [...values.values()];
+}
+async function searchRoles(keyword = '') {
+  if (!tenantID.value) return;
+  roleSearching.value = true;
+  try {
+    const result = await listMyRoles({
+      tenantID: tenantID.value,
+      permissionScope: bindingScope.value,
+      ...remoteSearchPage(50),
+      keyword,
+      status: 'active'
+    });
+    roles.value = mergeRoleDirectory(roles.value, result.items);
+  } finally {
+    roleSearching.value = false;
+  }
 }
 async function searchSubjects(keyword = '') {
   if (!tenantID.value) return;
@@ -243,7 +272,7 @@ async function openCreate() {
   });
   formRef.value?.clearValidate();
   dialogVisible.value = true;
-  await searchSubjects();
+  await Promise.all([searchSubjects(), searchRoles()]);
 }
 async function submit() {
   if (!canCreateBinding.value || !(await formRef.value?.validate())) return;
@@ -382,7 +411,14 @@ onMounted(() => Promise.all([loadCatalogs(), loadRows()]));
         </ElSelect>
       </ElFormItem>
       <ElFormItem label="角色" prop="role_id">
-        <ElSelect v-model="form.role_id" filterable>
+        <ElSelect
+          v-model="form.role_id"
+          filterable
+          remote
+          :remote-method="searchRoles"
+          :loading="roleSearching"
+          reserve-keyword
+        >
           <ElOption
             v-for="role in roles.filter(item => item.status === 'active')"
             :key="String(role.id)"
