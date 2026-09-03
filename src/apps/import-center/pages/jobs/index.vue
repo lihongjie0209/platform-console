@@ -5,7 +5,11 @@ import { createLatestRequestGuard, hasApplicationScope } from '@/platform/applic
 import { formatPlatformDateTime } from '@/platform/date-time';
 import { formatPlatformBytes } from '@/platform/display';
 import { sha256Hex } from '@/platform/file';
-import { ensureIdempotencyKey, operationIdempotencyKey } from '@/platform/idempotency-key';
+import {
+  ensureIdempotencyKey,
+  operationIdempotencyKey,
+  operationPhaseIdempotencyKey
+} from '@/platform/idempotency-key';
 import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
 import { hasPersistedStateChanged } from '@/platform/optimistic-mutation';
 import { remoteSearchPage } from '@/platform/remote-search';
@@ -176,7 +180,12 @@ async function create() {
     });
     await putImportFile(auth, selectedFile);
     const checksum = await sha256Hex(selectedFile);
-    await completeImportUpload(auth.job, selectedFile.size, checksum);
+    await completeImportUpload({
+      job: auth.job,
+      size: selectedFile.size,
+      checksum,
+      idempotencyKey: operationPhaseIdempotencyKey(createIdempotencyKey.value, 'complete')
+    });
     if (!uploadGuard.isCurrent(request)) return;
     window.$message?.success('文件已上传，正在校验');
     createIdempotencyKey.value = '';
@@ -268,9 +277,15 @@ async function action(job: ImportJob, type: 'confirm' | 'cancel' | 'retry' | 're
           window.$message?.warning('请先选择修正后的文件');
           return;
         }
-        const auth = await retryImport(current, operationIdempotencyKey(actionIdempotencyKeys, key));
+        const retryKey = operationIdempotencyKey(actionIdempotencyKeys, key);
+        const auth = await retryImport(current, retryKey);
         await putImportFile(auth, source.value);
-        await completeImportUpload(auth.job, source.value.size, await sha256Hex(source.value));
+        await completeImportUpload({
+          job: auth.job,
+          size: source.value.size,
+          checksum: await sha256Hex(source.value),
+          idempotencyKey: operationPhaseIdempotencyKey(retryKey, 'complete')
+        });
       }
       if (type === 'report') {
         const value = await errorReport(current);

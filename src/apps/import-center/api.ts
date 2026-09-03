@@ -149,17 +149,23 @@ export async function putImportFile(value: UploadResult, file: File) {
   const response = await fetch(value.upload_url, { method: 'PUT', headers, body: file });
   if (!response.ok) throw new Error(`对象存储上传失败（HTTP ${response.status}）`);
 }
-export const completeImportUpload = (job: ImportJob, size: number, checksum: string) =>
+export const completeImportUpload = (input: {
+  job: ImportJob;
+  size: number;
+  checksum: string;
+  idempotencyKey: string;
+}) =>
   unwrap<ImportJob>(
     request({
       url: '/api/v1/imports/complete-upload',
       method: 'post',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
       data: {
-        ...applicationScope(job.tenant_id, job.application_id),
-        id: job.id,
-        version: job.version,
-        source_bytes: size,
-        source_checksum: checksum
+        ...applicationScope(input.job.tenant_id, input.job.application_id),
+        id: input.job.id,
+        version: input.job.version,
+        source_bytes: input.size,
+        source_checksum: input.checksum
       }
     })
   );

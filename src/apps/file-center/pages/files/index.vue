@@ -6,7 +6,7 @@ import { createLatestRequestGuard, hasApplicationScope } from '@/platform/applic
 import { formatPlatformDateTime, formatPlatformTableDateTime } from '@/platform/date-time';
 import { BizCopyText } from '@/components/business';
 import { formatFileSize, sha256Hex } from '@/platform/file';
-import { ensureIdempotencyKey } from '@/platform/idempotency-key';
+import { ensureIdempotencyKey, operationPhaseIdempotencyKey } from '@/platform/idempotency-key';
 import { confirmUserAction } from '@/platform/user-action';
 import type { FileMetadata } from '../../api';
 import {
@@ -128,7 +128,11 @@ async function uploadDirect(source: File, checksum: string, context: UploadConte
     idempotencyKey: ensureIdempotencyKey(uploadIdempotencyKey.value)
   });
   await putAuthorizedFile(authorization, source);
-  await completeUpload(authorization.file, checksum);
+  await completeUpload(
+    authorization.file,
+    checksum,
+    operationPhaseIdempotencyKey(uploadIdempotencyKey.value, 'complete')
+  );
   if (uploadGuard.isCurrent(context.request)) uploadProgress.value = 100;
 }
 
@@ -159,9 +163,16 @@ async function uploadMultipart(source: File, checksum: string, context: UploadCo
       buckets.map(bucket => bucket.reduce((chain, range) => chain.then(() => uploadRange(range)), Promise.resolve()))
     );
     completed.sort((left, right) => left.part_number - right.part_number);
-    await completeMultipartUpload(session.file, checksum, completed);
+    await completeMultipartUpload({
+      file: session.file,
+      checksumSHA256: checksum,
+      parts: completed,
+      idempotencyKey: operationPhaseIdempotencyKey(uploadIdempotencyKey.value, 'complete')
+    });
   } catch (error) {
-    await abortMultipartUpload(session.file).catch(() => undefined);
+    await abortMultipartUpload(session.file, operationPhaseIdempotencyKey(uploadIdempotencyKey.value, 'abort')).catch(
+      () => undefined
+    );
     throw error;
   }
 }
@@ -171,6 +182,7 @@ async function upload() {
   if (!canUpload.value || !scopeReady.value || !source) return;
   const request = uploadGuard.begin();
   const context = { tenantID: tenantID.value, applicationID: applicationID.value, request };
+  uploadIdempotencyKey.value = ensureIdempotencyKey(uploadIdempotencyKey.value);
   uploading.value = true;
   uploadProgress.value = 0;
   try {

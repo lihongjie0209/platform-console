@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ensureIdempotencyKey, operationIdempotencyKey } from './idempotency-key';
+import { ensureIdempotencyKey, operationIdempotencyKey, operationPhaseIdempotencyKey } from './idempotency-key';
 
 test('ensureIdempotencyKey retains an existing operation key', () => {
   let generated = 0;
@@ -28,4 +28,9 @@ test('operationIdempotencyKey isolates operations and retains retry keys', () =>
   assert.equal(operationIdempotencyKey(keys, 'job-1:retry', generate), 'key-1');
   assert.equal(operationIdempotencyKey(keys, 'job-1:retry', generate), 'key-1');
   assert.equal(operationIdempotencyKey(keys, 'job-2:retry', generate), 'key-2');
+});
+
+test('operation phases have stable independent idempotency namespaces', () => {
+  assert.equal(operationPhaseIdempotencyKey('operation-1', 'complete'), 'operation-1:complete');
+  assert.throws(() => operationPhaseIdempotencyKey('', 'complete'), /required/u);
 });

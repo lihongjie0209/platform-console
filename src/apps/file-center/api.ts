@@ -172,27 +172,34 @@ export async function putAuthorizedPart(authorization: UploadAuthorization, sour
   return etag;
 }
 
-export function completeMultipartUpload(file: FileMetadata, checksumSHA256: string, parts: CompletedPart[]) {
+export function completeMultipartUpload(input: {
+  file: FileMetadata;
+  checksumSHA256: string;
+  parts: CompletedPart[];
+  idempotencyKey: string;
+}) {
   return unwrap<FileMetadata>(
     fileRequest({
       url: '/api/v1/files/uploads/multipart/complete',
       method: 'post',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
       data: {
-        id: file.id,
-        ...applicationScope(file.tenant_id, file.application_id),
-        checksum_sha256: checksumSHA256,
-        parts,
-        expected_version: file.version
+        id: input.file.id,
+        ...applicationScope(input.file.tenant_id, input.file.application_id),
+        checksum_sha256: input.checksumSHA256,
+        parts: input.parts,
+        expected_version: input.file.version
       }
     })
   );
 }
 
-export function abortMultipartUpload(file: FileMetadata) {
+export function abortMultipartUpload(file: FileMetadata, idempotencyKey: string) {
   return unwrap<FileMetadata>(
     fileRequest({
       url: '/api/v1/files/uploads/multipart/abort',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         id: file.id,
         ...applicationScope(file.tenant_id, file.application_id),
@@ -211,11 +218,12 @@ export async function putAuthorizedFile(authorization: UploadAuthorization, sour
   if (!response.ok) throw new Error(`对象存储上传失败（HTTP ${response.status}）`);
 }
 
-export function completeUpload(file: FileMetadata, checksumSHA256: string) {
+export function completeUpload(file: FileMetadata, checksumSHA256: string, idempotencyKey: string) {
   return unwrap<FileMetadata>(
     fileRequest({
       url: '/api/v1/files/uploads/complete',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         id: file.id,
         ...applicationScope(file.tenant_id, file.application_id),
