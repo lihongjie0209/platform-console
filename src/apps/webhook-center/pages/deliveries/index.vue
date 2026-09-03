@@ -4,7 +4,7 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { confirmUserAction } from '@/platform/user-action';
 import type { WebhookDelivery } from '../../api';
-import { listDeliveries, replayDelivery } from '../../api';
+import { getDelivery, listDeliveries, replayDelivery } from '../../api';
 defineOptions({ name: 'WebhookCenterDeliveries' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
@@ -20,6 +20,7 @@ const subscriptionID = ref('');
 const detail = ref<WebhookDelivery>();
 const loadGuard = createLatestRequestGuard();
 const canReplay = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.delivery.replay' }));
+const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.delivery.read' }));
 async function load() {
   const request = loadGuard.begin();
   if (!scopeReady.value) {
@@ -46,13 +47,18 @@ function applyFilters() {
   load();
 }
 async function replay(v: WebhookDelivery) {
-  if (!canReplay.value) return;
+  if (!canReplay.value || !canRead.value) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm('重放可能使外部系统再次处理同一事件，确认继续吗？', '重放 Webhook', { type: 'warning' })
   );
   if (!confirmed) return;
-  await replayDelivery(v);
+  const current = await getDelivery(v);
+  await replayDelivery(current);
   await load();
+}
+async function showDetail(v: WebhookDelivery) {
+  if (!canRead.value) return;
+  detail.value = await getDelivery(v);
 }
 watch([tenantID, applicationID], () => {
   rows.value = [];
@@ -87,8 +93,12 @@ onMounted(load);
         <ElTableColumn prop="error_message" label="错误" min-width="180" />
         <ElTableColumn label="操作">
           <template #default="{ row }">
-            <ElButton link @click="detail = row">详情</ElButton>
-            <ElButton v-if="canReplay && ['succeeded', 'dead'].includes(row.status)" link @click="replay(row)">
+            <ElButton v-if="canRead" link @click="showDetail(row)">详情</ElButton>
+            <ElButton
+              v-if="canReplay && canRead && ['succeeded', 'dead'].includes(row.status)"
+              link
+              @click="replay(row)"
+            >
               重放
             </ElButton>
           </template>

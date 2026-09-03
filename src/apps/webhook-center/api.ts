@@ -52,6 +52,14 @@ export const listSubscriptions = (input: {
       }
     })
   );
+export const getSubscription = (value: Pick<WebhookSubscription, 'id' | 'tenant_id' | 'application_id'>) =>
+  unwrap<WebhookSubscription>(
+    request({
+      url: '/api/v1/webhooks/subscriptions/get',
+      method: 'post',
+      data: { id: value.id, ...applicationScope(value.tenant_id, value.application_id) }
+    })
+  );
 export function saveSubscription(
   current: WebhookSubscription | undefined,
   tenantID: string,
@@ -145,6 +153,14 @@ export const listDeliveries = (input: {
         status: input.status,
         page: { page: input.page, page_size: input.pageSize }
       }
+    })
+  );
+export const getDelivery = (value: Pick<WebhookDelivery, 'id' | 'tenant_id' | 'application_id'>) =>
+  unwrap<WebhookDelivery>(
+    request({
+      url: '/api/v1/webhooks/deliveries/get',
+      method: 'post',
+      data: { id: value.id, ...applicationScope(value.tenant_id, value.application_id) }
     })
   );
 export const replayDelivery = (value: WebhookDelivery) =>

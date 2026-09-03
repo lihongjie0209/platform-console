@@ -5,7 +5,14 @@ import { createLatestRequestGuard, hasApplicationScope } from '@/platform/applic
 import { parseJSONObject } from '@/platform/json';
 import { confirmUserAction } from '@/platform/user-action';
 import type { WebhookSubscription } from '../../api';
-import { deleteSubscription, listSubscriptions, rotateSecret, saveSubscription, testSubscription } from '../../api';
+import {
+  deleteSubscription,
+  getSubscription,
+  listSubscriptions,
+  rotateSecret,
+  saveSubscription,
+  testSubscription
+} from '../../api';
 defineOptions({ name: 'WebhookCenterSubscriptions' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
@@ -24,6 +31,7 @@ const secret = ref('');
 const testPayload = ref('{}');
 const loadGuard = createLatestRequestGuard();
 const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.subscription.create' }));
+const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.subscription.read' }));
 const canUpdate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.subscription.update' }));
 const canTest = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.subscription.test' }));
 const canRotateSecret = computed(() =>
@@ -63,20 +71,21 @@ function applyFilters() {
   page.value = 1;
   load();
 }
-function open(v?: WebhookSubscription) {
-  if ((v && !canUpdate.value) || (!v && !canCreate.value)) return;
-  editing.value = v;
+async function open(v?: WebhookSubscription) {
+  if ((v && (!canUpdate.value || !canRead.value)) || (!v && !canCreate.value)) return;
+  const current = v ? await getSubscription(v) : undefined;
+  editing.value = current;
   Object.assign(
     form,
-    v
+    current
       ? {
-          name: v.name,
-          endpointURL: v.endpoint_url,
-          subjectFilter: v.subject_filter,
-          status: v.status,
-          timeoutMS: v.timeout_ms || 5000,
-          maxAttempts: v.max_attempts || 5,
-          retryInitialSeconds: v.retry_initial_seconds || 5
+          name: current.name,
+          endpointURL: current.endpoint_url,
+          subjectFilter: current.subject_filter,
+          status: current.status,
+          timeoutMS: current.timeout_ms || 5000,
+          maxAttempts: current.max_attempts || 5,
+          retryInitialSeconds: current.retry_initial_seconds || 5
         }
       : {
           name: '',
@@ -104,25 +113,27 @@ async function save() {
   await load();
 }
 async function rotate(v: WebhookSubscription) {
-  if (!canRotateSecret.value) return;
+  if (!canRotateSecret.value || !canRead.value) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm('轮换后旧签名密钥立即失效，新密钥仅显示一次。确认继续吗？', '轮换签名密钥', {
       type: 'warning'
     })
   );
   if (!confirmed) return;
-  const result = await rotateSecret(v);
+  const current = await getSubscription(v);
+  const result = await rotateSecret(current);
   secret.value = result.signing_secret;
   window.$message?.warning('新密钥仅显示一次，请立即保存');
   await load();
 }
 async function remove(v: WebhookSubscription) {
-  if (!canDelete.value) return;
+  if (!canDelete.value || !canRead.value) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm(`确认删除 Webhook 订阅“${v.name}”吗？`, '删除订阅', { type: 'warning' })
   );
   if (!confirmed) return;
-  await deleteSubscription(v);
+  const current = await getSubscription(v);
+  await deleteSubscription(current);
   await load();
 }
 async function test(v: WebhookSubscription) {
@@ -190,10 +201,10 @@ onMounted(load);
         <ElTableColumn prop="status" label="状态" />
         <ElTableColumn label="操作" width="250">
           <template #default="{ row }">
-            <ElButton v-if="canUpdate" link @click="open(row)">编辑</ElButton>
+            <ElButton v-if="canUpdate && canRead" link @click="open(row)">编辑</ElButton>
             <ElButton v-if="canTest" link @click="test(row)">测试</ElButton>
-            <ElButton v-if="canRotateSecret" link @click="rotate(row)">轮换密钥</ElButton>
-            <ElButton v-if="canDelete" link type="danger" @click="remove(row)">删除</ElButton>
+            <ElButton v-if="canRotateSecret && canRead" link @click="rotate(row)">轮换密钥</ElButton>
+            <ElButton v-if="canDelete && canRead" link type="danger" @click="remove(row)">删除</ElButton>
           </template>
         </ElTableColumn>
       </ElTable>
