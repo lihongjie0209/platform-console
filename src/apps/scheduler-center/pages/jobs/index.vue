@@ -137,12 +137,13 @@ async function save() {
   }
 }
 async function remove(row: ScheduledJob) {
-  if (!canDelete.value) return;
+  if (!canDelete.value || !canRead.value) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm(`确认删除调度任务“${row.name}”吗？`, '删除任务', { type: 'warning' })
   );
   if (!confirmed) return;
-  await deleteJob(row);
+  const current = await getJob(row.id);
+  await deleteJob(current);
   window.$message?.success('任务已删除');
   await loadData();
 }
@@ -259,7 +260,7 @@ onMounted(loadData);
           <ElButton v-if="canUpdate && canRead" link type="primary" @click="openEdit(row)">编辑</ElButton>
           <ElButton v-if="canTrigger" link type="primary" @click="trigger(row)">立即执行</ElButton>
           <ElButton v-if="canListExecutions" link type="primary" @click="showExecutions(row)">记录</ElButton>
-          <ElButton v-if="canDelete" link type="danger" @click="remove(row)">删除</ElButton>
+          <ElButton v-if="canDelete && canRead" link type="danger" @click="remove(row)">删除</ElButton>
         </template>
       </ElTableColumn>
     </ElTable>

@@ -91,7 +91,7 @@ async function start() {
   await loadData();
 }
 async function cancel(row: WorkflowInstance) {
-  if (!canCancel.value) return;
+  if (!canCancel.value || !canRead.value) return;
   const reason = await promptUserInput(() =>
     ElMessageBox.prompt('请输入取消原因', '取消流程', {
       inputPattern: /\S+/,
@@ -100,7 +100,8 @@ async function cancel(row: WorkflowInstance) {
     })
   );
   if (!reason) return;
-  await cancelInstance(row, reason);
+  const current = await getInstance(row);
+  await cancelInstance(current, reason);
   await loadData();
 }
 async function loadHistory() {
@@ -170,7 +171,7 @@ onMounted(loadData);
         <ElTableColumn label="操作" width="130">
           <template #default="{ row }">
             <ElButton v-if="canRead" link type="primary" @click="show(row)">详情</ElButton>
-            <ElButton v-if="canCancel && row.status === 'running'" link type="danger" @click="cancel(row)">
+            <ElButton v-if="canCancel && canRead && row.status === 'running'" link type="danger" @click="cancel(row)">
               取消
             </ElButton>
           </template>

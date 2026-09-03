@@ -192,7 +192,7 @@ async function download(row: FileMetadata) {
 }
 
 async function remove(row: FileMetadata) {
-  if (!canDelete.value || !scopeReady.value) return;
+  if (!canDelete.value || !canRead.value || !scopeReady.value) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm(`确认删除文件“${row.filename}”吗？对象存储中的内容也会被删除。`, '删除文件', {
       type: 'warning',
@@ -201,7 +201,8 @@ async function remove(row: FileMetadata) {
     })
   );
   if (!confirmed) return;
-  await deleteFile(row);
+  const current = await getFile(row);
+  await deleteFile(current);
   window.$message?.success('文件已删除');
   await loadData();
 }
@@ -305,7 +306,7 @@ onMounted(loadData);
               下载
             </ElButton>
             <ElButton
-              v-if="canDelete && !['deleted', 'expired'].includes(row.status)"
+              v-if="canDelete && canRead && !['deleted', 'expired'].includes(row.status)"
               link
               type="danger"
               @click="remove(row)"
