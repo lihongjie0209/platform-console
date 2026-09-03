@@ -12,6 +12,7 @@ import type { Application, ApplicationMenu } from '../../api';
 import {
   deleteMenu,
   getApplication,
+  getMenu,
   listMenuDraft,
   listMyPermissionCatalog,
   publishMenus,
@@ -81,6 +82,7 @@ const defaultRouteValid = computed(() =>
 const canUpdateMenus = computed(() =>
   platformStore.hasPermission({ scope: 'platform', codes: 'application.menu.update' })
 );
+const canReadMenus = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'application.menu.read' }));
 const canDeleteMenus = computed(() =>
   platformStore.hasPermission({ scope: 'platform', codes: 'application.menu.delete' })
 );
@@ -179,25 +181,26 @@ function openCreate(parentID = '') {
   loadPermissionOptions();
 }
 
-function openEdit(menu: ApplicationMenu) {
-  if (!canUpdateMenus.value) return;
+async function openEdit(menu: ApplicationMenu) {
+  if (!canUpdateMenus.value || !canReadMenus.value) return;
+  const current = await getMenu(String(menu.id));
   resetForm({
     ...emptyMenu(),
-    id: String(menu.id || ''),
-    parent_id: String(menu.parent_id || ''),
-    code: String(menu.code || ''),
-    type: String(menu.type || 'page'),
-    name: String(menu.name || ''),
-    i18n_key: String(menu.i18n_key || ''),
-    route: String(menu.route || ''),
-    component: String(menu.component || ''),
-    icon: String(menu.icon || ''),
-    external_url: String(menu.external_url || ''),
-    permission_code: String(menu.permission_code || ''),
-    permission_scope: normalizeMenuPermissionScope(menu.permission_scope),
-    sort_order: Number(menu.sort_order || 0),
-    visible: menu.visible !== false,
-    version: Number(menu.version || 0)
+    id: String(current.id || ''),
+    parent_id: String(current.parent_id || ''),
+    code: String(current.code || ''),
+    type: String(current.type || 'page'),
+    name: String(current.name || ''),
+    i18n_key: String(current.i18n_key || ''),
+    route: String(current.route || ''),
+    component: String(current.component || ''),
+    icon: String(current.icon || ''),
+    external_url: String(current.external_url || ''),
+    permission_code: String(current.permission_code || ''),
+    permission_scope: normalizeMenuPermissionScope(current.permission_scope),
+    sort_order: Number(current.sort_order || 0),
+    visible: current.visible !== false,
+    version: Number(current.version || 0)
   });
   editorVisible.value = true;
   loadPermissionOptions();
@@ -300,14 +303,15 @@ async function saveMenu() {
 }
 
 async function removeMenu(menu: ApplicationMenu) {
-  if (!canDeleteMenus.value) return;
+  if (!canDeleteMenus.value || !canReadMenus.value) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm(`确认删除菜单“${menu.name}”吗？请先确认其下没有仍需保留的子菜单。`, '删除菜单', {
       type: 'warning'
     })
   );
   if (!confirmed) return;
-  await deleteMenu(String(menu.id), Number(menu.version));
+  const current = await getMenu(String(menu.id));
+  await deleteMenu(String(current.id), Number(current.version));
   window.$message?.success('菜单已删除');
   await loadMenus();
 }
@@ -416,8 +420,12 @@ onMounted(async () => {
           </div>
           <div class="flex-y-center gap-6px" @click.stop>
             <ElButton v-if="canUpdateMenus" link type="primary" @click="openCreate(String(data.id))">新增子项</ElButton>
-            <ElButton v-if="canUpdateMenus" link type="primary" @click="openEdit(data)">编辑</ElButton>
-            <ElPopconfirm v-if="canDeleteMenus" title="只能删除没有子项的菜单，确认继续？" @confirm="removeMenu(data)">
+            <ElButton v-if="canUpdateMenus && canReadMenus" link type="primary" @click="openEdit(data)">编辑</ElButton>
+            <ElPopconfirm
+              v-if="canDeleteMenus && canReadMenus"
+              title="只能删除没有子项的菜单，确认继续？"
+              @confirm="removeMenu(data)"
+            >
               <template #reference><ElButton link type="danger">删除</ElButton></template>
             </ElPopconfirm>
           </div>

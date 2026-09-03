@@ -212,6 +212,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/applications/menus/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a menu draft by ID */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Menu ID */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.IDRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.MenuBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/applications/menus/publish": {
         parameters: {
             query?: never;
@@ -420,6 +463,49 @@ export interface paths {
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
                             body?: components["schemas"]["httptransport.Decision"][];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/applications/tenant-grants/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a tenant application grant */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Tenant and application IDs */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetTenantApplicationGrantRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.GrantBody"];
                         };
                     };
                 };
@@ -952,6 +1038,10 @@ export interface components {
         "httptransport.DeleteMenuRequest": {
             id: string;
             version: number;
+        };
+        "httptransport.GetTenantApplicationGrantRequest": {
+            application_id: string;
+            tenant_id: string;
         };
         "httptransport.GrantBody": {
             application_id?: string;

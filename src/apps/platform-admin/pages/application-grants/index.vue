@@ -7,6 +7,7 @@ import { confirmUserAction } from '@/platform/user-action';
 import type { Application, ApplicationGrant, ApplicationGrantForm, TenantDirectoryItem } from '../../api';
 import {
   batchGetTenantApplicationGrants,
+  getApplicationGrant,
   grantApplication,
   listTenantDirectory,
   revokeApplicationGrant,
@@ -38,6 +39,9 @@ const form = reactive<ApplicationGrantForm>(emptyForm());
 const platformStore = usePlatformStore();
 const canGrant = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'application.grant.grant' }));
 const canRevoke = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'application.grant.revoke' }));
+const canReadGrant = computed(() =>
+  platformStore.hasPermission({ scope: 'platform', codes: 'application.grant.read' })
+);
 
 const rows = computed<GrantRow[]>(() => {
   const grantByApplication = new Map(grants.value.map(item => [String(item.application_id), item]));
@@ -124,18 +128,20 @@ async function changePageSize(value: number) {
   await loadApplications();
 }
 
-function openGrant(row: GrantRow) {
+async function openGrant(row: GrantRow) {
   if (!canGrant.value) return;
-  editingApplication.value = row;
+  const currentGrant =
+    row.grant && canReadGrant.value ? await getApplicationGrant(tenantID.value, String(row.id)) : row.grant;
+  editingApplication.value = { ...row, grant: currentGrant };
   Object.assign(form, {
     ...emptyForm(),
-    source: String(row.grant?.source || 'platform-console'),
-    valid_from: String(row.grant?.valid_from || ''),
-    valid_until: String(row.grant?.valid_until || ''),
+    source: String(currentGrant?.source || 'platform-console'),
+    valid_from: String(currentGrant?.valid_from || ''),
+    valid_until: String(currentGrant?.valid_until || ''),
     entitlements_json:
-      typeof row.grant?.entitlements_json === 'string'
-        ? row.grant.entitlements_json
-        : JSON.stringify(row.grant?.entitlements_json || {})
+      typeof currentGrant?.entitlements_json === 'string'
+        ? currentGrant.entitlements_json
+        : JSON.stringify(currentGrant?.entitlements_json || {})
   });
   formRef.value?.clearValidate();
   dialogVisible.value = true;
@@ -149,11 +155,14 @@ async function submitGrant() {
   }
   submitting.value = true;
   try {
+    const currentGrant = editingApplication.value.grant
+      ? await getApplicationGrant(tenantID.value, String(editingApplication.value.id))
+      : undefined;
     await grantApplication({
       tenantID: tenantID.value,
       applicationID: String(editingApplication.value.id),
       form,
-      version: Number(editingApplication.value.grant?.version || 0)
+      version: Number(currentGrant?.version || 0)
     });
     dialogVisible.value = false;
     window.$message?.success(editingApplication.value.grant ? '授权已更新' : '应用已授权');
@@ -164,14 +173,20 @@ async function submitGrant() {
 }
 
 async function revoke(row: GrantRow) {
-  if (!canRevoke.value || !row.id || !row.grant?.version) return;
+  if (!canRevoke.value || !canReadGrant.value || !row.id || !row.grant?.version) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm(`撤销后租户将无法继续使用“${row.name}”，确认继续吗？`, '撤销应用授权', {
       type: 'warning'
     })
   );
   if (!confirmed) return;
-  await revokeApplicationGrant(tenantID.value, String(row.id), Number(row.grant.version));
+  const current = await getApplicationGrant(tenantID.value, String(row.id));
+  if (current.status !== 'active') {
+    window.$message?.warning('应用授权状态已发生变化，请刷新后重试');
+    await loadApplications();
+    return;
+  }
+  await revokeApplicationGrant(tenantID.value, String(row.id), Number(current.version));
   window.$message?.success('应用授权已撤销');
   await loadApplications();
 }
@@ -249,11 +264,11 @@ onMounted(loadCatalogs);
       </ElTableColumn>
       <ElTableColumn label="操作" width="180" fixed="right">
         <template #default="{ row }">
-          <ElButton v-if="canGrant" link type="primary" @click="openGrant(row)">
+          <ElButton v-if="canGrant && (!row.grant || canReadGrant)" link type="primary" @click="openGrant(row)">
             {{ row.grant ? '编辑' : '授权' }}
           </ElButton>
           <ElPopconfirm
-            v-if="canRevoke && row.grant?.status === 'active'"
+            v-if="canRevoke && canReadGrant && row.grant?.status === 'active'"
             title="确认撤销该租户的应用授权？"
             @confirm="revoke(row)"
           >

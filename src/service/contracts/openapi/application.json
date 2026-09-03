@@ -230,6 +230,54 @@
                 }
             }
         },
+        "/api/v1/applications/menus/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "menus"
+                ],
+                "summary": "Get a menu draft by ID",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.IDRequest"
+                            }
+                        }
+                    },
+                    "description": "Menu ID",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.MenuBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/applications/menus/publish": {
             "post": {
                 "security": [
@@ -464,6 +512,54 @@
                                                     "items": {
                                                         "$ref": "#/components/schemas/httptransport.Decision"
                                                     }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/applications/tenant-grants/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "tenant-applications"
+                ],
+                "summary": "Get a tenant application grant",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GetTenantApplicationGrantRequest"
+                            }
+                        }
+                    },
+                    "description": "Tenant and application IDs",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.GrantBody"
                                                 }
                                             }
                                         }
@@ -1230,6 +1326,21 @@
                     },
                     "version": {
                         "type": "integer"
+                    }
+                }
+            },
+            "httptransport.GetTenantApplicationGrantRequest": {
+                "type": "object",
+                "required": [
+                    "application_id",
+                    "tenant_id"
+                ],
+                "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
                     }
                 }
             },

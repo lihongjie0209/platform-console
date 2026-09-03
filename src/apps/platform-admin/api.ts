@@ -421,6 +421,16 @@ export function listMenuDraft(applicationID: string) {
   );
 }
 
+export function getMenu(id: string) {
+  return unwrap(
+    applicationRequest<ApplicationMenu>({
+      url: '/api/v1/applications/menus/get',
+      method: 'post',
+      data: { id }
+    })
+  );
+}
+
 export function upsertMenu(menu: ApplicationMenu, expectedVersion: number) {
   return unwrap(
     applicationRequest<ApplicationMenu>({
@@ -721,6 +731,16 @@ export function grantApplication(input: GrantApplicationInput) {
       url: '/api/v1/applications/tenant-grants/grant',
       method: 'post',
       data
+    })
+  );
+}
+
+export function getApplicationGrant(tenantID: string, applicationID: string) {
+  return unwrap<ApplicationGrant>(
+    applicationRequest({
+      url: '/api/v1/applications/tenant-grants/get',
+      method: 'post',
+      data: { tenant_id: tenantID, application_id: applicationID }
     })
   );
 }
