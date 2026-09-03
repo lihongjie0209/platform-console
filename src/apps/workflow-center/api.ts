@@ -98,6 +98,15 @@ export function listDefinitions(input: {
     })
   );
 }
+export function getDefinition(value: Pick<WorkflowDefinition, 'id' | 'tenant_id' | 'application_id'>) {
+  return unwrap<WorkflowDefinition>(
+    request({
+      url: '/api/v1/workflow/definitions/get',
+      method: 'post',
+      data: { id: value.id, ...applicationScope(value.tenant_id, value.application_id) }
+    })
+  );
+}
 export function saveDefinition(
   current: WorkflowDefinition | undefined,
   input: {

@@ -2,8 +2,9 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { formatPlatformDateTime } from '@/platform/date-time';
 import type { WorkflowDefinition, WorkflowEdge, WorkflowNode } from '../../api';
-import { changeDefinitionStatus, listDefinitions, saveDefinition } from '../../api';
+import { changeDefinitionStatus, getDefinition, listDefinitions, saveDefinition } from '../../api';
 import { parseJSONArray } from '../../json';
 defineOptions({ name: 'WorkflowCenterDefinitions' });
 const store = usePlatformStore();
@@ -21,9 +22,12 @@ const searchText = ref('');
 const visible = ref(false);
 const saving = ref(false);
 const editing = ref<WorkflowDefinition>();
+const detail = ref<WorkflowDefinition>();
+const detailVisible = ref(false);
 const form = reactive({ key: '', name: '', description: '', nodes: '[]', edges: '[]' });
 const loadGuard = createLatestRequestGuard();
 const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.definition.create' }));
+const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.definition.read' }));
 const canUpdate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.definition.update' }));
 const canPublish = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.definition.publish' }));
 const canDisable = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.definition.disable' }));
@@ -69,17 +73,32 @@ function openCreate() {
   });
   visible.value = true;
 }
-function openEdit(row: WorkflowDefinition) {
-  if (!canUpdate.value) return;
-  editing.value = row;
+async function loadDefinition(row: WorkflowDefinition) {
+  return getDefinition(row);
+}
+async function openEdit(row: WorkflowDefinition) {
+  if (!canUpdate.value || !canRead.value) return;
+  const current = await loadDefinition(row);
+  editing.value = current;
   Object.assign(form, {
-    key: row.key,
-    name: row.name,
-    description: row.description || '',
-    nodes: JSON.stringify(row.nodes, null, 2),
-    edges: JSON.stringify(row.edges, null, 2)
+    key: current.key,
+    name: current.name,
+    description: current.description || '',
+    nodes: JSON.stringify(current.nodes, null, 2),
+    edges: JSON.stringify(current.edges, null, 2)
   });
   visible.value = true;
+}
+async function showDetail(row: WorkflowDefinition) {
+  if (!canRead.value) return;
+  detailVisible.value = true;
+  detail.value = undefined;
+  try {
+    detail.value = await loadDefinition(row);
+  } catch (error) {
+    detailVisible.value = false;
+    throw error;
+  }
 }
 async function save() {
   if ((editing.value && !canUpdate.value) || (!editing.value && !canCreate.value) || !scopeReady.value) return;
@@ -120,6 +139,8 @@ watch([tenantID, applicationID], () => {
   total.value = 0;
   visible.value = false;
   editing.value = undefined;
+  detail.value = undefined;
+  detailVisible.value = false;
   search();
 });
 onMounted(loadData);
@@ -165,9 +186,10 @@ onMounted(loadData);
         <ElTableColumn label="节点/连线" width="110">
           <template #default="{ row }">{{ row.nodes.length }}/{{ row.edges.length }}</template>
         </ElTableColumn>
-        <ElTableColumn label="操作" width="190">
+        <ElTableColumn label="操作" width="240">
           <template #default="{ row }">
-            <ElButton v-if="canUpdate" link type="primary" @click="openEdit(row)">编辑</ElButton>
+            <ElButton v-if="canRead" link type="primary" @click="showDetail(row)">详情</ElButton>
+            <ElButton v-if="canUpdate && canRead" link type="primary" @click="openEdit(row)">编辑</ElButton>
             <ElButton
               v-if="canPublish && row.status === 'draft'"
               link
@@ -224,4 +246,22 @@ onMounted(loadData);
       <ElButton v-if="editing ? canUpdate : canCreate" type="primary" :loading="saving" @click="save">保存</ElButton>
     </template>
   </ElDialog>
+  <ElDrawer v-model="detailVisible" title="流程定义详情" size="760px">
+    <ElDescriptions v-if="detail" :column="1" border>
+      <ElDescriptionsItem label="定义 ID">{{ detail.id }}</ElDescriptionsItem>
+      <ElDescriptionsItem label="Key">{{ detail.key }}</ElDescriptionsItem>
+      <ElDescriptionsItem label="名称">{{ detail.name }}</ElDescriptionsItem>
+      <ElDescriptionsItem label="状态">{{ detail.status }}</ElDescriptionsItem>
+      <ElDescriptionsItem label="发布修订">{{ detail.published_revision }}</ElDescriptionsItem>
+      <ElDescriptionsItem label="版本">v{{ detail.version }}</ElDescriptionsItem>
+      <ElDescriptionsItem label="说明">{{ detail.description || '-' }}</ElDescriptionsItem>
+      <ElDescriptionsItem label="更新时间">{{ formatPlatformDateTime(detail.updated_at) }}</ElDescriptionsItem>
+      <ElDescriptionsItem label="节点">
+        <pre class="max-h-320px overflow-auto whitespace-pre-wrap">{{ JSON.stringify(detail.nodes, null, 2) }}</pre>
+      </ElDescriptionsItem>
+      <ElDescriptionsItem label="连线">
+        <pre class="max-h-240px overflow-auto whitespace-pre-wrap">{{ JSON.stringify(detail.edges, null, 2) }}</pre>
+      </ElDescriptionsItem>
+    </ElDescriptions>
+  </ElDrawer>
 </template>
