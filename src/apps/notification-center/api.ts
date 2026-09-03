@@ -4,6 +4,20 @@ import { applicationScope } from '@/platform/application-context';
 
 type TemplateContract = NotificationContract['schemas']['httptransport.TemplateResponseBody'];
 type DeliveryContract = NotificationContract['schemas']['httptransport.DeliveryResponseBody'];
+type ProviderContract = NotificationContract['schemas']['httptransport.ProviderResponseBody'];
+
+export interface NotificationProvider extends ProviderContract, Record<string, unknown> {
+  id: string;
+  tenant_id: string;
+  application_id: string;
+  code: string;
+  channel: string;
+  upstream: string;
+  path: string;
+  priority: number;
+  status: string;
+  version: number;
+}
 
 export interface NotificationTemplate extends TemplateContract, Record<string, unknown> {
   id: string;
@@ -40,6 +54,12 @@ export interface TemplatePage {
 
 export interface DeliveryPage {
   deliveries: NotificationDelivery[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+export interface ProviderPage {
+  providers: NotificationProvider[];
   total: number;
   page: number;
   page_size: number;
@@ -84,6 +104,42 @@ export function listTemplates(query: TemplateQuery) {
         status: query.status,
         page: query.page,
         page_size: query.pageSize
+      }
+    })
+  );
+}
+
+export function listProviders(query: TemplateQuery) {
+  return unwrap<ProviderPage>(
+    notificationRequest({
+      url: '/api/v1/notifications/providers/list',
+      method: 'post',
+      data: {
+        ...applicationScope(query.tenantID, query.applicationID),
+        keyword: query.keyword,
+        channel: query.channel,
+        status: query.status,
+        page: query.page,
+        page_size: query.pageSize
+      }
+    })
+  );
+}
+
+export function putProvider(tenantID: string, applicationID: string, value: Partial<NotificationProvider>) {
+  return unwrap<NotificationProvider>(
+    notificationRequest({
+      url: '/api/v1/notifications/providers/put',
+      method: 'post',
+      data: {
+        ...applicationScope(tenantID, applicationID),
+        code: value.code,
+        channel: value.channel,
+        upstream: value.upstream,
+        path: value.path,
+        priority: value.priority ?? 100,
+        status: value.status || 'active',
+        expected_version: value.version || 0
       }
     })
   );

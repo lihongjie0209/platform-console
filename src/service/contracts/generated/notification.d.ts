@@ -137,6 +137,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/providers/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List notification provider routes */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Provider filters and pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListProvidersRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ProviderPageResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/providers/put": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create or update a notification provider route */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Provider route */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.PutProviderRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ProviderResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notifications/providers/receipt": {
         parameters: {
             query?: never;
@@ -495,6 +581,15 @@ export interface components {
             status?: string;
             tenant_id: string;
         };
+        "httptransport.ListProvidersRequest": {
+            application_id: string;
+            channel?: string;
+            keyword?: string;
+            page?: number;
+            page_size?: number;
+            status?: string;
+            tenant_id: string;
+        };
         "httptransport.ListTemplatesRequest": {
             application_id: string;
             channel?: string;
@@ -507,6 +602,12 @@ export interface components {
         "httptransport.MeResponseBody": {
             subject?: string;
         };
+        "httptransport.ProviderPageResponseBody": {
+            page?: number;
+            page_size?: number;
+            providers?: components["schemas"]["httptransport.ProviderResponseBody"][];
+            total?: number;
+        };
         "httptransport.ProviderReceiptRequest": {
             application_id: string;
             failure_reason?: string;
@@ -514,6 +615,33 @@ export interface components {
             provider_message_id: string;
             status: string;
             tenant_id: string;
+        };
+        "httptransport.ProviderResponseBody": {
+            application_id?: string;
+            channel?: string;
+            code?: string;
+            created_at?: string;
+            created_by?: string;
+            id?: string;
+            path?: string;
+            priority?: number;
+            status?: string;
+            tenant_id?: string;
+            updated_at?: string;
+            updated_by?: string;
+            upstream?: string;
+            version?: number;
+        };
+        "httptransport.PutProviderRequest": {
+            application_id: string;
+            channel: string;
+            code: string;
+            expected_version?: number;
+            path: string;
+            priority?: number;
+            status?: string;
+            tenant_id: string;
+            upstream: string;
         };
         "httptransport.PutTemplateRequest": {
             application_id: string;

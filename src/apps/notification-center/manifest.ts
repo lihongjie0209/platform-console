@@ -5,6 +5,7 @@ export const notificationCenterManifest = {
   category: 'integration',
   pages: {
     'notification-center.templates': () => import('./pages/templates/index.vue'),
+    'notification-center.providers': () => import('./pages/providers/index.vue'),
     'notification-center.deliveries': () => import('./pages/deliveries/index.vue')
   }
 } satisfies ApplicationManifest;
