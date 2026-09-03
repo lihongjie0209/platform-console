@@ -15,6 +15,7 @@ import {
   completeMultipartUpload,
   completeUpload,
   deleteFile,
+  getFile,
   initiateMultipartUpload,
   initiateUpload,
   listFiles,
@@ -48,6 +49,7 @@ const filter = reactive({ keyword: '', status: '', scanStatus: '', contentType: 
 const loadGuard = createLatestRequestGuard();
 const uploadGuard = createLatestRequestGuard();
 const canUpload = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'file.object.upload' }));
+const canRead = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'file.object.read' }));
 const canDownload = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'file.object.download' }));
 const canDelete = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'file.object.delete' }));
 
@@ -204,9 +206,16 @@ async function remove(row: FileMetadata) {
   await loadData();
 }
 
-function showDetail(row: FileMetadata) {
-  detail.value = row;
+async function showDetail(row: FileMetadata) {
+  if (!canRead.value) return;
   detailVisible.value = true;
+  detail.value = undefined;
+  try {
+    detail.value = await getFile(row);
+  } catch (error) {
+    detailVisible.value = false;
+    throw error;
+  }
 }
 
 watch([tenantID, applicationID], () => {
@@ -291,7 +300,7 @@ onMounted(loadData);
         </ElTableColumn>
         <ElTableColumn label="操作" width="190" fixed="right">
           <template #default="{ row }">
-            <ElButton link type="primary" @click="showDetail(row)">详情</ElButton>
+            <ElButton v-if="canRead" link type="primary" @click="showDetail(row)">详情</ElButton>
             <ElButton v-if="canDownload && row.status === 'ready'" link type="primary" @click="download(row)">
               下载
             </ElButton>

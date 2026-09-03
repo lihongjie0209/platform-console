@@ -84,6 +84,16 @@ export function listFiles(query: FileQuery) {
   );
 }
 
+export function getFile(file: Pick<FileMetadata, 'id' | 'tenant_id' | 'application_id'>) {
+  return unwrap<FileMetadata>(
+    fileRequest({
+      url: '/api/v1/files/metadata/get',
+      method: 'post',
+      data: { id: file.id, ...applicationScope(file.tenant_id, file.application_id) }
+    })
+  );
+}
+
 export function initiateUpload(input: {
   tenantID: string;
   applicationID: string;
