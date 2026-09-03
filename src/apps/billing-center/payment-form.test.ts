@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { canRefundPayment, validatePaymentInput, validateRefundInput } from './payment-form';
+import { canRefundPayment, ensureIdempotencyKey, validatePaymentInput, validateRefundInput } from './payment-form';
 
 test('payment forms reject incomplete or unsafe input', () => {
   assert.equal(
@@ -27,4 +27,18 @@ test('refund action is available only for successful payments', () => {
   assert.equal(canRefundPayment(' SUCCEEDED '), true);
   assert.equal(canRefundPayment('pending'), false);
   assert.equal(canRefundPayment('failed'), false);
+});
+
+test('financial operation retries preserve one idempotency key', () => {
+  let generated = 0;
+  const create = () => {
+    generated += 1;
+    return `operation-${generated}`;
+  };
+  const initial = ensureIdempotencyKey('', create);
+  const retry = ensureIdempotencyKey(initial, create);
+
+  assert.equal(initial, 'operation-1');
+  assert.equal(retry, initial);
+  assert.equal(generated, 1);
 });

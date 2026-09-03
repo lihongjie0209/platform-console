@@ -3,9 +3,10 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
 import type { PaymentAttempt, Refund } from '../../api';
 import { createPaymentAttempt, getPayment, listPayments, listRefunds, recordRefund } from '../../api';
-import { canRefundPayment, validatePaymentInput, validateRefundInput } from '../../payment-form';
+import { canRefundPayment, ensureIdempotencyKey, validatePaymentInput, validateRefundInput } from '../../payment-form';
 
 defineOptions({ name: 'BillingCenterPayments' });
 
@@ -26,11 +27,18 @@ const paymentDialogVisible = ref(false);
 const refundDialogVisible = ref(false);
 const selectedPayment = ref<PaymentAttempt>();
 const loadGuard = createLatestRequestGuard();
+const { active: activeAction, run: runAction } = useKeyedAsyncAction();
 const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.payment.create' }));
 const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.payment.read' }));
 const canRefund = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.payment.refund' }));
-const paymentForm = reactive({ invoiceID: '', provider: '', paymentMethodReference: '' });
-const refundForm = reactive({ providerRefundID: '', amountMinor: 0, reason: '', status: 'succeeded' });
+const paymentForm = reactive({ invoiceID: '', provider: '', paymentMethodReference: '', idempotencyKey: '' });
+const refundForm = reactive({
+  providerRefundID: '',
+  amountMinor: 0,
+  reason: '',
+  status: 'succeeded',
+  idempotencyKey: ''
+});
 
 async function load() {
   const request = loadGuard.begin();
@@ -82,6 +90,7 @@ function openPaymentDialog() {
   paymentForm.invoiceID = '';
   paymentForm.provider = '';
   paymentForm.paymentMethodReference = '';
+  paymentForm.idempotencyKey = ensureIdempotencyKey('');
   paymentDialogVisible.value = true;
 }
 
@@ -92,17 +101,20 @@ async function submitPayment() {
     window.$message?.warning(validationError);
     return;
   }
-  await createPaymentAttempt({
-    tenantID: tenantID.value,
-    applicationID: applicationID.value,
-    invoiceID: paymentForm.invoiceID,
-    provider: paymentForm.provider,
-    paymentMethodReference: paymentForm.paymentMethodReference,
-    idempotencyKey: crypto.randomUUID()
+  await runAction('payment:create', async () => {
+    paymentForm.idempotencyKey = ensureIdempotencyKey(paymentForm.idempotencyKey);
+    await createPaymentAttempt({
+      tenantID: tenantID.value,
+      applicationID: applicationID.value,
+      invoiceID: paymentForm.invoiceID,
+      provider: paymentForm.provider,
+      paymentMethodReference: paymentForm.paymentMethodReference,
+      idempotencyKey: paymentForm.idempotencyKey
+    });
+    paymentForm.paymentMethodReference = '';
+    paymentDialogVisible.value = false;
+    await load();
   });
-  paymentForm.paymentMethodReference = '';
-  paymentDialogVisible.value = false;
-  await load();
 }
 
 async function openRefundDialog(payment: PaymentAttempt) {
@@ -118,6 +130,7 @@ async function openRefundDialog(payment: PaymentAttempt) {
   refundForm.amountMinor = current.amount_minor;
   refundForm.reason = '';
   refundForm.status = 'succeeded';
+  refundForm.idempotencyKey = ensureIdempotencyKey('');
   refundDialogVisible.value = true;
 }
 
@@ -128,17 +141,21 @@ async function submitRefund() {
     window.$message?.warning(validationError);
     return;
   }
-  await recordRefund({
-    payment: selectedPayment.value,
-    providerRefundID: refundForm.providerRefundID,
-    amountMinor: refundForm.amountMinor,
-    reason: refundForm.reason,
-    status: refundForm.status,
-    idempotencyKey: crypto.randomUUID()
+  const payment = selectedPayment.value;
+  await runAction(`payment:${payment.id}:refund`, async () => {
+    refundForm.idempotencyKey = ensureIdempotencyKey(refundForm.idempotencyKey);
+    await recordRefund({
+      payment,
+      providerRefundID: refundForm.providerRefundID,
+      amountMinor: refundForm.amountMinor,
+      reason: refundForm.reason,
+      status: refundForm.status,
+      idempotencyKey: refundForm.idempotencyKey
+    });
+    selectedPayment.value = undefined;
+    refundDialogVisible.value = false;
+    await load();
   });
-  selectedPayment.value = undefined;
-  refundDialogVisible.value = false;
-  await load();
 }
 
 watch([tenantID, applicationID], () => {
@@ -251,8 +268,10 @@ onMounted(load);
       </ElFormItem>
     </ElForm>
     <template #footer>
-      <ElButton @click="paymentDialogVisible = false">取消</ElButton>
-      <ElButton v-if="canCreate" type="primary" @click="submitPayment">提交</ElButton>
+      <ElButton :disabled="Boolean(activeAction)" @click="paymentDialogVisible = false">取消</ElButton>
+      <ElButton v-if="canCreate" type="primary" :loading="activeAction === 'payment:create'" @click="submitPayment">
+        提交
+      </ElButton>
     </template>
   </ElDialog>
 
@@ -272,8 +291,15 @@ onMounted(load);
       <ElFormItem label="退款原因"><ElInput v-model="refundForm.reason" type="textarea" :rows="3" /></ElFormItem>
     </ElForm>
     <template #footer>
-      <ElButton @click="refundDialogVisible = false">取消</ElButton>
-      <ElButton v-if="canRefund" type="danger" @click="submitRefund">确认退款</ElButton>
+      <ElButton :disabled="Boolean(activeAction)" @click="refundDialogVisible = false">取消</ElButton>
+      <ElButton
+        v-if="canRefund"
+        type="danger"
+        :loading="activeAction === `payment:${selectedPayment?.id}:refund`"
+        @click="submitRefund"
+      >
+        确认退款
+      </ElButton>
     </template>
   </ElDialog>
 </template>
