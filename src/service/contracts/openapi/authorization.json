@@ -641,6 +641,54 @@
                 }
             }
         },
+        "/api/v1/authorization/my-permissions/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "authorization-permissions"
+                ],
+                "summary": "Get a permission in the current management scope",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GetMyPermissionRequest"
+                            }
+                        }
+                    },
+                    "description": "Scoped permission ID",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.PermissionBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/authorization/my-permissions/list": {
             "post": {
                 "security": [
@@ -1025,6 +1073,54 @@
                 }
             }
         },
+        "/api/v1/authorization/my-roles/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "authorization-roles"
+                ],
+                "summary": "Get a role in the current management scope",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GetMyRoleRequest"
+                            }
+                        }
+                    },
+                    "description": "Scoped role ID",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.RoleBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/authorization/my-roles/list": {
             "post": {
                 "security": [
@@ -1141,6 +1237,54 @@
                         }
                     },
                     "description": "Permission",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.PermissionBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/authorization/permissions/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "authorization-permissions"
+                ],
+                "summary": "Get a permission by ID",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GetPermissionRequest"
+                            }
+                        }
+                    },
+                    "description": "Permission ID",
                     "required": true
                 },
                 "responses": {
@@ -1429,6 +1573,54 @@
                         }
                     },
                     "description": "Role",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.RoleBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/authorization/roles/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "authorization-roles"
+                ],
+                "summary": "Get a role by ID",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GetRoleRequest"
+                            }
+                        }
+                    },
+                    "description": "Role ID",
                     "required": true
                 },
                 "responses": {
@@ -2236,6 +2428,74 @@
                         ]
                     },
                     "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.GetMyPermissionRequest": {
+                "type": "object",
+                "required": [
+                    "permission_id",
+                    "permission_scope",
+                    "tenant_id"
+                ],
+                "properties": {
+                    "permission_id": {
+                        "type": "string"
+                    },
+                    "permission_scope": {
+                        "type": "string",
+                        "enum": [
+                            "tenant",
+                            "platform"
+                        ]
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.GetMyRoleRequest": {
+                "type": "object",
+                "required": [
+                    "permission_scope",
+                    "role_id",
+                    "tenant_id"
+                ],
+                "properties": {
+                    "permission_scope": {
+                        "type": "string",
+                        "enum": [
+                            "tenant",
+                            "platform"
+                        ]
+                    },
+                    "role_id": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.GetPermissionRequest": {
+                "type": "object",
+                "required": [
+                    "permission_id"
+                ],
+                "properties": {
+                    "permission_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.GetRoleRequest": {
+                "type": "object",
+                "required": [
+                    "role_id"
+                ],
+                "properties": {
+                    "role_id": {
                         "type": "string"
                     }
                 }

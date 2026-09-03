@@ -9,7 +9,7 @@ import {
 import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
 import type { Permission, PermissionForm } from '../../api';
-import { createMyPermission, listMyPermissions, updateMyPermission } from '../../api';
+import { createMyPermission, getMyPermission, listMyPermissions, updateMyPermission } from '../../api';
 
 defineOptions({ name: 'PlatformAdminPermissions' });
 interface Query extends Record<string, unknown> {
@@ -97,7 +97,11 @@ const config: BizCrudConfig<Permission, Query, PermissionForm, string> = {
   },
   permissions: {
     create: () => ({ scope: permissionScope.value, codes: 'authorization.permission.create' }),
-    update: () => ({ scope: permissionScope.value, codes: 'authorization.permission.update' })
+    update: () => ({
+      scope: permissionScope.value,
+      codes: ['authorization.permission.read', 'authorization.permission.update'],
+      strategy: 'all'
+    })
   },
   mapRowToForm: row => ({ ...emptyForm(), ...row })
 };
@@ -116,6 +120,10 @@ const adapter: BizCrudAdapter<Permission, Query, PermissionForm, string> = {
       pageSize: result.page_size
     };
   },
+  detail: async permissionID => ({
+    ...emptyForm(),
+    ...(await getMyPermission({ tenantID: tenantID.value, permissionScope: permissionScope.value, permissionID }))
+  }),
   create: form => createMyPermission({ tenantID: tenantID.value, permissionScope: permissionScope.value, form }),
   update: (permissionID, form) =>
     updateMyPermission({ tenantID: tenantID.value, permissionScope: permissionScope.value, permissionID, form })

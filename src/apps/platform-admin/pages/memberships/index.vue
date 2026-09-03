@@ -11,6 +11,7 @@ import {
   addMembership,
   batchGetOrganizationUnits,
   batchGetUsers,
+  getMembership,
   listMemberships,
   listUsers,
   treeOrganizationUnits,
@@ -121,7 +122,7 @@ const config: BizCrudConfig<Membership, Query, MembershipForm, string> = {
   },
   permissions: {
     create: { scope: 'tenant', codes: 'tenant.membership.create' },
-    update: { scope: 'tenant', codes: 'tenant.membership.update' }
+    update: { scope: 'tenant', codes: ['tenant.membership.read', 'tenant.membership.update'], strategy: 'all' }
   },
   mapRowToForm: row => ({ ...emptyForm(), ...row })
 };
@@ -148,6 +149,7 @@ const adapter: BizCrudAdapter<Membership, Query, MembershipForm, string> = {
     organizations.value = mergeOrganizationDirectory(organizations.value, organizationDirectory.items || []);
     return { items: result.memberships, total: result.total, page: result.page, pageSize: result.page_size };
   },
+  detail: async id => ({ ...emptyForm(), ...(await getMembership(id)) }),
   create: form => addMembership(tenantID.value, form),
   update: updateMembership
 };

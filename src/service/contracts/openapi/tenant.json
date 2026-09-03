@@ -55,6 +55,54 @@
                 }
             }
         },
+        "/api/v1/groups/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Get a member group by ID",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GetGroupRequest"
+                            }
+                        }
+                    },
+                    "description": "Group ID",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.GroupBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/groups/list": {
             "post": {
                 "security": [
@@ -859,6 +907,54 @@
                                             "properties": {
                                                 "body": {
                                                     "$ref": "#/components/schemas/httptransport.MembershipDirectoryBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/memberships/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "memberships"
+                ],
+                "summary": "Get a membership by ID",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GetMembershipRequest"
+                            }
+                        }
+                    },
+                    "description": "Membership ID",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.MembershipBody"
                                                 }
                                             }
                                         }
@@ -2247,6 +2343,17 @@
                     }
                 }
             },
+            "httptransport.GetGroupRequest": {
+                "type": "object",
+                "required": [
+                    "group_id"
+                ],
+                "properties": {
+                    "group_id": {
+                        "type": "string"
+                    }
+                }
+            },
             "httptransport.GetInvitationRequest": {
                 "type": "object",
                 "required": [
@@ -2254,6 +2361,17 @@
                 ],
                 "properties": {
                     "invitation_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.GetMembershipRequest": {
+                "type": "object",
+                "required": [
+                    "membership_id"
+                ],
+                "properties": {
+                    "membership_id": {
                         "type": "string"
                     }
                 }

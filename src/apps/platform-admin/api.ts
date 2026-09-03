@@ -885,6 +885,15 @@ export async function updateMyRole(request: ScopedRoleRequest) {
     })
   );
 }
+export function getMyRole(request: { tenantID: string; permissionScope: 'tenant' | 'platform'; roleID: string }) {
+  return unwrap<Role>(
+    authorizationRequest({
+      url: '/api/v1/authorization/my-roles/get',
+      method: 'post',
+      data: { tenant_id: request.tenantID, permission_scope: request.permissionScope, role_id: request.roleID }
+    })
+  );
+}
 
 export function listPermissions(tenantID: string, page: number, pageSize: number) {
   return unwrap(
@@ -973,6 +982,23 @@ export async function updateMyPermission(request: ScopedPermissionRequest) {
         condition_expression: request.form.condition_expression,
         status: request.form.status,
         version: request.form.version
+      }
+    })
+  );
+}
+export function getMyPermission(request: {
+  tenantID: string;
+  permissionScope: 'tenant' | 'platform';
+  permissionID: string;
+}) {
+  return unwrap<Permission>(
+    authorizationRequest({
+      url: '/api/v1/authorization/my-permissions/get',
+      method: 'post',
+      data: {
+        tenant_id: request.tenantID,
+        permission_scope: request.permissionScope,
+        permission_id: request.permissionID
       }
     })
   );
@@ -1252,6 +1278,9 @@ export async function updateGroup(id: string, form: GroupForm) {
     })
   );
 }
+export function getGroup(id: string) {
+  return unwrap<Group>(tenantRequest({ url: '/api/v1/groups/get', method: 'post', data: { group_id: id } }));
+}
 
 export function batchGetGroupMembers(groupID: string, membershipIDs: string[]) {
   return unwrap<{ group_members: GroupMember[] }>(
@@ -1433,6 +1462,11 @@ export async function updateMembership(id: string, form: MembershipForm) {
         reason: form.reason
       }
     })
+  );
+}
+export function getMembership(id: string) {
+  return unwrap<Membership>(
+    tenantRequest({ url: '/api/v1/memberships/get', method: 'post', data: { membership_id: id } })
   );
 }
 

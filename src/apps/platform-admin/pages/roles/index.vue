@@ -9,7 +9,7 @@ import {
 import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
 import type { Role, RoleForm } from '../../api';
-import { createMyRole, listMyRoles, updateMyRole } from '../../api';
+import { createMyRole, getMyRole, listMyRoles, updateMyRole } from '../../api';
 
 defineOptions({ name: 'PlatformAdminRoles' });
 interface Query extends Record<string, unknown> {
@@ -90,7 +90,11 @@ const config: BizCrudConfig<Role, Query, RoleForm, string> = {
   },
   permissions: {
     create: () => ({ scope: roleScope.value, codes: 'authorization.role.create' }),
-    update: () => ({ scope: roleScope.value, codes: 'authorization.role.update' })
+    update: () => ({
+      scope: roleScope.value,
+      codes: ['authorization.role.read', 'authorization.role.update'],
+      strategy: 'all'
+    })
   },
   mapRowToForm: row => ({ ...emptyForm(), ...row })
 };
@@ -109,6 +113,10 @@ const adapter: BizCrudAdapter<Role, Query, RoleForm, string> = {
       pageSize: result.page_size
     };
   },
+  detail: async roleID => ({
+    ...emptyForm(),
+    ...(await getMyRole({ tenantID: tenantID.value, permissionScope: roleScope.value, roleID }))
+  }),
   create: form => createMyRole({ tenantID: tenantID.value, permissionScope: roleScope.value, form }),
   update: (roleID, form) => updateMyRole({ tenantID: tenantID.value, permissionScope: roleScope.value, roleID, form })
 };

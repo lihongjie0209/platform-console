@@ -572,6 +572,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/authorization/my-permissions/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a permission in the current management scope */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Scoped permission ID */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetMyPermissionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PermissionBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/authorization/my-permissions/list": {
         parameters: {
             query?: never;
@@ -916,6 +959,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/authorization/my-roles/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a role in the current management scope */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Scoped role ID */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetMyRoleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RoleBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/authorization/my-roles/list": {
         parameters: {
             query?: never;
@@ -1023,6 +1109,49 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["httptransport.CreatePermissionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PermissionBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/authorization/permissions/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a permission by ID */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Permission ID */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetPermissionRequest"];
                 };
             };
             responses: {
@@ -1281,6 +1410,49 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["httptransport.CreateRoleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.RoleBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/authorization/roles/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a role by ID */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Role ID */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetRoleRequest"];
                 };
             };
             responses: {
@@ -1704,6 +1876,24 @@ export interface components {
             /** @enum {string} */
             permission_scope: "tenant" | "platform";
             tenant_id: string;
+        };
+        "httptransport.GetMyPermissionRequest": {
+            permission_id: string;
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
+            tenant_id: string;
+        };
+        "httptransport.GetMyRoleRequest": {
+            /** @enum {string} */
+            permission_scope: "tenant" | "platform";
+            role_id: string;
+            tenant_id: string;
+        };
+        "httptransport.GetPermissionRequest": {
+            permission_id: string;
+        };
+        "httptransport.GetRoleRequest": {
+            role_id: string;
         };
         "httptransport.GrantMyRolePermissionRequest": {
             permission_id: string;

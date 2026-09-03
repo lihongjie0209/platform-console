@@ -47,6 +47,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/groups/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a member group by ID */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Group ID */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetGroupRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.GroupBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/groups/list": {
         parameters: {
             query?: never;
@@ -771,6 +814,49 @@ export interface paths {
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"] & {
                             body?: components["schemas"]["httptransport.MembershipDirectoryBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/memberships/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a membership by ID */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Membership ID */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetMembershipRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.MembershipBody"];
                         };
                     };
                 };
@@ -1843,8 +1929,14 @@ export interface components {
             status?: string;
             username?: string;
         };
+        "httptransport.GetGroupRequest": {
+            group_id: string;
+        };
         "httptransport.GetInvitationRequest": {
             invitation_id: string;
+        };
+        "httptransport.GetMembershipRequest": {
+            membership_id: string;
         };
         "httptransport.GetOrganizationUnitRequest": {
             organization_unit_id: string;

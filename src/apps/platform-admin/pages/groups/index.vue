@@ -5,7 +5,7 @@ import { BizCrudPage, BizRowActions, BizStatusTag } from '@/components/business'
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { Group, GroupForm } from '../../api';
-import { createGroup, listGroups, updateGroup } from '../../api';
+import { createGroup, getGroup, listGroups, updateGroup } from '../../api';
 
 defineOptions({ name: 'PlatformAdminGroups' });
 interface Query extends Record<string, unknown> {
@@ -55,7 +55,7 @@ const config: BizCrudConfig<Group, Query, GroupForm, string> = {
   },
   permissions: {
     create: { scope: 'tenant', codes: 'tenant.group.create' },
-    update: { scope: 'tenant', codes: 'tenant.group.update' }
+    update: { scope: 'tenant', codes: ['tenant.group.read', 'tenant.group.update'], strategy: 'all' }
   },
   mapRowToForm: row => ({ ...emptyForm(), ...row })
 };
@@ -64,6 +64,7 @@ const adapter: BizCrudAdapter<Group, Query, GroupForm, string> = {
     const result = await listGroups({ tenantID: tenantID.value, page: query.current, pageSize: query.size });
     return { items: result.items, total: result.total, page: result.page, pageSize: result.page_size };
   },
+  detail: async id => ({ ...emptyForm(), ...(await getGroup(id)) }),
   create: form => createGroup(tenantID.value, form),
   update: updateGroup
 };
