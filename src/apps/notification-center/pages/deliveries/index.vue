@@ -4,7 +4,7 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { NotificationDelivery } from '../../api';
-import { listDeliveries, sendNotification } from '../../api';
+import { getDelivery, listDeliveries, sendNotification } from '../../api';
 import { parseNotificationVariables } from '../../variables';
 
 defineOptions({ name: 'NotificationCenterDeliveries' });
@@ -33,6 +33,7 @@ const form = reactive({
 });
 const loadGuard = createLatestRequestGuard();
 const canSend = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'notification.delivery.send' }));
+const canRead = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'notification.delivery.read' }));
 
 async function loadData() {
   const request = loadGuard.begin();
@@ -99,9 +100,16 @@ async function send() {
     sending.value = false;
   }
 }
-function showDetail(row: NotificationDelivery) {
-  detail.value = row;
+async function showDetail(row: NotificationDelivery) {
+  if (!canRead.value) return;
   detailVisible.value = true;
+  detail.value = undefined;
+  try {
+    detail.value = await getDelivery(row);
+  } catch (error) {
+    detailVisible.value = false;
+    throw error;
+  }
 }
 watch([tenantID, applicationID], () => {
   rows.value = [];
@@ -160,7 +168,9 @@ onMounted(loadData);
         <ElTableColumn prop="attempts" label="尝试" width="75" />
         <ElTableColumn prop="provider" label="供应商" width="120" />
         <ElTableColumn label="操作" width="90" fixed="right">
-          <template #default="{ row }"><ElButton link type="primary" @click="showDetail(row)">详情</ElButton></template>
+          <template #default="{ row }">
+            <ElButton v-if="canRead" link type="primary" @click="showDetail(row)">详情</ElButton>
+          </template>
         </ElTableColumn>
       </ElTable>
       <div class="mt-16px flex justify-end">

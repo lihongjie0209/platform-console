@@ -179,6 +179,16 @@ export function listDeliveries(query: DeliveryQuery) {
   );
 }
 
+export function getDelivery(value: Pick<NotificationDelivery, 'id' | 'tenant_id' | 'application_id'>) {
+  return unwrap<NotificationDelivery>(
+    notificationRequest({
+      url: '/api/v1/notifications/deliveries/get',
+      method: 'post',
+      data: { id: value.id, ...applicationScope(value.tenant_id, value.application_id) }
+    })
+  );
+}
+
 export function sendNotification(input: {
   tenantID: string;
   applicationID: string;
