@@ -5,6 +5,7 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard } from '@/platform/application-context';
 import type { OrganizationUnit, OrganizationUnitForm, OrganizationUnitTreeNode } from '../../api';
 import { createOrganizationUnit, getOrganizationUnit, treeOrganizationUnits, updateOrganizationUnit } from '../../api';
+import { flattenOrganizationTree } from '../../organization-directory';
 
 defineOptions({ name: 'PlatformAdminOrganizationUnits' });
 const platformStore = usePlatformStore();
@@ -109,16 +110,13 @@ async function searchParents(value = '') {
     });
     if (!parentGuard.isCurrent(request)) return;
     const selected = parentOptions.value.find(item => item.id === form.parent_id);
-    const options = flattenTree(result.nodes || []).filter(item => item.id !== form.id);
+    const options = flattenOrganizationTree(result.nodes || []).filter(item => item.id !== form.id);
     parentOptions.value = selected
       ? Array.from(new Map([selected, ...options].map(item => [String(item.id), item])).values())
       : options;
   } finally {
     if (parentGuard.isCurrent(request)) parentSearching.value = false;
   }
-}
-function flattenTree(nodes: OrganizationUnitTreeNode[]): OrganizationUnit[] {
-  return nodes.flatMap(node => [node, ...flattenTree(node.children || [])]);
 }
 function openCreate(parentID = '') {
   if (!canCreateUnit.value) return;

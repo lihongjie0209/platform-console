@@ -1247,12 +1247,6 @@ export async function removeGroupMember(groupID: string, membershipID: string, v
   );
 }
 
-export function listOrganizationUnits(tenantID: string) {
-  return unwrap<{ organization_units: OrganizationUnit[] }>(
-    tenantRequest({ url: '/api/v1/organization-units/list', method: 'post', data: { tenant_id: tenantID } })
-  ).then(result => result.organization_units || []);
-}
-
 export interface OrganizationUnitTreeNode extends OrganizationUnit {
   has_children: boolean;
   children: OrganizationUnitTreeNode[];
@@ -1290,6 +1284,16 @@ export function getOrganizationUnit(organizationUnitID: string) {
       url: '/api/v1/organization-units/get',
       method: 'post',
       data: { organization_unit_id: organizationUnitID }
+    })
+  );
+}
+
+export function batchGetOrganizationUnits(tenantID: string, organizationUnitIDs: string[]) {
+  return unwrap<{ items: OrganizationUnit[] }>(
+    tenantRequest({
+      url: '/api/v1/organization-units/batch-get',
+      method: 'post',
+      data: { tenant_id: tenantID, organization_unit_ids: organizationUnitIDs }
     })
   );
 }

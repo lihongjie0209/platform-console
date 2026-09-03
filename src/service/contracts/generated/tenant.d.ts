@@ -782,6 +782,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organization-units/batch-get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a bounded set of organization units by ID */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Tenant and organization unit IDs (maximum 100) */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.BatchGetOrganizationUnitsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.OrganizationUnitBatchBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organization-units/create": {
         parameters: {
             query?: never;
@@ -1666,6 +1709,10 @@ export interface components {
             membership_ids: string[];
             tenant_id: string;
         };
+        "httptransport.BatchGetOrganizationUnitsRequest": {
+            organization_unit_ids: string[];
+            tenant_id: string;
+        };
         "httptransport.ConsumeQuotaRequest": {
             amount: number;
             key: string;
@@ -1848,6 +1895,9 @@ export interface components {
             page?: number;
             page_size?: number;
             total?: number;
+        };
+        "httptransport.OrganizationUnitBatchBody": {
+            items?: components["schemas"]["httptransport.OrganizationUnitBody"][];
         };
         "httptransport.OrganizationUnitBody": {
             code?: string;

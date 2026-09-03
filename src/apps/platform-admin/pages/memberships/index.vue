@@ -9,12 +9,14 @@ import { remoteSearchPage } from '@/platform/remote-search';
 import type { Membership, MembershipForm, OrganizationUnit, UserIdentity } from '../../api';
 import {
   addMembership,
+  batchGetOrganizationUnits,
   batchGetUsers,
   listMemberships,
-  listOrganizationUnits,
   listUsers,
+  treeOrganizationUnits,
   updateMembership
 } from '../../api';
+import { flattenOrganizationTree, mergeOrganizationDirectory } from '../../organization-directory';
 import { boundedDistinctIDs, mergeUserDirectory } from '../../user-directory';
 
 defineOptions({ name: 'PlatformAdminMemberships' });
@@ -27,6 +29,7 @@ interface Query extends Record<string, unknown> {
 const platformStore = usePlatformStore();
 const users = ref<UserIdentity[]>([]);
 const userSearchGuard = createLatestRequestGuard();
+const organizationSearchGuard = createLatestRequestGuard();
 const organizations = ref<OrganizationUnit[]>([]);
 const userOptions = computed<BizFieldOption[]>(() =>
   users.value.map(item => ({ label: `${item.display_name || item.username} (${item.username})`, value: item.id }))
@@ -96,7 +99,7 @@ const config: BizCrudConfig<Membership, Query, MembershipForm, string> = {
         label: '主组织',
         type: 'select',
         options: organizationOptions,
-        props: { filterable: true, clearable: true }
+        props: { filterable: true, clearable: true, remote: true, remoteMethod: searchOrganizations }
       },
       {
         key: 'status',
@@ -132,10 +135,17 @@ const adapter: BizCrudAdapter<Membership, Query, MembershipForm, string> = {
       pageSize: query.size
     });
     const ids = boundedDistinctIDs(result.memberships.map(item => item.user_id));
-    if (ids.length) {
-      const directory = await batchGetUsers(ids);
-      users.value = mergeUserDirectory(users.value, directory.items || []);
-    }
+    const organizationIDs = boundedDistinctIDs(
+      result.memberships.map(item => item.primary_organization_unit_id).filter(Boolean)
+    );
+    const [directory, organizationDirectory] = await Promise.all([
+      ids.length ? batchGetUsers(ids) : Promise.resolve({ items: [] as UserIdentity[] }),
+      organizationIDs.length
+        ? batchGetOrganizationUnits(tenantID.value, organizationIDs)
+        : Promise.resolve({ items: [] as OrganizationUnit[] })
+    ]);
+    users.value = mergeUserDirectory(users.value, directory.items || []);
+    organizations.value = mergeOrganizationDirectory(organizations.value, organizationDirectory.items || []);
     return { items: result.memberships, total: result.total, page: result.page, pageSize: result.page_size };
   },
   create: form => addMembership(tenantID.value, form),
@@ -155,11 +165,27 @@ async function searchUsers(keyword: string) {
   const result = await listUsers({ ...remoteSearchPage(), keyword: keyword.trim(), status: 'active' });
   if (userSearchGuard.isCurrent(request)) users.value = mergeUserDirectory(users.value, result.items);
 }
-async function loadOrganizations() {
-  organizations.value = tenantID.value ? await listOrganizationUnits(tenantID.value) : [];
+async function searchOrganizations(keyword: string) {
+  if (!tenantID.value) return;
+  const request = organizationSearchGuard.begin();
+  const result = await treeOrganizationUnits({
+    tenantID: tenantID.value,
+    mode: 'search_with_ancestors',
+    keyword: keyword.trim(),
+    status: 'active',
+    maxDepth: 32,
+    maxNodes: 50
+  });
+  if (organizationSearchGuard.isCurrent(request)) {
+    organizations.value = mergeOrganizationDirectory(organizations.value, flattenOrganizationTree(result.nodes || []));
+  }
 }
-watch(tenantID, loadOrganizations);
-onMounted(() => Promise.all([searchUsers(''), loadOrganizations()]));
+watch(tenantID, () => {
+  organizationSearchGuard.invalidate();
+  organizations.value = [];
+  searchOrganizations('');
+});
+onMounted(() => Promise.all([searchUsers(''), searchOrganizations('')]));
 </script>
 
 <template>

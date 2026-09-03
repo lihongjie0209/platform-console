@@ -870,6 +870,54 @@
                 }
             }
         },
+        "/api/v1/organization-units/batch-get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "organization-units"
+                ],
+                "summary": "Get a bounded set of organization units by ID",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.BatchGetOrganizationUnitsRequest"
+                            }
+                        }
+                    },
+                    "description": "Tenant and organization unit IDs (maximum 100)",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.OrganizationUnitBatchBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/organization-units/create": {
             "post": {
                 "security": [
@@ -1937,6 +1985,24 @@
                     }
                 }
             },
+            "httptransport.BatchGetOrganizationUnitsRequest": {
+                "type": "object",
+                "required": [
+                    "organization_unit_ids",
+                    "tenant_id"
+                ],
+                "properties": {
+                    "organization_unit_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
             "httptransport.ConsumeQuotaRequest": {
                 "type": "object",
                 "required": [
@@ -2530,6 +2596,17 @@
                     },
                     "total": {
                         "type": "integer"
+                    }
+                }
+            },
+            "httptransport.OrganizationUnitBatchBody": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.OrganizationUnitBody"
+                        }
                     }
                 }
             },

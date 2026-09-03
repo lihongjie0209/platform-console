@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
+import { createLatestRequestGuard } from '@/platform/application-context';
 import { remoteSearchPage } from '@/platform/remote-search';
 import { confirmUserAction } from '@/platform/user-action';
 import {
@@ -21,18 +22,20 @@ import type {
 import {
   batchGetMemberships,
   batchGetMyRoles,
+  batchGetOrganizationUnits,
   batchGetServiceAccounts,
   batchGetUsers,
   createMyBinding,
   listGroups,
   listMyBindings,
   listMyRoles,
-  listOrganizationUnits,
   listServiceAccounts,
   listUsers,
   revokeMyBinding,
-  searchMembershipDirectory
+  searchMembershipDirectory,
+  treeOrganizationUnits
 } from '../../api';
+import { flattenOrganizationTree, mergeOrganizationDirectory } from '../../organization-directory';
 import { boundedDistinctIDs, mergeUserDirectory } from '../../user-directory';
 
 defineOptions({ name: 'PlatformAdminRoleBindings' });
@@ -41,6 +44,7 @@ const loading = ref(false);
 const submitting = ref(false);
 const subjectSearching = ref(false);
 const roleSearching = ref(false);
+const organizationSearching = ref(false);
 const rows = ref<Binding[]>([]);
 const total = ref(0);
 const page = ref(1);
@@ -51,6 +55,7 @@ const groups = ref<Group[]>([]);
 const organizations = ref<OrganizationUnit[]>([]);
 const users = ref<UserIdentity[]>([]);
 const serviceAccounts = ref<ServiceAccount[]>([]);
+const organizationGuard = createLatestRequestGuard();
 const bindingScope = ref<AuthorizationManagementScope>('tenant');
 const dialogVisible = ref(false);
 const formRef = ref<FormInstance>();
@@ -175,7 +180,7 @@ async function loadCatalogs() {
     organizations.value = [];
     return;
   }
-  organizations.value = await listOrganizationUnits(tenantID.value);
+  await searchOrganizations();
 }
 async function hydrateVisibleSubjects(bindings: Binding[]) {
   const currentTenantID = tenantID.value;
@@ -190,7 +195,10 @@ async function hydrateVisibleSubjects(bindings: Binding[]) {
   const serviceAccountIDs = boundedDistinctIDs(
     bindings.filter(item => item.subject_type === 'service_account').map(item => String(item.subject_id))
   );
-  const [userResult, membershipResult, roleResult, serviceAccountResult] = await Promise.all([
+  const organizationIDs = boundedDistinctIDs(
+    bindings.map(item => String(item.organization_unit_id || '')).filter(Boolean)
+  );
+  const [userResult, membershipResult, roleResult, serviceAccountResult, organizationResult] = await Promise.all([
     userIDs.length ? batchGetUsers(userIDs) : Promise.resolve({ items: [] }),
     membershipIDs.length
       ? batchGetMemberships(currentTenantID, membershipIDs)
@@ -200,14 +208,41 @@ async function hydrateVisibleSubjects(bindings: Binding[]) {
       : Promise.resolve({ items: [] as Role[] }),
     serviceAccountIDs.length
       ? batchGetServiceAccounts(serviceAccountIDs)
-      : Promise.resolve({ items: [] as ServiceAccount[] })
+      : Promise.resolve({ items: [] as ServiceAccount[] }),
+    organizationIDs.length
+      ? batchGetOrganizationUnits(currentTenantID, organizationIDs)
+      : Promise.resolve({ items: [] as OrganizationUnit[] })
   ]);
   roles.value = mergeRoleDirectory(roles.value, roleResult.items);
   serviceAccounts.value = mergeServiceAccountDirectory(serviceAccounts.value, serviceAccountResult.items);
   memberships.value = membershipResult.memberships;
+  organizations.value = mergeOrganizationDirectory(organizations.value, organizationResult.items);
   const membershipUserIDs = boundedDistinctIDs(membershipResult.memberships.map(item => String(item.user_id)));
   const membershipUsers = membershipUserIDs.length ? await batchGetUsers(membershipUserIDs) : { items: [] };
   users.value = mergeUserDirectory(users.value, [...userResult.items, ...membershipUsers.items]);
+}
+async function searchOrganizations(keyword = '') {
+  if (!tenantID.value || bindingScope.value !== 'tenant') return;
+  const request = organizationGuard.begin();
+  organizationSearching.value = true;
+  try {
+    const result = await treeOrganizationUnits({
+      tenantID: tenantID.value,
+      mode: 'search_with_ancestors',
+      keyword: keyword.trim(),
+      status: 'active',
+      maxDepth: 32,
+      maxNodes: 50
+    });
+    if (organizationGuard.isCurrent(request)) {
+      organizations.value = mergeOrganizationDirectory(
+        organizations.value,
+        flattenOrganizationTree(result.nodes || [])
+      );
+    }
+  } finally {
+    if (organizationGuard.isCurrent(request)) organizationSearching.value = false;
+  }
 }
 function mergeRoleDirectory(current: Role[], incoming: Role[]) {
   const values = new Map(current.map(item => [String(item.id), item]));
@@ -285,7 +320,7 @@ async function openCreate() {
   });
   formRef.value?.clearValidate();
   dialogVisible.value = true;
-  await Promise.all([searchSubjects(), searchRoles()]);
+  await Promise.all([searchSubjects(), searchRoles(), searchOrganizations()]);
 }
 async function submit() {
   if (!canCreateBinding.value || !(await formRef.value?.validate())) return;
@@ -333,6 +368,7 @@ watch(
   }
 );
 watch([tenantID, bindingScope], async () => {
+  organizationGuard.invalidate();
   page.value = 1;
   rows.value = [];
   form.subject_type = bindingScope.value === 'platform' ? 'user' : 'membership';
@@ -441,7 +477,15 @@ onMounted(() => Promise.all([loadCatalogs(), loadRows()]));
         </ElSelect>
       </ElFormItem>
       <ElFormItem v-if="bindingScope === 'tenant'" label="组织范围（可选）">
-        <ElSelect v-model="form.organization_unit_id" filterable clearable>
+        <ElSelect
+          v-model="form.organization_unit_id"
+          filterable
+          remote
+          clearable
+          reserve-keyword
+          :remote-method="searchOrganizations"
+          :loading="organizationSearching"
+        >
           <ElOption
             v-for="organization in organizations.filter(item => item.status === 'active')"
             :key="String(organization.id)"
