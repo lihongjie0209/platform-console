@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { hasPersistedStateChanged } from '@/platform/optimistic-mutation';
 import { confirmUserAction } from '@/platform/user-action';
 import type { Subscription } from '../../api';
 import { cancelSubscription, createSubscription, getSubscription, listSubscriptions } from '../../api';
@@ -64,6 +65,11 @@ async function cancel(v: Subscription) {
   );
   if (!confirmed) return;
   const current = await getSubscription(v);
+  if (hasPersistedStateChanged(v.status, current.status) || current.cancel_at_period_end) {
+    window.$message?.warning('订阅状态已变化，请确认最新状态后重试');
+    await load();
+    return;
+  }
   await cancelSubscription(current, true);
   await load();
 }

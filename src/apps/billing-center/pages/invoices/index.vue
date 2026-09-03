@@ -2,7 +2,8 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
-import { promptUserInput } from '@/platform/user-action';
+import { hasPersistedStateChanged } from '@/platform/optimistic-mutation';
+import { confirmUserAction, promptUserInput } from '@/platform/user-action';
 import type { Invoice } from '../../api';
 import { finalizeInvoice, getInvoice, listInvoices, voidInvoice } from '../../api';
 defineOptions({ name: 'BillingCenterInvoices' });
@@ -45,7 +46,16 @@ function search() {
 }
 async function finalize(v: Invoice) {
   if (!canFinalize.value || !canRead.value) return;
+  const confirmed = await confirmUserAction(() =>
+    ElMessageBox.confirm('确认账单后将进入待支付状态，确认继续吗？', '确认账单', { type: 'warning' })
+  );
+  if (!confirmed) return;
   const current = await getInvoice(v);
+  if (hasPersistedStateChanged(v.status, current.status) || current.status !== 'draft') {
+    window.$message?.warning('账单状态已变化，请确认最新状态后重试');
+    await load();
+    return;
+  }
   await finalizeInvoice(current, new Date(Date.now() + 7 * 86400000).toISOString());
   await load();
 }
@@ -60,6 +70,11 @@ async function voidOne(v: Invoice) {
   );
   if (!reason) return;
   const current = await getInvoice(v);
+  if (hasPersistedStateChanged(v.status, current.status) || current.status === 'void') {
+    window.$message?.warning('账单状态已变化，请确认最新状态后重试');
+    await load();
+    return;
+  }
   await voidInvoice(current, reason);
   await load();
 }
