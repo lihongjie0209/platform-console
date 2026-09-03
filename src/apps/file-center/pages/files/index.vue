@@ -6,7 +6,13 @@ import { createLatestRequestGuard, hasApplicationScope } from '@/platform/applic
 import { formatPlatformDateTime, formatPlatformTableDateTime } from '@/platform/date-time';
 import { BizCopyText } from '@/components/business';
 import { formatFileSize, sha256Hex } from '@/platform/file';
-import { ensureIdempotencyKey, operationPhaseIdempotencyKey } from '@/platform/idempotency-key';
+import {
+  ensureIdempotencyKey,
+  operationIdempotencyKey,
+  operationPhaseIdempotencyKey
+} from '@/platform/idempotency-key';
+import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
+import { hasPersistedStateChanged } from '@/platform/optimistic-mutation';
 import { confirmUserAction } from '@/platform/user-action';
 import type { FileMetadata } from '../../api';
 import {
@@ -47,6 +53,8 @@ const uploadVisible = ref(false);
 const uploadFiles = ref<UploadUserFile[]>([]);
 const selectedFile = ref<File>();
 const uploadIdempotencyKey = ref('');
+const deleteIdempotencyKeys = new Map<string, string>();
+const { active: deleting, run: runDelete, reset: resetDelete } = useKeyedAsyncAction();
 const filter = reactive({ keyword: '', status: '', scanStatus: '', contentType: '', ownerID: '' });
 const loadGuard = createLatestRequestGuard();
 const uploadGuard = createLatestRequestGuard();
@@ -218,10 +226,20 @@ async function remove(row: FileMetadata) {
     })
   );
   if (!confirmed) return;
-  const current = await getFile(row);
-  await deleteFile(current);
-  window.$message?.success('文件已删除');
-  await loadData();
+  const key = `${row.id}:delete`;
+  await runDelete(key, async () => {
+    const current = await getFile(row);
+    if (hasPersistedStateChanged(row.status, current.status)) {
+      deleteIdempotencyKeys.delete(key);
+      window.$message?.warning('文件状态已变化，请确认最新状态后重试');
+      await loadData();
+      return;
+    }
+    await deleteFile(current, operationIdempotencyKey(deleteIdempotencyKeys, key));
+    deleteIdempotencyKeys.delete(key);
+    window.$message?.success('文件已删除');
+    await loadData();
+  });
 }
 
 async function showDetail(row: FileMetadata) {
@@ -246,6 +264,9 @@ watch([tenantID, applicationID], () => {
   uploadVisible.value = false;
   uploadFiles.value = [];
   selectedFile.value = undefined;
+  uploadIdempotencyKey.value = '';
+  deleteIdempotencyKeys.clear();
+  resetDelete();
   uploadProgress.value = 0;
   search();
 });
@@ -326,6 +347,8 @@ onMounted(loadData);
               v-if="canDelete && canRead && !['deleted', 'expired'].includes(row.status)"
               link
               type="danger"
+              :loading="deleting === `${row.id}:delete`"
+              :disabled="Boolean(deleting)"
               @click="remove(row)"
             >
               删除

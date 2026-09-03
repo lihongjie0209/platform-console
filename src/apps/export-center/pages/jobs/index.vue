@@ -263,7 +263,7 @@ async function action(job: ExportJob, type: 'cancel' | 'retry' | 'download') {
         await load();
         return;
       }
-      if (type === 'cancel') await cancelExport(current);
+      if (type === 'cancel') await cancelExport(current, operationIdempotencyKey(actionIdempotencyKeys, key));
       if (type === 'retry') await retryExport(current, operationIdempotencyKey(actionIdempotencyKeys, key));
       if (type === 'download') {
         const value = await downloadExport(current);

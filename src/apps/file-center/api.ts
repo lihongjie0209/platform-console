@@ -244,11 +244,12 @@ export function authorizeDownload(file: FileMetadata) {
   );
 }
 
-export function deleteFile(file: FileMetadata) {
+export function deleteFile(file: FileMetadata, idempotencyKey: string) {
   return unwrap<FileMetadata>(
     fileRequest({
       url: '/api/v1/files/delete',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         id: file.id,
         ...applicationScope(file.tenant_id, file.application_id),

@@ -271,7 +271,7 @@ async function action(job: ImportJob, type: 'confirm' | 'cancel' | 'retry' | 're
         return;
       }
       if (type === 'confirm') await confirmImport(current, operationIdempotencyKey(actionIdempotencyKeys, key));
-      if (type === 'cancel') await cancelImport(current);
+      if (type === 'cancel') await cancelImport(current, operationIdempotencyKey(actionIdempotencyKeys, key));
       if (type === 'retry') {
         if (!source.value) {
           window.$message?.warning('请先选择修正后的文件');

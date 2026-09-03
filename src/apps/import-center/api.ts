@@ -182,11 +182,12 @@ export const confirmImport = (job: ImportJob, idempotencyKey: string) =>
       }
     })
   );
-export const cancelImport = (job: ImportJob) =>
+export const cancelImport = (job: ImportJob, idempotencyKey: string) =>
   unwrap<ImportJob>(
     request({
       url: '/api/v1/imports/cancel',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { ...applicationScope(job.tenant_id, job.application_id), id: job.id, version: job.version }
     })
   );

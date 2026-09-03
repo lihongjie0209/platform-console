@@ -142,11 +142,12 @@ export const createExport = (input: {
       }
     })
   );
-export const cancelExport = (job: ExportJob) =>
+export const cancelExport = (job: ExportJob, idempotencyKey: string) =>
   unwrap<ExportJob>(
     request({
       url: '/api/v1/exports/cancel',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { ...applicationScope(job.tenant_id, job.application_id), id: job.id, version: job.version }
     })
   );
