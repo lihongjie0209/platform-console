@@ -7,6 +7,7 @@ import type { RuleSet, RuleVersion } from '../../api';
 import {
   createRuleVersion,
   evaluateRule,
+  getRuleSet,
   listRuleSets,
   listRuleVersions,
   publishRuleVersion,
@@ -40,6 +41,7 @@ const form = reactive({ code: '', name: '', description: '', status: 'draft' });
 const loadGuard = createLatestRequestGuard();
 const versionGuard = createLatestRequestGuard();
 const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'rule.set.create' }));
+const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'rule.set.read' }));
 const canUpdate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'rule.set.update' }));
 const canListVersions = computed(() => store.hasPermission({ scope: 'tenant', codes: 'rule.version.list' }));
 const canCreateVersion = computed(() =>
@@ -75,10 +77,11 @@ function search() {
   page.value = 1;
   load();
 }
-function open(v?: RuleSet) {
-  if ((v && !canUpdate.value) || (!v && !canCreate.value)) return;
-  editing.value = v;
-  Object.assign(form, v || { code: '', name: '', description: '', status: 'draft' });
+async function open(v?: RuleSet) {
+  if ((v && (!canUpdate.value || !canRead.value)) || (!v && !canCreate.value)) return;
+  const current = v ? await getRuleSet(v) : undefined;
+  editing.value = current;
+  Object.assign(form, current || { code: '', name: '', description: '', status: 'draft' });
   visible.value = true;
 }
 async function save() {
@@ -121,8 +124,9 @@ async function createVersion() {
   await versionsFor(selected.value);
 }
 async function publish(v: RuleVersion) {
-  if (!canPublish.value || !selected.value) return;
-  const result = await publishRuleVersion(selected.value, v);
+  if (!canPublish.value || !canRead.value || !selected.value) return;
+  const current = await getRuleSet(selected.value);
+  const result = await publishRuleVersion(current, v);
   selected.value = result.rule_set;
   await load();
   await versionsFor(result.rule_set);
@@ -183,7 +187,7 @@ onMounted(load);
         <ElTableColumn prop="published_version_number" label="发布版本" />
         <ElTableColumn label="操作" width="220">
           <template #default="{ row }">
-            <ElButton v-if="canUpdate" link @click="open(row)">编辑</ElButton>
+            <ElButton v-if="canUpdate && canRead" link @click="open(row)">编辑</ElButton>
             <ElButton v-if="canListVersions" link @click="openVersions(row)">版本</ElButton>
             <ElButton v-if="canEvaluate && row.status === 'active'" link @click="evaluate(row)">试运行</ElButton>
           </template>
@@ -224,7 +228,7 @@ onMounted(load);
       <ElTableColumn prop="checksum" label="校验和" />
       <ElTableColumn label="操作">
         <template #default="{ row }">
-          <ElButton v-if="canPublish && row.status === 'draft'" link @click="publish(row)">发布</ElButton>
+          <ElButton v-if="canPublish && canRead && row.status === 'draft'" link @click="publish(row)">发布</ElButton>
         </template>
       </ElTableColumn>
     </ElTable>

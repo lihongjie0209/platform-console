@@ -59,6 +59,14 @@ export const listRuleSets = (input: {
       }
     })
   );
+export const getRuleSet = (value: Pick<RuleSet, 'id' | 'tenant_id' | 'application_id'>) =>
+  unwrap<RuleSet>(
+    request({
+      url: '/api/v1/rule-sets/get',
+      method: 'post',
+      data: { id: value.id, ...applicationScope(value.tenant_id, value.application_id) }
+    })
+  );
 export function saveRuleSet(
   current: RuleSet | undefined,
   scope: { tenantID: string; applicationID: string },
