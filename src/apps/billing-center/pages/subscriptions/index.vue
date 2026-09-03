@@ -2,6 +2,8 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { ensureIdempotencyKey, operationIdempotencyKey } from '@/platform/idempotency-key';
+import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
 import { hasPersistedStateChanged } from '@/platform/optimistic-mutation';
 import { confirmUserAction } from '@/platform/user-action';
 import type { Subscription } from '../../api';
@@ -19,6 +21,9 @@ const pageSize = ref(20);
 const status = ref('');
 const visible = ref(false);
 const form = reactive({ planID: '', startsAt: '', externalReference: '' });
+const createIdempotencyKey = ref('');
+const cancelIdempotencyKeys = new Map<string, string>();
+const { active: actionLoading, run: runAction, reset: resetAction } = useKeyedAsyncAction();
 const loadGuard = createLatestRequestGuard();
 const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.subscription.create' }));
 const canCancel = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.subscription.cancel' }));
@@ -47,16 +52,21 @@ function search() {
   load();
 }
 async function create() {
-  if (!canCreate.value || !scopeReady.value) return;
-  await createSubscription({
-    tenantID: tenantID.value,
-    applicationID: applicationID.value,
-    planID: form.planID,
-    startsAt: form.startsAt,
-    externalReference: form.externalReference
+  await runAction('subscription:create', async () => {
+    if (!canCreate.value || !scopeReady.value) return;
+    createIdempotencyKey.value = ensureIdempotencyKey(createIdempotencyKey.value);
+    await createSubscription({
+      tenantID: tenantID.value,
+      applicationID: applicationID.value,
+      planID: form.planID,
+      startsAt: form.startsAt,
+      externalReference: form.externalReference,
+      idempotencyKey: createIdempotencyKey.value
+    });
+    createIdempotencyKey.value = '';
+    visible.value = false;
+    await load();
   });
-  visible.value = false;
-  await load();
 }
 async function cancel(v: Subscription) {
   if (!canCancel.value || !canRead.value) return;
@@ -64,20 +74,34 @@ async function cancel(v: Subscription) {
     ElMessageBox.confirm('取消将在当前计费周期结束后生效，确认继续吗？', '取消订阅', { type: 'warning' })
   );
   if (!confirmed) return;
-  const current = await getSubscription(v);
-  if (hasPersistedStateChanged(v.status, current.status) || current.cancel_at_period_end) {
-    window.$message?.warning('订阅状态已变化，请确认最新状态后重试');
+  const key = `${v.id}:cancel`;
+  await runAction(key, async () => {
+    const current = await getSubscription(v);
+    if (hasPersistedStateChanged(v.status, current.status) || current.cancel_at_period_end) {
+      cancelIdempotencyKeys.delete(key);
+      window.$message?.warning('订阅状态已变化，请确认最新状态后重试');
+      await load();
+      return;
+    }
+    await cancelSubscription(current, true, operationIdempotencyKey(cancelIdempotencyKeys, key));
+    cancelIdempotencyKeys.delete(key);
     await load();
-    return;
-  }
-  await cancelSubscription(current, true);
-  await load();
+  });
 }
+watch(
+  () => [form.planID, form.startsAt, form.externalReference],
+  () => {
+    createIdempotencyKey.value = '';
+  }
+);
 watch([tenantID, applicationID], () => {
   rows.value = [];
   total.value = 0;
   page.value = 1;
   visible.value = false;
+  createIdempotencyKey.value = '';
+  cancelIdempotencyKeys.clear();
+  resetAction();
   load();
 });
 onMounted(load);
@@ -108,7 +132,14 @@ onMounted(load);
         <ElTableColumn prop="current_period_end" label="周期结束" />
         <ElTableColumn label="操作">
           <template #default="{ row }">
-            <ElButton v-if="canCancel && canRead && row.status === 'active'" link type="danger" @click="cancel(row)">
+            <ElButton
+              v-if="canCancel && canRead && row.status === 'active'"
+              link
+              type="danger"
+              :loading="actionLoading === `${row.id}:cancel`"
+              :disabled="Boolean(actionLoading)"
+              @click="cancel(row)"
+            >
               周期末取消
             </ElButton>
           </template>
@@ -137,7 +168,9 @@ onMounted(load);
     </ElForm>
     <template #footer>
       <ElButton @click="visible = false">取消</ElButton>
-      <ElButton v-if="canCreate" type="primary" @click="create">创建</ElButton>
+      <ElButton v-if="canCreate" type="primary" :loading="actionLoading === 'subscription:create'" @click="create">
+        创建
+      </ElButton>
     </template>
   </ElDialog>
 </template>

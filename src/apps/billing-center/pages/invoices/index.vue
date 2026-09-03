@@ -2,6 +2,8 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { operationIdempotencyKey, operationValue } from '@/platform/idempotency-key';
+import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
 import { hasPersistedStateChanged } from '@/platform/optimistic-mutation';
 import { confirmUserAction, promptUserInput } from '@/platform/user-action';
 import type { Invoice } from '../../api';
@@ -18,6 +20,9 @@ const page = ref(1);
 const pageSize = ref(20);
 const status = ref('');
 const loadGuard = createLatestRequestGuard();
+const actionIdempotencyKeys = new Map<string, string>();
+const finalizeDueDates = new Map<string, string>();
+const { active: actionLoading, run: runAction, reset: resetAction } = useKeyedAsyncAction();
 const canFinalize = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.invoice.finalize' }));
 const canVoid = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.invoice.void' }));
 const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.invoice.read' }));
@@ -50,14 +55,22 @@ async function finalize(v: Invoice) {
     ElMessageBox.confirm('确认账单后将进入待支付状态，确认继续吗？', '确认账单', { type: 'warning' })
   );
   if (!confirmed) return;
-  const current = await getInvoice(v);
-  if (hasPersistedStateChanged(v.status, current.status) || current.status !== 'draft') {
-    window.$message?.warning('账单状态已变化，请确认最新状态后重试');
+  const key = `${v.id}:finalize`;
+  await runAction(key, async () => {
+    const current = await getInvoice(v);
+    if (hasPersistedStateChanged(v.status, current.status) || current.status !== 'draft') {
+      actionIdempotencyKeys.delete(key);
+      finalizeDueDates.delete(key);
+      window.$message?.warning('账单状态已变化，请确认最新状态后重试');
+      await load();
+      return;
+    }
+    const dueAt = operationValue(finalizeDueDates, key, () => new Date(Date.now() + 7 * 86400000).toISOString());
+    await finalizeInvoice(current, dueAt, operationIdempotencyKey(actionIdempotencyKeys, key));
+    actionIdempotencyKeys.delete(key);
+    finalizeDueDates.delete(key);
     await load();
-    return;
-  }
-  await finalizeInvoice(current, new Date(Date.now() + 7 * 86400000).toISOString());
-  await load();
+  });
 }
 async function voidOne(v: Invoice) {
   if (!canVoid.value || !canRead.value) return;
@@ -69,19 +82,27 @@ async function voidOne(v: Invoice) {
     })
   );
   if (!reason) return;
-  const current = await getInvoice(v);
-  if (hasPersistedStateChanged(v.status, current.status) || current.status === 'void') {
-    window.$message?.warning('账单状态已变化，请确认最新状态后重试');
+  const key = `${v.id}:void:${reason}`;
+  await runAction(key, async () => {
+    const current = await getInvoice(v);
+    if (hasPersistedStateChanged(v.status, current.status) || current.status === 'void') {
+      actionIdempotencyKeys.delete(key);
+      window.$message?.warning('账单状态已变化，请确认最新状态后重试');
+      await load();
+      return;
+    }
+    await voidInvoice(current, reason, operationIdempotencyKey(actionIdempotencyKeys, key));
+    actionIdempotencyKeys.delete(key);
     await load();
-    return;
-  }
-  await voidInvoice(current, reason);
-  await load();
+  });
 }
 watch([tenantID, applicationID], () => {
   rows.value = [];
   total.value = 0;
   page.value = 1;
+  actionIdempotencyKeys.clear();
+  finalizeDueDates.clear();
+  resetAction();
   load();
 });
 onMounted(load);
@@ -110,10 +131,23 @@ onMounted(load);
         <ElTableColumn prop="refunded_minor" label="退款(分)" />
         <ElTableColumn label="操作" width="150">
           <template #default="{ row }">
-            <ElButton v-if="canFinalize && canRead && row.status === 'draft'" link @click="finalize(row)">
+            <ElButton
+              v-if="canFinalize && canRead && row.status === 'draft'"
+              link
+              :loading="actionLoading === `${row.id}:finalize`"
+              :disabled="Boolean(actionLoading)"
+              @click="finalize(row)"
+            >
               确认
             </ElButton>
-            <ElButton v-if="canVoid && canRead && row.status !== 'void'" link type="danger" @click="voidOne(row)">
+            <ElButton
+              v-if="canVoid && canRead && row.status !== 'void'"
+              link
+              type="danger"
+              :loading="actionLoading?.startsWith(`${row.id}:void:`)"
+              :disabled="Boolean(actionLoading)"
+              @click="voidOne(row)"
+            >
               作废
             </ElButton>
           </template>

@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ensureIdempotencyKey, operationIdempotencyKey, operationPhaseIdempotencyKey } from './idempotency-key';
+import {
+  ensureIdempotencyKey,
+  operationIdempotencyKey,
+  operationPhaseIdempotencyKey,
+  operationValue
+} from './idempotency-key';
 
 test('ensureIdempotencyKey retains an existing operation key', () => {
   let generated = 0;
@@ -33,4 +38,17 @@ test('operationIdempotencyKey isolates operations and retains retry keys', () =>
 test('operation phases have stable independent idempotency namespaces', () => {
   assert.equal(operationPhaseIdempotencyKey('operation-1', 'complete'), 'operation-1:complete');
   assert.throws(() => operationPhaseIdempotencyKey('', 'complete'), /required/u);
+});
+
+test('operationValue retains fingerprint fields across retries', () => {
+  const values = new Map<string, string>();
+  let generated = 0;
+  const create = () => {
+    generated += 1;
+    return `due-${generated}`;
+  };
+
+  assert.equal(operationValue(values, 'invoice-1:finalize', create), 'due-1');
+  assert.equal(operationValue(values, 'invoice-1:finalize', create), 'due-1');
+  assert.equal(generated, 1);
 });

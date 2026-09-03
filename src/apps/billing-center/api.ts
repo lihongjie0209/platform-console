@@ -186,11 +186,13 @@ export const createSubscription = (input: {
   planID: string;
   startsAt: string;
   externalReference: string;
+  idempotencyKey: string;
 }) =>
   unwrap<Subscription>(
     request({
       url: '/api/v1/subscriptions/create',
       method: 'post',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
       data: {
         ...applicationScope(input.tenantID, input.applicationID),
         plan_id: input.planID,
@@ -199,11 +201,12 @@ export const createSubscription = (input: {
       }
     })
   );
-export const cancelSubscription = (value: Subscription, atPeriodEnd: boolean) =>
+export const cancelSubscription = (value: Subscription, atPeriodEnd: boolean, idempotencyKey: string) =>
   unwrap<Subscription>(
     request({
       url: '/api/v1/subscriptions/cancel',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         ...applicationScope(value.tenant_id, value.application_id),
         id: value.id,
@@ -239,11 +242,12 @@ export const getInvoice = (value: Pick<Invoice, 'id' | 'tenant_id' | 'applicatio
       data: { id: value.id, ...applicationScope(value.tenant_id, value.application_id) }
     })
   );
-export const finalizeInvoice = (value: Invoice, dueAt: string) =>
+export const finalizeInvoice = (value: Invoice, dueAt: string, idempotencyKey: string) =>
   unwrap<Invoice>(
     request({
       url: '/api/v1/invoices/finalize',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         ...applicationScope(value.tenant_id, value.application_id),
         id: value.id,
@@ -252,11 +256,12 @@ export const finalizeInvoice = (value: Invoice, dueAt: string) =>
       }
     })
   );
-export const voidInvoice = (value: Invoice, reason: string) =>
+export const voidInvoice = (value: Invoice, reason: string, idempotencyKey: string) =>
   unwrap<Invoice>(
     request({
       url: '/api/v1/invoices/void',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         ...applicationScope(value.tenant_id, value.application_id),
         id: value.id,

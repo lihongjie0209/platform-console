@@ -20,3 +20,10 @@ export function operationPhaseIdempotencyKey(operationKey: string, phase: string
   if (!key || !normalizedPhase) throw new Error('operation key and phase are required');
   return `${key}:${normalizedPhase}`;
 }
+
+export function operationValue<Value>(values: Map<string, Value>, operation: string, create: () => Value) {
+  if (values.has(operation)) return values.get(operation) as Value;
+  const value = create();
+  values.set(operation, value);
+  return value;
+}
