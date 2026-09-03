@@ -125,7 +125,7 @@ onMounted(loadData);
         type="info"
         show-icon
         :closable="false"
-        title="上游名称必须先由运维写入 notification-service 的环境配置；本页面不会保存 URL、Token 或密钥。"
+        title="上游名称必须先由运维写入 notification-service 的供应商专用白名单；本页面不会保存 URL、Token 或密钥。"
       />
       <ElForm inline class="mb-16px" @submit.prevent="search">
         <ElFormItem label="搜索"><ElInput v-model="keyword" clearable placeholder="编码或上游名称" /></ElFormItem>
