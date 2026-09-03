@@ -4,7 +4,7 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { PaymentAttempt, Refund } from '../../api';
-import { createPaymentAttempt, listPayments, listRefunds, recordRefund } from '../../api';
+import { createPaymentAttempt, getPayment, listPayments, listRefunds, recordRefund } from '../../api';
 import { canRefundPayment, validatePaymentInput, validateRefundInput } from '../../payment-form';
 
 defineOptions({ name: 'BillingCenterPayments' });
@@ -27,6 +27,7 @@ const refundDialogVisible = ref(false);
 const selectedPayment = ref<PaymentAttempt>();
 const loadGuard = createLatestRequestGuard();
 const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.payment.create' }));
+const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.payment.read' }));
 const canRefund = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.payment.refund' }));
 const paymentForm = reactive({ invoiceID: '', provider: '', paymentMethodReference: '' });
 const refundForm = reactive({ providerRefundID: '', amountMinor: 0, reason: '', status: 'succeeded' });
@@ -104,11 +105,17 @@ async function submitPayment() {
   await load();
 }
 
-function openRefundDialog(payment: PaymentAttempt) {
-  if (!canRefund.value) return;
-  selectedPayment.value = payment;
+async function openRefundDialog(payment: PaymentAttempt) {
+  if (!canRefund.value || !canRead.value) return;
+  const current = await getPayment(payment);
+  if (!canRefundPayment(current.status)) {
+    window.$message?.warning('支付状态已变化，当前记录无法退款');
+    await load();
+    return;
+  }
+  selectedPayment.value = current;
   refundForm.providerRefundID = '';
-  refundForm.amountMinor = payment.amount_minor;
+  refundForm.amountMinor = current.amount_minor;
   refundForm.reason = '';
   refundForm.status = 'succeeded';
   refundDialogVisible.value = true;
@@ -192,7 +199,7 @@ onMounted(load);
         <ElTableColumn label="操作" width="100" fixed="right">
           <template #default="{ row }">
             <ElButton
-              v-if="canRefund && canRefundPayment(row.status)"
+              v-if="canRefund && canRead && canRefundPayment(row.status)"
               link
               type="danger"
               @click="openRefundDialog(row)"

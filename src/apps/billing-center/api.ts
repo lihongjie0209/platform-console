@@ -288,6 +288,15 @@ export const listPayments = (input: PaymentListInput) =>
     })
   );
 
+export const getPayment = (payment: Pick<PaymentAttempt, 'tenant_id' | 'application_id' | 'id'>) =>
+  unwrap<PaymentAttempt>(
+    request({
+      url: '/api/v1/payments/get',
+      method: 'post',
+      data: { ...applicationScope(payment.tenant_id, payment.application_id), id: payment.id }
+    })
+  );
+
 export const listRefunds = (input: PaymentListInput) =>
   unwrap<Page<Refund>>(
     request({

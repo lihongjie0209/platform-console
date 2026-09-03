@@ -395,6 +395,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get an application payment attempt */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Payment identity */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.getPaymentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PaymentAttemptBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments/list": {
         parameters: {
             query?: never;
@@ -1384,6 +1427,11 @@ export interface components {
             id?: string;
             tenant_id?: string;
             version?: number;
+        };
+        "httptransport.getPaymentRequest": {
+            application_id: string;
+            id: string;
+            tenant_id?: string;
         };
         "httptransport.getPlanRequest": {
             code?: string;
