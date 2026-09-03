@@ -137,6 +137,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/providers/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a notification provider route */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Provider identity */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetProviderRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.ProviderResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notifications/providers/list": {
         parameters: {
             query?: never;
@@ -298,6 +341,49 @@ export interface paths {
                     content: {
                         "*/*": components["schemas"]["httptransport.Response"] & {
                             body?: components["schemas"]["httptransport.DeliveryResponseBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/templates/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Get a notification template */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Template identity */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.GetTemplateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.TemplateResponseBody"];
                         };
                     };
                 };
@@ -572,6 +658,18 @@ export interface components {
         "httptransport.GetDeliveryRequest": {
             application_id: string;
             id: string;
+            tenant_id: string;
+        };
+        "httptransport.GetProviderRequest": {
+            application_id: string;
+            code: string;
+            tenant_id: string;
+        };
+        "httptransport.GetTemplateRequest": {
+            application_id: string;
+            channel: string;
+            code: string;
+            locale: string;
             tenant_id: string;
         };
         "httptransport.ListDeliveriesRequest": {

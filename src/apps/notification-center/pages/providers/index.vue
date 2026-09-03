@@ -4,7 +4,7 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { NotificationProvider } from '../../api';
-import { listProviders, putProvider } from '../../api';
+import { getProvider, listProviders, putProvider } from '../../api';
 import { normalizeProviderForm, providerFormError } from '../../provider-form';
 
 defineOptions({ name: 'NotificationCenterProviders' });
@@ -17,6 +17,7 @@ const scopeReady = computed(() => hasApplicationScope(tenantID.value, applicatio
 const canUpdate = computed(() =>
   platformStore.hasPermission({ scope: 'tenant', codes: 'notification.provider.update' })
 );
+const canRead = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'notification.provider.read' }));
 const loading = ref(false);
 const saving = ref(false);
 const visible = ref(false);
@@ -70,11 +71,13 @@ function search() {
   loadData();
 }
 
-function edit(row?: NotificationProvider) {
+async function edit(row?: NotificationProvider) {
   if (!canUpdate.value) return;
+  if (row && !canRead.value) return;
+  const value = row ? await getProvider(row) : undefined;
   Object.assign(
     form,
-    row || { code: '', channel: 'email', upstream: '', path: '/send', priority: 100, status: 'active', version: 0 }
+    value || { code: '', channel: 'email', upstream: '', path: '/send', priority: 100, status: 'active', version: 0 }
   );
   visible.value = true;
 }
@@ -153,7 +156,7 @@ onMounted(loadData);
         <ElTableColumn prop="updated_at" label="更新时间" min-width="180" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn label="操作" width="90" fixed="right">
           <template #default="{ row }">
-            <ElButton v-if="canUpdate" link type="primary" @click="edit(row)">编辑</ElButton>
+            <ElButton v-if="canUpdate && canRead" link type="primary" @click="edit(row)">编辑</ElButton>
             <span v-else>-</span>
           </template>
         </ElTableColumn>

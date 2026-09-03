@@ -4,7 +4,7 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
 import type { NotificationTemplate } from '../../api';
-import { listTemplates, putTemplate } from '../../api';
+import { getTemplate, listTemplates, putTemplate } from '../../api';
 
 defineOptions({ name: 'NotificationCenterTemplates' });
 const platformStore = usePlatformStore();
@@ -35,6 +35,7 @@ const loadGuard = createLatestRequestGuard();
 const canUpdate = computed(() =>
   platformStore.hasPermission({ scope: 'tenant', codes: 'notification.template.update' })
 );
+const canRead = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'notification.template.read' }));
 
 async function loadData() {
   const request = loadGuard.begin();
@@ -67,11 +68,13 @@ function search() {
   page.value = 1;
   loadData();
 }
-function edit(row?: NotificationTemplate) {
+async function edit(row?: NotificationTemplate) {
   if (!canUpdate.value) return;
+  if (row && !canRead.value) return;
+  const value = row ? await getTemplate(row) : undefined;
   Object.assign(
     form,
-    row || {
+    value || {
       code: '',
       channel: 'email',
       locale: 'zh-cn',
@@ -142,7 +145,7 @@ onMounted(loadData);
         <ElTableColumn prop="updated_at" label="更新时间" min-width="180" :formatter="formatPlatformTableDateTime" />
         <ElTableColumn label="操作" width="90" fixed="right">
           <template #default="{ row }">
-            <ElButton v-if="canUpdate" link type="primary" @click="edit(row)">编辑</ElButton>
+            <ElButton v-if="canUpdate && canRead" link type="primary" @click="edit(row)">编辑</ElButton>
             <span v-else>-</span>
           </template>
         </ElTableColumn>

@@ -145,6 +145,16 @@ export function putProvider(tenantID: string, applicationID: string, value: Part
   );
 }
 
+export function getProvider(value: Pick<NotificationProvider, 'tenant_id' | 'application_id' | 'code'>) {
+  return unwrap<NotificationProvider>(
+    notificationRequest({
+      url: '/api/v1/notifications/providers/get',
+      method: 'post',
+      data: { ...applicationScope(value.tenant_id, value.application_id), code: value.code }
+    })
+  );
+}
+
 export function putTemplate(tenantID: string, applicationID: string, value: Partial<NotificationTemplate>) {
   return unwrap<NotificationTemplate>(
     notificationRequest({
@@ -159,6 +169,23 @@ export function putTemplate(tenantID: string, applicationID: string, value: Part
         content: value.content,
         status: value.status || 'active',
         expected_version: value.version || 0
+      }
+    })
+  );
+}
+
+export function getTemplate(
+  value: Pick<NotificationTemplate, 'tenant_id' | 'application_id' | 'code' | 'channel' | 'locale'>
+) {
+  return unwrap<NotificationTemplate>(
+    notificationRequest({
+      url: '/api/v1/notifications/templates/get',
+      method: 'post',
+      data: {
+        ...applicationScope(value.tenant_id, value.application_id),
+        code: value.code,
+        channel: value.channel,
+        locale: value.locale
       }
     })
   );
