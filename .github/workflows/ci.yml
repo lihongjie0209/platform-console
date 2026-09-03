@@ -39,6 +39,7 @@ jobs:
       - run: pnpm check:application-chunks
       - run: pnpm check:application-scope
       - run: pnpm check:bounded-collections
+      - run: pnpm check:crud-mutation-safety
       - run: pnpm check:product-surface
       - run: pnpm check:contracts
       - run: pnpm check:runtime-config
