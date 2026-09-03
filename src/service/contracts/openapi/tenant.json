@@ -247,6 +247,54 @@
                 }
             }
         },
+        "/api/v1/groups/members/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Get a group membership assignment",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GroupMemberRequest"
+                            }
+                        }
+                    },
+                    "description": "Group and membership IDs",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.GroupMemberBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/groups/members/list": {
             "post": {
                 "security": [
@@ -476,6 +524,54 @@
                                             "properties": {
                                                 "body": {
                                                     "$ref": "#/components/schemas/httptransport.CreateInvitationResponseBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/invitations/get": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "invitations"
+                ],
+                "summary": "Get an invitation by ID",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.GetInvitationRequest"
+                            }
+                        }
+                    },
+                    "description": "Invitation ID",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.InvitationBody"
                                                 }
                                             }
                                         }
@@ -2147,6 +2243,17 @@
                         "type": "string"
                     },
                     "username": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.GetInvitationRequest": {
+                "type": "object",
+                "required": [
+                    "invitation_id"
+                ],
+                "properties": {
+                    "invitation_id": {
                         "type": "string"
                     }
                 }

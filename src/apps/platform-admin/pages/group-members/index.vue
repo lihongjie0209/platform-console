@@ -8,6 +8,7 @@ import {
   addGroupMember,
   batchGetGroupMembers,
   batchGetUsers,
+  getGroupMember,
   listGroups,
   listMemberships,
   removeGroupMember
@@ -31,6 +32,9 @@ const tenantID = computed(() => platformStore.selectedTenantId);
 const canAddMember = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'tenant.group.add-member' }));
 const canRemoveMember = computed(() =>
   platformStore.hasPermission({ scope: 'tenant', codes: 'tenant.group.remove-member' })
+);
+const canReadMember = computed(() =>
+  platformStore.hasPermission({ scope: 'tenant', codes: 'tenant.group.read-member' })
 );
 const assignmentByMembership = computed(
   () => new Map(assignments.value.map(item => [String(item.membership_id), item]))
@@ -101,14 +105,22 @@ async function searchGroups(keyword = '') {
   }
 }
 async function toggle(membership: Membership, enabled: boolean) {
-  if ((enabled && !canAddMember.value) || (!enabled && !canRemoveMember.value)) return;
+  if ((enabled && !canAddMember.value) || (!enabled && (!canRemoveMember.value || !canReadMember.value))) return;
   const membershipID = String(membership.id || '');
   if (!membershipID) return;
   const assignment = assignmentByMembership.value.get(membershipID);
   changing.value = membershipID;
   try {
     if (enabled) await addGroupMember(groupID.value, membershipID);
-    else if (assignment) await removeGroupMember(groupID.value, membershipID, Number(assignment.version));
+    else if (assignment && canReadMember.value) {
+      const current = await getGroupMember(groupID.value, membershipID);
+      if (current.status !== 'active') {
+        window.$message?.warning('用户组成员关系已发生变化，请刷新后重试');
+        await loadAssignments();
+        return;
+      }
+      await removeGroupMember(groupID.value, membershipID, Number(current.version));
+    }
     window.$message?.success(enabled ? '成员已加入分组' : '成员已移出分组');
     await loadAssignments();
   } finally {
@@ -185,7 +197,11 @@ onMounted(loadCatalogs);
               v-if="canAddMember || canRemoveMember"
               :model-value="assignmentByMembership.get(row.id)?.status === 'active'"
               :loading="changing === row.id"
-              :disabled="assignmentByMembership.get(row.id)?.status === 'active' ? !canRemoveMember : !canAddMember"
+              :disabled="
+                assignmentByMembership.get(row.id)?.status === 'active'
+                  ? !canRemoveMember || !canReadMember
+                  : !canAddMember
+              "
               @change="value => toggle(row, Boolean(value))"
             />
             <span v-else>-</span>

@@ -1239,6 +1239,16 @@ export function batchGetGroupMembers(groupID: string, membershipIDs: string[]) {
   );
 }
 
+export function getGroupMember(groupID: string, membershipID: string) {
+  return unwrap<GroupMember>(
+    tenantRequest({
+      url: '/api/v1/groups/members/get',
+      method: 'post',
+      data: { group_id: groupID, membership_id: membershipID }
+    })
+  );
+}
+
 export async function addGroupMember(groupID: string, membershipID: string) {
   await unwrap<{ added: boolean }>(
     tenantRequest({
@@ -1428,6 +1438,16 @@ export function revokeInvitation(id: string, version: number) {
       url: '/api/v1/invitations/revoke',
       method: 'post',
       data: { invitation_id: id, version }
+    })
+  );
+}
+
+export function getInvitation(id: string) {
+  return unwrap<Invitation>(
+    tenantRequest({
+      url: '/api/v1/invitations/get',
+      method: 'post',
+      data: { invitation_id: id }
     })
   );
 }

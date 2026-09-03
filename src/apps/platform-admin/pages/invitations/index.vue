@@ -5,7 +5,7 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
 import { confirmUserAction } from '@/platform/user-action';
 import type { Invitation, InvitationForm } from '../../api';
-import { createInvitation, listInvitations, revokeInvitation } from '../../api';
+import { createInvitation, getInvitation, listInvitations, revokeInvitation } from '../../api';
 
 defineOptions({ name: 'PlatformAdminInvitations' });
 const platformStore = usePlatformStore();
@@ -26,6 +26,9 @@ const canCreateInvitation = computed(() =>
 );
 const canRevokeInvitation = computed(() =>
   platformStore.hasPermission({ scope: 'tenant', codes: 'tenant.invitation.revoke' })
+);
+const canReadInvitation = computed(() =>
+  platformStore.hasPermission({ scope: 'tenant', codes: 'tenant.invitation.read' })
 );
 const rules: FormRules<InvitationForm> = {
   email: [{ required: true, type: 'email', message: '请输入有效邮箱', trigger: 'blur' }],
@@ -69,12 +72,18 @@ async function submit() {
   }
 }
 async function revoke(row: Invitation) {
-  if (!canRevokeInvitation.value) return;
+  if (!canRevokeInvitation.value || !canReadInvitation.value) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm(`确认撤销发给“${row.email}”的邀请吗？`, '撤销邀请', { type: 'warning' })
   );
   if (!confirmed) return;
-  await revokeInvitation(String(row.id), Number(row.version));
+  const current = await getInvitation(String(row.id));
+  if (current.status !== 'pending') {
+    window.$message?.warning('邀请状态已发生变化，请刷新后重试');
+    await loadData();
+    return;
+  }
+  await revokeInvitation(String(current.id), Number(current.version));
   window.$message?.success('邀请已撤销');
   await loadData();
 }
@@ -140,7 +149,7 @@ onMounted(loadData);
         <ElTableColumn label="操作" width="100" fixed="right">
           <template #default="{ row }">
             <ElPopconfirm
-              v-if="canRevokeInvitation && row.status === 'pending'"
+              v-if="canRevokeInvitation && canReadInvitation && row.status === 'pending'"
               title="确认撤销该邀请？"
               @confirm="revoke(row)"
             >
