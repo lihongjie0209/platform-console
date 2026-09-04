@@ -1427,21 +1427,23 @@ export function batchGetOrganizationUnits(tenantID: string, organizationUnitIDs:
   );
 }
 
-export function createOrganizationUnit(tenantID: string, form: OrganizationUnitForm) {
+export function createOrganizationUnit(tenantID: string, form: OrganizationUnitForm, idempotencyKey: string) {
   return unwrap<OrganizationUnit>(
     tenantRequest({
       url: '/api/v1/organization-units/create',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { tenant_id: tenantID, parent_id: form.parent_id, code: form.code, name: form.name }
     })
   );
 }
 
-export function updateOrganizationUnit(form: OrganizationUnitForm) {
+export function updateOrganizationUnit(form: OrganizationUnitForm, idempotencyKey: string) {
   return unwrap<OrganizationUnit>(
     tenantRequest({
       url: '/api/v1/organization-units/update',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         organization_unit_id: form.id,
         parent_id: form.parent_id,

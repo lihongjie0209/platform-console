@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard } from '@/platform/application-context';
+import { operationIdempotencyKey } from '@/platform/idempotency-key';
 import type { OrganizationUnit, OrganizationUnitForm, OrganizationUnitTreeNode } from '../../api';
 import { createOrganizationUnit, getOrganizationUnit, treeOrganizationUnits, updateOrganizationUnit } from '../../api';
 import { flattenOrganizationTree } from '../../organization-directory';
@@ -19,6 +20,7 @@ const parentOptions = ref<OrganizationUnit[]>([]);
 const editorVisible = ref(false);
 const formRef = ref<FormInstance>();
 const form = reactive<OrganizationUnitForm>(emptyForm());
+const mutationKeys = new Map<string, string>();
 const tenantID = computed(() => platformStore.selectedTenantId);
 const canCreateUnit = computed(() =>
   platformStore.hasPermission({ scope: 'tenant', codes: 'tenant.organization-unit.create' })
@@ -121,12 +123,14 @@ async function searchParents(value = '') {
 function openCreate(parentID = '') {
   if (!canCreateUnit.value) return;
   resetForm(emptyForm(parentID));
+  mutationKeys.clear();
   editorVisible.value = true;
   searchParents();
 }
 async function openEdit(unit: OrganizationUnit) {
   if (!canUpdateUnit.value) return;
   const current = await getOrganizationUnit(String(unit.id));
+  mutationKeys.clear();
   resetForm({
     id: String(current.id),
     parent_id: String(current.parent_id || ''),
@@ -146,12 +150,17 @@ async function openEdit(unit: OrganizationUnit) {
   }
 }
 async function save() {
+  const currentTenantID = tenantID.value;
+  if (!currentTenantID) return;
   if ((form.id && !canUpdateUnit.value) || (!form.id && !canCreateUnit.value)) return;
   if (!(await formRef.value?.validate())) return;
   saving.value = true;
   try {
-    if (form.id) await updateOrganizationUnit(form);
-    else await createOrganizationUnit(tenantID.value, form);
+    const operation = JSON.stringify([currentTenantID, form]);
+    const idempotencyKey = operationIdempotencyKey(mutationKeys, operation);
+    if (form.id) await updateOrganizationUnit(form, idempotencyKey);
+    else await createOrganizationUnit(currentTenantID, form, idempotencyKey);
+    mutationKeys.clear();
     editorVisible.value = false;
     window.$message?.success(form.id ? '组织单元已更新' : '组织单元已创建');
     await loadData();
