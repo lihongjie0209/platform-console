@@ -1,6 +1,7 @@
 import { reactive, ref, shallowRef, toRaw, toValue } from 'vue';
 import type { MaybeRefOrGetter } from 'vue';
 import type { BizCrudAdapter, BizCrudFormConfig, BizCrudKey } from './types';
+import { createBizCrudMutationIntent } from './mutation-intent';
 
 function clone<T>(value: T): T {
   return structuredClone(value);
@@ -42,8 +43,10 @@ export function useBizCrudForm<Row, Query, Form extends Record<string, any>, Key
   const model = ref<Form>(options.form.createModel());
   const loading = ref(false);
   const submitting = ref(false);
+  const mutationIntent = createBizCrudMutationIntent();
 
   async function initialize(initial?: Partial<Form>) {
+    mutationIntent.reset();
     model.value = Object.assign(options.form.createModel(), clone(toRaw(initial || {})));
     const key = toValue(options.recordKey);
     if (key !== null && key !== undefined && options.adapter.detail) {
@@ -61,11 +64,13 @@ export function useBizCrudForm<Row, Query, Form extends Record<string, any>, Key
     submitting.value = true;
     try {
       const key = toValue(options.recordKey);
+      const payload = clone(toRaw(model.value));
       if (key === null || key === undefined) {
-        await options.adapter.create?.(clone(toRaw(model.value)));
+        await options.adapter.create?.(payload, mutationIntent.context('create', payload));
       } else {
-        await options.adapter.update?.(key, clone(toRaw(model.value)));
+        await options.adapter.update?.(key, payload, mutationIntent.context(`edit:${String(key)}`, payload));
       }
+      mutationIntent.reset();
     } finally {
       submitting.value = false;
     }

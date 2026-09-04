@@ -374,11 +374,12 @@ export function getApplication(id: string) {
   );
 }
 
-export async function createApplication(form: ApplicationForm) {
+export async function createApplication(form: ApplicationForm, idempotencyKey: string) {
   await unwrap(
     applicationRequest<Application>({
       url: '/api/v1/applications/create',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         code: form.code,
         name: form.name,
@@ -392,11 +393,12 @@ export async function createApplication(form: ApplicationForm) {
   );
 }
 
-export async function updateApplication(id: string, form: ApplicationForm) {
+export async function updateApplication(id: string, form: ApplicationForm, idempotencyKey: string) {
   await unwrap(
     applicationRequest<Application>({
       url: '/api/v1/applications/update',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         id,
         name: form.name,

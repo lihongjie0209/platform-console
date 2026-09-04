@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it, mock } from 'node:test';
 import { nextTick, ref } from 'vue';
 import { useBizCrud, useBizCrudForm } from './use-biz-crud';
-import type { BizCrudAdapter, BizCrudFormConfig } from './types';
+import type { BizCrudAdapter, BizCrudFormConfig, BizCrudMutationContext } from './types';
 
 interface Row {
   id: number;
@@ -63,7 +63,7 @@ describe('useBizCrudForm', () => {
   };
 
   it('loads detail for page edit mode and updates it', async () => {
-    const update = mock.fn(async () => undefined);
+    const update = mock.fn(async (_id: number, _form: Form, _context: BizCrudMutationContext) => undefined);
     const adapter: BizCrudAdapter<Row, Query, Form, number> = {
       list: async () => ({ items: [], total: 0, page: 1, pageSize: 10 }),
       detail: async id => ({ name: `User ${id}` }),
@@ -78,7 +78,10 @@ describe('useBizCrudForm', () => {
     state.model.value.name = 'Updated';
     await state.submit();
     assert.equal(update.mock.callCount(), 1);
-    assert.deepEqual(update.mock.calls[0].arguments, [7, { name: 'Updated' }]);
+    const [call] = update.mock.calls;
+    assert.ok(call);
+    assert.deepEqual(call.arguments.slice(0, 2), [7, { name: 'Updated' }]);
+    assert.ok(call.arguments[2].idempotencyKey);
   });
 
   it('prevents duplicate submissions', async () => {

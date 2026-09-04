@@ -20,6 +20,7 @@ import BizFormDialog from './biz-form-dialog.vue';
 import BizFormDrawer from './biz-form-drawer.vue';
 import BizSearchForm from './biz-search-form.vue';
 import BizTableToolbar from './biz-table-toolbar.vue';
+import { createBizCrudMutationIntent } from './mutation-intent';
 import type { BizCrudAdapter, BizCrudColumn, BizCrudConfig, BizCrudFormExpose, BizCrudKey } from './types';
 import { resolveBizText } from './types';
 
@@ -47,6 +48,7 @@ const editingKey = shallowRef<Key | null>(null);
 const formModel = shallowRef<Form>(props.config.form.createModel());
 const formRef = ref<BizCrudFormExpose | null>(null);
 const dataTableRef = ref<{ clearSelection: () => void } | null>(null);
+const mutationIntent = createBizCrudMutationIntent();
 
 const pageKey = computed(() => props.config.pagination?.pageKey || ('current' as Extract<keyof Query, string>));
 const pageSizeKey = computed(() => props.config.pagination?.pageSizeKey || ('size' as Extract<keyof Query, string>));
@@ -139,6 +141,7 @@ async function openCreate() {
   }
 
   operateType.value = 'add';
+  mutationIntent.reset();
   editingKey.value = null;
   formModel.value = props.config.form.createModel();
   formVisible.value = true;
@@ -156,6 +159,7 @@ async function openEdit(row: Row) {
   }
 
   operateType.value = 'edit';
+  mutationIntent.reset();
   editingKey.value = key;
   const base = props.config.mapRowToForm?.(row) || row;
   formModel.value = Object.assign(props.config.form.createModel(), jsonClone(base));
@@ -180,11 +184,17 @@ async function submitForm() {
 
   submitting.value = true;
   try {
+    const payload = jsonClone(formModel.value);
     if (operateType.value === 'add') {
-      await props.adapter.create?.(jsonClone(formModel.value));
+      await props.adapter.create?.(payload, mutationIntent.context('create', payload));
     } else if (editingKey.value !== null) {
-      await props.adapter.update?.(editingKey.value, jsonClone(formModel.value));
+      await props.adapter.update?.(
+        editingKey.value,
+        payload,
+        mutationIntent.context(`edit:${String(editingKey.value)}`, payload)
+      );
     }
+    mutationIntent.reset();
     window.$message?.success(operateType.value === 'add' ? $t('common.addSuccess') : $t('common.updateSuccess'));
     formVisible.value = false;
     await loadData();
@@ -203,6 +213,7 @@ async function removeRows(keys: Key[]) {
 }
 
 function clearForm() {
+  mutationIntent.reset();
   editingKey.value = null;
   formModel.value = props.config.form.createModel();
 }

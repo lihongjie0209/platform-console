@@ -158,8 +158,8 @@ const adapter: BizCrudAdapter<Application, ApplicationQuery, ApplicationForm, st
     const row = await getApplication(id);
     return config.mapRowToForm?.(row) || row;
   },
-  create: createApplication,
-  update: updateApplication
+  create: (form, context) => createApplication(form, context.idempotencyKey),
+  update: (id, form, context) => updateApplication(id, form, context.idempotencyKey)
 };
 
 function statusType(status?: string) {

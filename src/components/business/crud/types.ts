@@ -55,11 +55,15 @@ export interface BizCrudListResult<Row> {
   pageSize: number;
 }
 
+export interface BizCrudMutationContext {
+  idempotencyKey: string;
+}
+
 export interface BizCrudAdapter<Row, Query, Form, Key extends BizCrudKey = BizCrudKey> {
   list: (query: Query) => Promise<BizCrudListResult<Row>>;
   detail?: (key: Key) => Promise<Partial<Form>>;
-  create?: (form: Form) => Promise<void>;
-  update?: (key: Key, form: Form) => Promise<void>;
+  create?: (form: Form, context: BizCrudMutationContext) => Promise<void>;
+  update?: (key: Key, form: Form, context: BizCrudMutationContext) => Promise<void>;
   remove?: (keys: Key[]) => Promise<void>;
 }
 
