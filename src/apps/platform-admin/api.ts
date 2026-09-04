@@ -432,35 +432,43 @@ export function getMenu(id: string) {
   );
 }
 
-export function upsertMenu(menu: ApplicationMenu, expectedVersion: number) {
+export function upsertMenu(menu: ApplicationMenu, expectedVersion: number, idempotencyKey: string) {
   return unwrap(
     applicationRequest<ApplicationMenu>({
       url: '/api/v1/applications/menus/upsert',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { menu, expected_version: expectedVersion }
     })
   );
 }
 
-export async function deleteMenu(id: string, version: number) {
+export async function deleteMenu(id: string, version: number, idempotencyKey: string) {
   await unwrap(
     applicationRequest<Record<string, never>>({
       url: '/api/v1/applications/menus/delete',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { id, version }
     })
   );
 }
 
-export function publishMenus(applicationID: string, applicationVersion: number, comment: string) {
+export function publishMenus(input: {
+  applicationID: string;
+  applicationVersion: number;
+  comment: string;
+  idempotencyKey: string;
+}) {
   return unwrap<{ release: MenuRelease; menus: ApplicationMenu[] }>(
     applicationRequest({
       url: '/api/v1/applications/menus/publish',
       method: 'post',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
       data: {
-        application_id: applicationID,
-        application_version: applicationVersion,
-        comment
+        application_id: input.applicationID,
+        application_version: input.applicationVersion,
+        comment: input.comment
       }
     })
   );

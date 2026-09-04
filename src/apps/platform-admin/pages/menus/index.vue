@@ -3,6 +3,9 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard } from '@/platform/application-context';
+import { ensureIdempotencyKey, operationIdempotencyKey } from '@/platform/idempotency-key';
+import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
+import { hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import { remoteSearchPage } from '@/platform/remote-search';
 import { confirmUserAction } from '@/platform/user-action';
 import { applicationPageOptionsFor, pageUsesApplicationNamespace } from '@/apps/registry';
@@ -65,6 +68,10 @@ const publishVisible = ref(false);
 const publishComment = ref('');
 const formRef = ref<FormInstance>();
 const form = reactive<MenuForm>(emptyMenu());
+const menuIdempotencyKey = ref('');
+const publishIdempotencyKey = ref('');
+const deleteIdempotencyKeys = new Map<string, string>();
+const { active: deleting, run: runDelete, reset: resetDelete } = useKeyedAsyncAction();
 const tree = computed(() => buildMenuTree(menus.value));
 const selectedApplication = computed(() => applications.value.find(item => item.id === applicationID.value));
 const applicationPageOptions = computed(() =>
@@ -273,6 +280,7 @@ async function saveMenu() {
   }
   saving.value = true;
   try {
+    menuIdempotencyKey.value = ensureIdempotencyKey(menuIdempotencyKey.value);
     await upsertMenu(
       {
         id: form.id || undefined,
@@ -292,8 +300,10 @@ async function saveMenu() {
         visible: form.visible,
         status: 'active'
       },
-      form.version
+      form.version,
+      menuIdempotencyKey.value
     );
+    menuIdempotencyKey.value = '';
     editorVisible.value = false;
     window.$message?.success(form.id ? '菜单已更新' : '菜单已创建');
     await loadMenus();
@@ -310,10 +320,20 @@ async function removeMenu(menu: ApplicationMenu) {
     })
   );
   if (!confirmed) return;
-  const current = await getMenu(String(menu.id));
-  await deleteMenu(String(current.id), Number(current.version));
-  window.$message?.success('菜单已删除');
-  await loadMenus();
+  const key = `${menu.id}:delete`;
+  await runDelete(key, async () => {
+    const current = await getMenu(String(menu.id));
+    if (hasPersistedVersionChanged(Number(menu.version), Number(current.version))) {
+      deleteIdempotencyKeys.delete(key);
+      window.$message?.warning('菜单已发生变化，请确认最新内容后重试');
+      await loadMenus();
+      return;
+    }
+    await deleteMenu(String(current.id), Number(current.version), operationIdempotencyKey(deleteIdempotencyKeys, key));
+    deleteIdempotencyKeys.delete(key);
+    window.$message?.success('菜单已删除');
+    await loadMenus();
+  });
 }
 
 async function publish() {
@@ -325,7 +345,20 @@ async function publish() {
   publishing.value = true;
   try {
     const application = await getApplication(applicationID.value);
-    const result = await publishMenus(applicationID.value, Number(application.version), publishComment.value);
+    if (hasPersistedVersionChanged(Number(selectedApplication.value?.version), Number(application.version))) {
+      publishIdempotencyKey.value = '';
+      window.$message?.warning('应用或菜单草稿已发生变化，请确认最新内容后重试');
+      await Promise.all([loadApplications(), loadMenus()]);
+      return;
+    }
+    publishIdempotencyKey.value = ensureIdempotencyKey(publishIdempotencyKey.value);
+    const result = await publishMenus({
+      applicationID: applicationID.value,
+      applicationVersion: Number(application.version),
+      comment: publishComment.value,
+      idempotencyKey: publishIdempotencyKey.value
+    });
+    publishIdempotencyKey.value = '';
     publishVisible.value = false;
     publishComment.value = '';
     window.$message?.success(`菜单版本 ${result.release.release_number} 已发布`);
@@ -335,7 +368,23 @@ async function publish() {
   }
 }
 
-watch(applicationID, loadMenus);
+watch(
+  form,
+  () => {
+    menuIdempotencyKey.value = '';
+  },
+  { deep: true }
+);
+watch(publishComment, () => {
+  publishIdempotencyKey.value = '';
+});
+watch(applicationID, () => {
+  menuIdempotencyKey.value = '';
+  publishIdempotencyKey.value = '';
+  deleteIdempotencyKeys.clear();
+  resetDelete();
+  loadMenus();
+});
 onMounted(async () => {
   await loadApplications();
 });
@@ -421,13 +470,16 @@ onMounted(async () => {
           <div class="flex-y-center gap-6px" @click.stop>
             <ElButton v-if="canUpdateMenus" link type="primary" @click="openCreate(String(data.id))">新增子项</ElButton>
             <ElButton v-if="canUpdateMenus && canReadMenus" link type="primary" @click="openEdit(data)">编辑</ElButton>
-            <ElPopconfirm
+            <ElButton
               v-if="canDeleteMenus && canReadMenus"
-              title="只能删除没有子项的菜单，确认继续？"
-              @confirm="removeMenu(data)"
+              link
+              type="danger"
+              :loading="deleting === `${data.id}:delete`"
+              :disabled="Boolean(deleting)"
+              @click="removeMenu(data)"
             >
-              <template #reference><ElButton link type="danger">删除</ElButton></template>
-            </ElPopconfirm>
+              删除
+            </ElButton>
           </div>
         </div>
       </template>
