@@ -118,7 +118,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/httptransport.idVersionRequest"
+                                "$ref": "#/components/schemas/httptransport.getInvoiceRequest"
                             }
                         }
                     },
@@ -821,11 +821,11 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/httptransport.idVersionRequest"
+                                "$ref": "#/components/schemas/httptransport.deleteUsagePriceRequest"
                             }
                         }
                     },
-                    "description": "Identity and version",
+                    "description": "Usage price and parent plan versions",
                     "required": true
                 },
                 "responses": {
@@ -2133,6 +2133,23 @@
                     }
                 }
             },
+            "httptransport.deleteUsagePriceRequest": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "plan_id": {
+                        "type": "string"
+                    },
+                    "plan_version": {
+                        "type": "integer"
+                    },
+                    "version": {
+                        "type": "integer"
+                    }
+                }
+            },
             "httptransport.finalizeInvoiceRequest": {
                 "type": "object",
                 "required": [
@@ -2153,6 +2170,23 @@
                     },
                     "version": {
                         "type": "integer"
+                    }
+                }
+            },
+            "httptransport.getInvoiceRequest": {
+                "type": "object",
+                "required": [
+                    "application_id"
+                ],
+                "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
                     }
                 }
             },
@@ -2199,20 +2233,6 @@
                     },
                     "tenant_id": {
                         "type": "string"
-                    }
-                }
-            },
-            "httptransport.idVersionRequest": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string"
-                    },
-                    "tenant_id": {
-                        "type": "string"
-                    },
-                    "version": {
-                        "type": "integer"
                     }
                 }
             },

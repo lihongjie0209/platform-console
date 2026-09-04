@@ -110,7 +110,7 @@ export interface paths {
             /** @description Invoice identity */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["httptransport.idVersionRequest"];
+                    "application/json": components["schemas"]["httptransport.getInvoiceRequest"];
                 };
             };
             responses: {
@@ -746,10 +746,10 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            /** @description Identity and version */
+            /** @description Usage price and parent plan versions */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["httptransport.idVersionRequest"];
+                    "application/json": components["schemas"]["httptransport.deleteUsagePriceRequest"];
                 };
             };
             responses: {
@@ -1466,12 +1466,23 @@ export interface components {
             starts_at?: string;
             tenant_id?: string;
         };
+        "httptransport.deleteUsagePriceRequest": {
+            id?: string;
+            plan_id?: string;
+            plan_version?: number;
+            version?: number;
+        };
         "httptransport.finalizeInvoiceRequest": {
             application_id: string;
             due_at?: string;
             id?: string;
             tenant_id?: string;
             version?: number;
+        };
+        "httptransport.getInvoiceRequest": {
+            application_id: string;
+            id?: string;
+            tenant_id?: string;
         };
         "httptransport.getPaymentRequest": {
             application_id: string;
@@ -1486,11 +1497,6 @@ export interface components {
             application_id: string;
             id?: string;
             tenant_id?: string;
-        };
-        "httptransport.idVersionRequest": {
-            id?: string;
-            tenant_id?: string;
-            version?: number;
         };
         "httptransport.invoicePeriodRequest": {
             application_id: string;

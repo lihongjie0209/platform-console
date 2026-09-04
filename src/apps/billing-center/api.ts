@@ -169,13 +169,13 @@ export const upsertUsagePrice = (
       data: { ...value, expected_version: value.version || 0, plan_version: planVersion }
     })
   );
-export const deleteUsagePrice = (value: UsagePrice, idempotencyKey: string) =>
+export const deleteUsagePrice = (value: UsagePrice, plan: Pick<Plan, 'id' | 'version'>, idempotencyKey: string) =>
   unwrap<null>(
     request({
       url: '/api/v1/plans/usage-prices/delete',
       method: 'post',
       headers: { 'Idempotency-Key': idempotencyKey },
-      data: { id: value.id, version: value.version }
+      data: { id: value.id, version: value.version, plan_id: plan.id, plan_version: plan.version }
     })
   );
 export const listSubscriptions = (input: {

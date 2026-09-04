@@ -32,7 +32,7 @@ const loadGuard = createLatestRequestGuard();
 const detailGuard = createLatestRequestGuard();
 const formKeys = new Map<string, string>();
 const priceKeys = new Map<string, string>();
-const priceBaselines = new Map<string, Promise<UsagePrice | undefined>>();
+const priceBaselines = new Map<string, Promise<{ plan: Plan; price?: UsagePrice }>>();
 const priceWriteBaselines = new Map<string, Promise<{ plan: Plan; price?: UsagePrice }>>();
 const form = reactive({
   code: '',
@@ -200,10 +200,15 @@ async function removePrice(v: UsagePrice) {
   const operation = `delete-usage-price:${selectedPlan.id}:${v.id}:${v.version}`;
   deletingPriceID.value = v.id;
   try {
-    const current = await operationPromise(priceBaselines, operation, async () => {
+    const baseline = await operationPromise(priceBaselines, operation, async () => {
       const detail = await getPlan(selectedPlan.id);
-      return detail.usage_prices.find(item => item.id === v.id);
+      return { plan: detail.plan, price: detail.usage_prices.find(item => item.id === v.id) };
     });
+    const current = baseline.price;
+    if (baseline.plan.status !== 'active' || hasPersistedVersionChanged(selectedPlan.version, baseline.plan.version)) {
+      window.$message?.warning('套餐已发生变化，请刷新后重试');
+      return;
+    }
     if (!current) {
       window.$message?.warning('用量价格已被删除');
       priceKeys.delete(operation);
@@ -215,7 +220,7 @@ async function removePrice(v: UsagePrice) {
       window.$message?.warning('用量价格已发生变化，请刷新后重试');
       return;
     }
-    await deleteUsagePrice(current, operationIdempotencyKey(priceKeys, operation));
+    await deleteUsagePrice(current, baseline.plan, operationIdempotencyKey(priceKeys, operation));
     priceKeys.delete(operation);
     priceBaselines.delete(operation);
     await manage(selectedPlan);
