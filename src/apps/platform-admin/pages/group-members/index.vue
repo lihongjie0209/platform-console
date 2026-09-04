@@ -2,6 +2,8 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
+import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import { remoteSearchPage } from '@/platform/remote-search';
 import type { Group, GroupMember, Membership, UserIdentity } from '../../api';
 import {
@@ -40,6 +42,8 @@ const assignmentByMembership = computed(
   () => new Map(assignments.value.map(item => [String(item.membership_id), item]))
 );
 const userByID = computed(() => new Map(users.value.map(item => [String(item.id), item])));
+const mutationKeys = new Map<string, string>();
+const removeBaselines = new Map<string, Promise<GroupMember>>();
 
 async function loadCatalogs() {
   if (!tenantID.value) {
@@ -111,15 +115,31 @@ async function toggle(membership: Membership, enabled: boolean) {
   const assignment = assignmentByMembership.value.get(membershipID);
   changing.value = membershipID;
   try {
-    if (enabled) await addGroupMember(groupID.value, membershipID);
-    else if (assignment && canReadMember.value) {
-      const current = await getGroupMember(groupID.value, membershipID);
-      if (current.status !== 'active') {
-        window.$message?.warning('用户组成员关系已发生变化，请刷新后重试');
-        await loadAssignments();
-        return;
-      }
-      await removeGroupMember(groupID.value, membershipID, Number(current.version));
+    if (enabled) {
+      const operation = `add:${groupID.value}:${membershipID}`;
+      await addGroupMember(groupID.value, membershipID, operationIdempotencyKey(mutationKeys, operation));
+      mutationKeys.delete(operation);
+    } else if (assignment && canReadMember.value) {
+      const operation = `remove:${groupID.value}:${membershipID}:${assignment.version}`;
+      const current = await operationPromise(removeBaselines, operation, async () => {
+        const detail = await getGroupMember(groupID.value, membershipID);
+        if (
+          hasPersistedVersionChanged(Number(assignment.version), Number(detail.version)) ||
+          hasPersistedStateChanged(String(assignment.status), String(detail.status)) ||
+          detail.status !== 'active'
+        ) {
+          throw new Error('用户组成员关系已发生变化，请刷新后重试');
+        }
+        return detail;
+      });
+      await removeGroupMember({
+        groupID: groupID.value,
+        membershipID,
+        version: Number(current.version),
+        idempotencyKey: operationIdempotencyKey(mutationKeys, operation)
+      });
+      removeBaselines.delete(operation);
+      mutationKeys.delete(operation);
     }
     window.$message?.success(enabled ? '成员已加入分组' : '成员已移出分组');
     await loadAssignments();

@@ -1349,22 +1349,29 @@ export function getGroupMember(groupID: string, membershipID: string) {
   );
 }
 
-export async function addGroupMember(groupID: string, membershipID: string) {
+export async function addGroupMember(groupID: string, membershipID: string, idempotencyKey: string) {
   await unwrap<{ added: boolean }>(
     tenantRequest({
       url: '/api/v1/groups/member-add',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { group_id: groupID, membership_id: membershipID }
     })
   );
 }
 
-export async function removeGroupMember(groupID: string, membershipID: string, version: number) {
+export async function removeGroupMember(input: {
+  groupID: string;
+  membershipID: string;
+  version: number;
+  idempotencyKey: string;
+}) {
   await unwrap<{ removed: boolean }>(
     tenantRequest({
       url: '/api/v1/groups/member-remove',
       method: 'post',
-      data: { group_id: groupID, membership_id: membershipID, version }
+      headers: { 'Idempotency-Key': input.idempotencyKey },
+      data: { group_id: input.groupID, membership_id: input.membershipID, version: input.version }
     })
   );
 }
