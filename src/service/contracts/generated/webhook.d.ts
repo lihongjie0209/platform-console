@@ -208,6 +208,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/webhooks/deliveries/subscriptions/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Search active subscriptions available to delivery history */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Search and pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListDeliverySubscriptionsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.SubscriptionPageBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/webhooks/subscriptions/create": {
         parameters: {
             query?: never;
@@ -672,6 +715,12 @@ export interface components {
             /** @enum {string} */
             status?: "pending" | "processing" | "succeeded" | "retrying" | "dead";
             subscription_id?: string;
+            tenant_id: string;
+        };
+        "httptransport.ListDeliverySubscriptionsRequest": {
+            application_id: string;
+            page?: components["schemas"]["httptransport.PageRequest"];
+            search?: string;
             tenant_id: string;
         };
         "httptransport.ListSubscriptionsRequest": {

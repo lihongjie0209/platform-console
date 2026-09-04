@@ -169,6 +169,24 @@ export const listDeliveries = (input: {
       }
     })
   );
+export const listDeliverySubscriptions = (input: {
+  tenantID: string;
+  applicationID: string;
+  search: string;
+  page: number;
+  pageSize: number;
+}) =>
+  unwrap<PageBody<WebhookSubscription>>(
+    request({
+      url: '/api/v1/webhooks/deliveries/subscriptions/list',
+      method: 'post',
+      data: {
+        ...applicationScope(input.tenantID, input.applicationID),
+        search: input.search,
+        page: { page: input.page, page_size: input.pageSize }
+      }
+    })
+  );
 export const getDelivery = (value: Pick<WebhookDelivery, 'id' | 'tenant_id' | 'application_id'>) =>
   unwrap<WebhookDelivery>(
     request({

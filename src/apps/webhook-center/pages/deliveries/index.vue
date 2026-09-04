@@ -4,9 +4,10 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
 import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
+import { remoteSearchPage } from '@/platform/remote-search';
 import { confirmUserAction } from '@/platform/user-action';
-import type { WebhookDelivery } from '../../api';
-import { getDelivery, listDeliveries, replayDelivery } from '../../api';
+import type { WebhookDelivery, WebhookSubscription } from '../../api';
+import { getDelivery, listDeliveries, listDeliverySubscriptions, replayDelivery } from '../../api';
 defineOptions({ name: 'WebhookCenterDeliveries' });
 const store = usePlatformStore();
 const tenantID = computed(() => store.selectedTenantId);
@@ -19,11 +20,14 @@ const page = ref(1);
 const pageSize = ref(20);
 const status = ref('');
 const subscriptionID = ref('');
+const subscriptionOptions = ref<WebhookSubscription[]>([]);
+const subscriptionLoading = ref(false);
 const detail = ref<WebhookDelivery>();
 const replayingID = ref('');
 const replayKeys = new Map<string, string>();
 const replayBaselines = new Map<string, Promise<WebhookDelivery>>();
 const loadGuard = createLatestRequestGuard();
+const subscriptionGuard = createLatestRequestGuard();
 const canReplay = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.delivery.replay' }));
 const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.delivery.read' }));
 async function load() {
@@ -45,6 +49,30 @@ async function load() {
   if (loadGuard.isCurrent(request)) {
     rows.value = v.items || [];
     total.value = v.page.total || 0;
+  }
+}
+async function searchSubscriptions(keyword = '') {
+  const request = subscriptionGuard.begin();
+  if (!scopeReady.value) {
+    subscriptionOptions.value = [];
+    subscriptionLoading.value = false;
+    return;
+  }
+  subscriptionLoading.value = true;
+  try {
+    const result = await listDeliverySubscriptions({
+      tenantID: tenantID.value,
+      applicationID: applicationID.value,
+      search: keyword.trim(),
+      ...remoteSearchPage(50)
+    });
+    if (!subscriptionGuard.isCurrent(request)) return;
+    const selected = subscriptionOptions.value.find(item => item.id === subscriptionID.value);
+    subscriptionOptions.value = selected
+      ? Array.from(new Map([selected, ...(result.items || [])].map(item => [item.id, item])).values())
+      : result.items || [];
+  } finally {
+    if (subscriptionGuard.isCurrent(request)) subscriptionLoading.value = false;
   }
 }
 function applyFilters() {
@@ -84,15 +112,22 @@ async function showDetail(v: WebhookDelivery) {
   detail.value = await getDelivery(v);
 }
 watch([tenantID, applicationID], () => {
+  subscriptionGuard.invalidate();
   replayKeys.clear();
   replayBaselines.clear();
   rows.value = [];
   total.value = 0;
   page.value = 1;
   detail.value = undefined;
+  subscriptionID.value = '';
+  subscriptionOptions.value = [];
+  searchSubscriptions();
   load();
 });
-onMounted(load);
+onMounted(() => {
+  searchSubscriptions();
+  load();
+});
 </script>
 
 <template>
@@ -106,8 +141,35 @@ onMounted(load);
     <ElAlert v-if="!scopeReady" title="请先选择租户和应用" type="warning" :closable="false" />
     <template v-else>
       <ElForm inline>
-        <ElFormItem label="订阅 ID"><ElInput v-model="subscriptionID" /></ElFormItem>
-        <ElFormItem label="状态"><ElInput v-model="status" /></ElFormItem>
+        <ElFormItem label="订阅">
+          <ElSelect
+            v-model="subscriptionID"
+            filterable
+            remote
+            clearable
+            reserve-keyword
+            class="w-280px"
+            placeholder="全部订阅"
+            :remote-method="searchSubscriptions"
+            :loading="subscriptionLoading"
+          >
+            <ElOption
+              v-for="subscription in subscriptionOptions"
+              :key="subscription.id"
+              :label="subscription.name"
+              :value="subscription.id"
+            />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem label="状态">
+          <ElSelect v-model="status" clearable class="w-160px" placeholder="全部状态">
+            <ElOption label="待处理" value="pending" />
+            <ElOption label="处理中" value="processing" />
+            <ElOption label="已成功" value="succeeded" />
+            <ElOption label="重试中" value="retrying" />
+            <ElOption label="死信" value="dead" />
+          </ElSelect>
+        </ElFormItem>
         <ElButton @click="applyFilters">查询</ElButton>
       </ElForm>
       <ElTable :data="rows" border>
