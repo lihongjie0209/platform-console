@@ -3,7 +3,8 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
-import { confirmUserAction } from '@/platform/user-action';
+import { operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
+import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import type { Invitation, InvitationForm } from '../../api';
 import { createInvitation, getInvitation, listInvitations, revokeInvitation } from '../../api';
 
@@ -18,6 +19,10 @@ const pageSize = ref(20);
 const createVisible = ref(false);
 const tokenVisible = ref(false);
 const invitationToken = ref('');
+const revokingID = ref('');
+const createKeys = new Map<string, string>();
+const revokeKeys = new Map<string, string>();
+const revokeBaselines = new Map<string, Promise<Invitation>>();
 const formRef = ref<FormInstance>();
 const form = reactive<InvitationForm>({ email: '', expires_in_hours: 24 });
 const tenantID = computed(() => platformStore.selectedTenantId);
@@ -55,14 +60,18 @@ async function loadData() {
 function openCreate() {
   if (!canCreateInvitation.value) return;
   Object.assign(form, { email: '', expires_in_hours: 24 });
+  createKeys.clear();
   formRef.value?.clearValidate();
   createVisible.value = true;
 }
 async function submit() {
-  if (!canCreateInvitation.value || !(await formRef.value?.validate())) return;
+  const currentTenantID = tenantID.value;
+  if (!currentTenantID || !canCreateInvitation.value || !(await formRef.value?.validate())) return;
   submitting.value = true;
   try {
-    const result = await createInvitation(tenantID.value, form);
+    const operation = JSON.stringify([currentTenantID, form.email.trim(), form.expires_in_hours]);
+    const result = await createInvitation(currentTenantID, form, operationIdempotencyKey(createKeys, operation));
+    createKeys.clear();
     invitationToken.value = String(result.token || '');
     createVisible.value = false;
     tokenVisible.value = true;
@@ -72,20 +81,29 @@ async function submit() {
   }
 }
 async function revoke(row: Invitation) {
-  if (!canRevokeInvitation.value || !canReadInvitation.value) return;
-  const confirmed = await confirmUserAction(() =>
-    ElMessageBox.confirm(`确认撤销发给“${row.email}”的邀请吗？`, '撤销邀请', { type: 'warning' })
-  );
-  if (!confirmed) return;
-  const current = await getInvitation(String(row.id));
-  if (current.status !== 'pending') {
-    window.$message?.warning('邀请状态已发生变化，请刷新后重试');
+  if (!canRevokeInvitation.value || !canReadInvitation.value || revokingID.value) return;
+  const operation = `revoke:${row.id}:${row.version}`;
+  revokingID.value = String(row.id);
+  try {
+    const current = await operationPromise(revokeBaselines, operation, async () => {
+      const detail = await getInvitation(String(row.id));
+      if (
+        hasPersistedVersionChanged(Number(row.version), Number(detail.version)) ||
+        hasPersistedStateChanged(String(row.status), String(detail.status)) ||
+        detail.status !== 'pending'
+      ) {
+        throw new Error('邀请状态已发生变化，请刷新后重试');
+      }
+      return detail;
+    });
+    await revokeInvitation(String(current.id), Number(current.version), operationIdempotencyKey(revokeKeys, operation));
+    revokeBaselines.delete(operation);
+    revokeKeys.delete(operation);
+    window.$message?.success('邀请已撤销');
     await loadData();
-    return;
+  } finally {
+    revokingID.value = '';
   }
-  await revokeInvitation(String(current.id), Number(current.version));
-  window.$message?.success('邀请已撤销');
-  await loadData();
 }
 async function copyToken() {
   await navigator.clipboard.writeText(invitationToken.value);
@@ -153,7 +171,11 @@ onMounted(loadData);
               title="确认撤销该邀请？"
               @confirm="revoke(row)"
             >
-              <template #reference><ElButton link type="danger">撤销</ElButton></template>
+              <template #reference>
+                <ElButton link type="danger" :loading="revokingID === String(row.id)" :disabled="Boolean(revokingID)">
+                  撤销
+                </ElButton>
+              </template>
             </ElPopconfirm>
             <span v-else>-</span>
           </template>

@@ -1523,21 +1523,23 @@ export function listInvitations(tenantID: string, page: number, pageSize: number
   );
 }
 
-export function createInvitation(tenantID: string, form: InvitationForm) {
+export function createInvitation(tenantID: string, form: InvitationForm, idempotencyKey: string) {
   return unwrap<CreateInvitationResult>(
     tenantRequest({
       url: '/api/v1/invitations/create',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { tenant_id: tenantID, email: form.email, expires_in_seconds: form.expires_in_hours * 60 * 60 }
     })
   );
 }
 
-export function revokeInvitation(id: string, version: number) {
+export function revokeInvitation(id: string, version: number, idempotencyKey: string) {
   return unwrap<Invitation>(
     tenantRequest({
       url: '/api/v1/invitations/revoke',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { invitation_id: id, version }
     })
   );
