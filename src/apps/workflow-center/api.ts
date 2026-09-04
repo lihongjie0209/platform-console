@@ -210,6 +210,7 @@ export function startInstance(input: {
     request({
       url: '/api/v1/workflow/instances/start',
       method: 'post',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
       data: {
         ...applicationScope(input.tenantID, input.applicationID),
         definition_key: input.definitionKey,
@@ -221,11 +222,12 @@ export function startInstance(input: {
     })
   );
 }
-export function cancelInstance(value: WorkflowInstance, reason: string) {
+export function cancelInstance(value: WorkflowInstance, reason: string, idempotencyKey: string) {
   return unwrap<WorkflowInstance>(
     request({
       url: '/api/v1/workflow/instances/cancel',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         id: value.id,
         ...applicationScope(value.tenant_id, value.application_id),

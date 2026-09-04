@@ -4,7 +4,8 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { useAsyncAction } from '@/components/business';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformDateTime, formatPlatformTableDateTime } from '@/platform/date-time';
-import { ensureIdempotencyKey } from '@/platform/idempotency-key';
+import { ensureIdempotencyKey, operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
+import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import { promptUserInput } from '@/platform/user-action';
 import type { WorkflowInstance, WorkflowTaskHistory } from '../../api';
 import { cancelInstance, getInstance, listInstanceTaskHistory, listInstances, startInstance } from '../../api';
@@ -33,6 +34,9 @@ const historyPageSize = ref(20);
 const historyTotal = ref(0);
 const form = reactive({ definitionKey: '', businessKey: '', title: '', variables: '{}' });
 const startIdempotencyKey = ref('');
+const cancellingID = ref('');
+const cancelKeys = new Map<string, string>();
+const cancelBaselines = new Map<string, Promise<WorkflowInstance>>();
 const { loading: starting, run: runStart } = useAsyncAction();
 const loadGuard = createLatestRequestGuard();
 const canStart = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.instance.start' }));
@@ -77,6 +81,7 @@ function openStart() {
     title: '',
     variables: '{}'
   });
+  startIdempotencyKey.value = '';
   visible.value = true;
 }
 async function start() {
@@ -111,7 +116,7 @@ watch(
   }
 );
 async function cancel(row: WorkflowInstance) {
-  if (!canCancel.value || !canRead.value) return;
+  if (!canCancel.value || !canRead.value || cancellingID.value) return;
   const reason = await promptUserInput(() =>
     ElMessageBox.prompt('请输入取消原因', '取消流程', {
       inputPattern: /\S+/,
@@ -120,9 +125,27 @@ async function cancel(row: WorkflowInstance) {
     })
   );
   if (!reason) return;
-  const current = await getInstance(row);
-  await cancelInstance(current, reason);
-  await loadData();
+  const operation = JSON.stringify(['cancel', row.id, row.version, reason]);
+  cancellingID.value = row.id;
+  try {
+    const current = await operationPromise(cancelBaselines, operation, async () => {
+      const currentValue = await getInstance(row);
+      if (
+        hasPersistedVersionChanged(row.version, currentValue.version) ||
+        hasPersistedStateChanged(row.status, currentValue.status) ||
+        currentValue.status !== 'running'
+      ) {
+        throw new Error('工作流实例已发生变化，请刷新后重试');
+      }
+      return currentValue;
+    });
+    await cancelInstance(current, reason, operationIdempotencyKey(cancelKeys, operation));
+    cancelBaselines.delete(operation);
+    cancelKeys.delete(operation);
+    await loadData();
+  } finally {
+    cancellingID.value = '';
+  }
 }
 async function loadHistory() {
   if (!detail.value) return;
@@ -151,6 +174,9 @@ async function show(row: WorkflowInstance) {
   }
 }
 watch([tenantID, applicationID], () => {
+  startIdempotencyKey.value = '';
+  cancelKeys.clear();
+  cancelBaselines.clear();
   rows.value = [];
   total.value = 0;
   visible.value = false;
@@ -191,7 +217,14 @@ onMounted(loadData);
         <ElTableColumn label="操作" width="130">
           <template #default="{ row }">
             <ElButton v-if="canRead" link type="primary" @click="show(row)">详情</ElButton>
-            <ElButton v-if="canCancel && canRead && row.status === 'running'" link type="danger" @click="cancel(row)">
+            <ElButton
+              v-if="canCancel && canRead && row.status === 'running'"
+              link
+              type="danger"
+              :loading="cancellingID === row.id"
+              :disabled="Boolean(cancellingID)"
+              @click="cancel(row)"
+            >
               取消
             </ElButton>
           </template>
