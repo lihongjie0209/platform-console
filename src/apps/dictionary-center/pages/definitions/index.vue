@@ -3,6 +3,8 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
+import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import { confirmUserAction, promptUserInput } from '@/platform/user-action';
 import type { DictionaryDefinition, DictionaryItem } from '../../api';
 import {
@@ -34,6 +36,9 @@ const status = ref('');
 const keyword = ref('');
 const formVisible = ref(false);
 const saving = ref(false);
+const itemSaving = ref(false);
+const mutatingItemID = ref('');
+const publishingID = ref('');
 const editing = ref<DictionaryDefinition>();
 const form = reactive({ code: '', name: '', description: '', status: 'draft', metadata: '{}' });
 const itemsVisible = ref(false);
@@ -66,6 +71,11 @@ const previewPageSize = ref(20);
 const loadGuard = createLatestRequestGuard();
 const itemsGuard = createLatestRequestGuard();
 const previewGuard = createLatestRequestGuard();
+const definitionFormKeys = new Map<string, string>();
+const definitionActionKeys = new Map<string, string>();
+const itemKeys = new Map<string, string>();
+const itemBaselines = new Map<string, Promise<DictionaryItem>>();
+const definitionBaselines = new Map<string, Promise<DictionaryDefinition>>();
 const canCreate = computed(() =>
   platformStore.hasPermission({ scope: 'tenant', codes: 'dictionary.definition.create' })
 );
@@ -119,12 +129,14 @@ function search() {
 function openCreate() {
   if (!canCreate.value || !scopeReady.value) return;
   editing.value = undefined;
+  definitionFormKeys.clear();
   Object.assign(form, { code: '', name: '', description: '', status: 'draft', metadata: '{}' });
   formVisible.value = true;
 }
 async function openEdit(row: DictionaryDefinition) {
   if (!canUpdate.value || !canRead.value) return;
   const current = await getDefinition(row);
+  definitionFormKeys.clear();
   editing.value = current;
   Object.assign(form, {
     code: current.code,
@@ -146,13 +158,25 @@ async function save() {
   }
   saving.value = true;
   try {
+    const operation = JSON.stringify([
+      'definition',
+      editing.value?.id || '',
+      editing.value?.version || 0,
+      form,
+      metadata
+    ]);
+    const idempotencyKey = operationIdempotencyKey(definitionFormKeys, operation);
     if (editing.value)
-      await updateDefinition(editing.value, {
-        name: form.name,
-        description: form.description,
-        status: form.status,
-        metadata
-      });
+      await updateDefinition(
+        editing.value,
+        {
+          name: form.name,
+          description: form.description,
+          status: form.status,
+          metadata
+        },
+        idempotencyKey
+      );
     else
       await createDefinition({
         tenantID: tenantID.value,
@@ -160,8 +184,10 @@ async function save() {
         code: form.code,
         name: form.name,
         description: form.description,
-        metadata
+        metadata,
+        idempotencyKey
       });
+    definitionFormKeys.clear();
     formVisible.value = false;
     await loadData();
   } finally {
@@ -207,6 +233,7 @@ function resizeItems() {
 function openNewItem() {
   if (!canUpdateItems.value) return;
   editingItem.value = undefined;
+  itemKeys.clear();
   Object.assign(itemForm, {
     code: '',
     name: '',
@@ -223,6 +250,7 @@ function openNewItem() {
 async function editItem(row: DictionaryItem) {
   if (!canUpdateItems.value || !canReadItem.value) return;
   const current = await getItem(row.id);
+  itemKeys.clear();
   editingItem.value = current;
   Object.assign(itemForm, {
     code: current.code,
@@ -238,7 +266,7 @@ async function editItem(row: DictionaryItem) {
   itemVisible.value = true;
 }
 async function saveItem() {
-  if (!canUpdateItems.value || !selected.value) return;
+  if (!canUpdateItems.value || !selected.value || itemSaving.value) return;
   let metadata: Record<string, unknown>;
   try {
     metadata = parseJSONObject(itemForm.metadata);
@@ -246,7 +274,7 @@ async function saveItem() {
     window.$message?.error(error instanceof Error ? error.message : '元数据错误');
     return;
   }
-  await upsertItem(selected.value.id, {
+  const payload = {
     ...editingItem.value,
     code: itemForm.code,
     name: itemForm.name,
@@ -257,28 +285,70 @@ async function saveItem() {
     leaf: itemForm.leaf,
     disabled: itemForm.disabled,
     sort_order: itemForm.sortOrder
-  });
-  itemVisible.value = false;
-  await loadItems();
+  };
+  const operation = JSON.stringify(['item', selected.value.id, payload]);
+  itemSaving.value = true;
+  try {
+    await upsertItem(selected.value.id, payload, operationIdempotencyKey(itemKeys, operation));
+    itemKeys.clear();
+    itemVisible.value = false;
+    await loadItems();
+  } finally {
+    itemSaving.value = false;
+  }
 }
 async function removeItem(row: DictionaryItem) {
-  if (!canDeleteItems.value || !canReadItem.value) return;
+  if (!canDeleteItems.value || !canReadItem.value || mutatingItemID.value) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm(`确认删除条目“${row.name}”吗？`, '删除条目', { type: 'warning' })
   );
   if (!confirmed) return;
-  const current = await getItem(row.id);
-  await deleteItem(current);
-  if (selected.value) await loadItems();
+  const operation = `delete:${row.id}:${row.version}`;
+  mutatingItemID.value = row.id;
+  try {
+    const current = await operationPromise(itemBaselines, operation, async () => {
+      const detail = await getItem(row.id);
+      if (
+        hasPersistedVersionChanged(row.version, detail.version) ||
+        hasPersistedStateChanged(row.status, detail.status)
+      ) {
+        throw new Error('字典条目已发生变化，请刷新后重试');
+      }
+      return detail;
+    });
+    await deleteItem(current, operationIdempotencyKey(itemKeys, operation));
+    itemBaselines.delete(operation);
+    itemKeys.delete(operation);
+    if (selected.value) await loadItems();
+  } finally {
+    mutatingItemID.value = '';
+  }
 }
 async function publish(row: DictionaryDefinition) {
-  if (!canPublish.value || !canRead.value) return;
+  if (!canPublish.value || !canRead.value || publishingID.value) return;
   const comment = await promptUserInput(() => ElMessageBox.prompt('请输入发布说明', '发布字典', { inputValue: '' }));
   if (comment === undefined) return;
-  const current = await getDefinition(row);
-  await publishDefinition(current, comment);
-  window.$message?.success('字典版本已发布');
-  await loadData();
+  const operation = JSON.stringify(['publish', row.id, row.version, comment]);
+  publishingID.value = row.id;
+  try {
+    const current = await operationPromise(definitionBaselines, operation, async () => {
+      const detail = await getDefinition(row);
+      if (
+        hasPersistedVersionChanged(row.version, detail.version) ||
+        hasPersistedStateChanged(row.status, detail.status)
+      ) {
+        throw new Error('字典定义已发生变化，请刷新后重试');
+      }
+      return detail;
+    });
+    await publishDefinition(current, comment, operationIdempotencyKey(definitionActionKeys, operation));
+    definitionBaselines.delete(operation);
+    definitionActionKeys.delete(operation);
+    window.$message?.success('字典版本已发布');
+    await loadData();
+  } finally {
+    publishingID.value = '';
+  }
 }
 async function loadPreview(row: DictionaryDefinition) {
   if (!canQuery.value || !scopeReady.value) return;
@@ -312,6 +382,11 @@ function resizePreview() {
 watch([tenantID, applicationID], () => {
   itemsGuard.invalidate();
   previewGuard.invalidate();
+  definitionFormKeys.clear();
+  definitionActionKeys.clear();
+  itemKeys.clear();
+  itemBaselines.clear();
+  definitionBaselines.clear();
   rows.value = [];
   total.value = 0;
   formVisible.value = false;
@@ -367,7 +442,14 @@ onMounted(loadData);
             <ElButton v-if="canListItems && row.kind === 'static'" link type="primary" @click="openItems(row)">
               条目
             </ElButton>
-            <ElButton v-if="canPublish && canRead && row.kind === 'static'" link type="primary" @click="publish(row)">
+            <ElButton
+              v-if="canPublish && canRead && row.kind === 'static'"
+              link
+              type="primary"
+              :loading="publishingID === row.id"
+              :disabled="Boolean(publishingID)"
+              @click="publish(row)"
+            >
               发布
             </ElButton>
             <ElButton v-if="canQuery" link type="primary" @click="preview(row)">查询验证</ElButton>
@@ -439,7 +521,16 @@ onMounted(loadData);
       <ElTableColumn label="操作" width="130">
         <template #default="{ row }">
           <ElButton v-if="canUpdateItems && canReadItem" link type="primary" @click="editItem(row)">编辑</ElButton>
-          <ElButton v-if="canDeleteItems && canReadItem" link type="danger" @click="removeItem(row)">删除</ElButton>
+          <ElButton
+            v-if="canDeleteItems && canReadItem"
+            link
+            type="danger"
+            :loading="mutatingItemID === row.id"
+            :disabled="Boolean(mutatingItemID)"
+            @click="removeItem(row)"
+          >
+            删除
+          </ElButton>
         </template>
       </ElTableColumn>
     </ElTable>
@@ -468,7 +559,7 @@ onMounted(loadData);
     </ElForm>
     <template #footer>
       <ElButton @click="itemVisible = false">取消</ElButton>
-      <ElButton v-if="canUpdateItems" type="primary" @click="saveItem">保存</ElButton>
+      <ElButton v-if="canUpdateItems" type="primary" :loading="itemSaving" @click="saveItem">保存</ElButton>
     </template>
   </ElDialog>
   <ElDrawer v-model="previewVisible" :title="`${selected?.name || ''} · 查询验证`" size="720px">

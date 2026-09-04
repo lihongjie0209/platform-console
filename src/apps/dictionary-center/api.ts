@@ -94,11 +94,13 @@ export function createDefinition(input: {
   name: string;
   description: string;
   metadata: Record<string, unknown>;
+  idempotencyKey: string;
 }) {
   return unwrap<DictionaryDefinition>(
     request({
       url: '/api/v1/dictionaries/create',
       method: 'post',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
       data: {
         ...applicationScope(input.tenantID, input.applicationID),
         code: input.code,
@@ -111,12 +113,14 @@ export function createDefinition(input: {
 }
 export function updateDefinition(
   value: DictionaryDefinition,
-  input: { name: string; description: string; status: string; metadata: Record<string, unknown> }
+  input: { name: string; description: string; status: string; metadata: Record<string, unknown> },
+  idempotencyKey: string
 ) {
   return unwrap<DictionaryDefinition>(
     request({
       url: '/api/v1/dictionaries/update',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         id: value.id,
         version: value.version,
@@ -142,11 +146,16 @@ export function listDraftItems(query: { dictionaryID: string; keyword: string; p
     })
   );
 }
-export function upsertItem(dictionaryID: string, item: Partial<DictionaryItem> & { code: string; name: string }) {
+export function upsertItem(
+  dictionaryID: string,
+  item: Partial<DictionaryItem> & { code: string; name: string },
+  idempotencyKey: string
+) {
   return unwrap<{ items: DictionaryItem[] }>(
     request({
       url: '/api/v1/dictionaries/items/upsert',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         dictionary_id: dictionaryID,
         items: [
@@ -168,19 +177,25 @@ export function upsertItem(dictionaryID: string, item: Partial<DictionaryItem> &
     })
   );
 }
-export function deleteItem(item: DictionaryItem) {
+export function deleteItem(item: DictionaryItem, idempotencyKey: string) {
   return unwrap<Record<string, never>>(
-    request({ url: '/api/v1/dictionaries/items/delete', method: 'post', data: { id: item.id, version: item.version } })
+    request({
+      url: '/api/v1/dictionaries/items/delete',
+      method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
+      data: { id: item.id, version: item.version }
+    })
   );
 }
 export function getItem(id: string) {
   return unwrap<DictionaryItem>(request({ url: '/api/v1/dictionaries/items/get', method: 'post', data: { id } }));
 }
-export function publishDefinition(value: DictionaryDefinition, comment: string) {
+export function publishDefinition(value: DictionaryDefinition, comment: string, idempotencyKey: string) {
   return unwrap<{ release_version: number; items: DictionaryItem[] }>(
     request({
       url: '/api/v1/dictionaries/publish',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { dictionary_id: value.id, dictionary_version: value.version, comment }
     })
   );
