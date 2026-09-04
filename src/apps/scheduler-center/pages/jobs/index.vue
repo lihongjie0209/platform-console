@@ -3,7 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
-import { ensureIdempotencyKey, operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
+import { operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
 import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import { confirmUserAction } from '@/platform/user-action';
 import type { JobExecution, JobInput, ScheduledJob } from '../../api';
@@ -39,6 +39,8 @@ const executionGuard = createLatestRequestGuard();
 const formKeys = new Map<string, string>();
 const deleteKeys = new Map<string, string>();
 const deleteBaselines = new Map<string, Promise<ScheduledJob>>();
+const triggerKeys = new Map<string, string>();
+const triggerBaselines = new Map<string, Promise<ScheduledJob>>();
 const canCreate = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.job.create' }));
 const canRead = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.job.read' }));
 const canUpdate = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.job.update' }));
@@ -180,10 +182,24 @@ async function remove(row: ScheduledJob) {
   }
 }
 async function trigger(row: ScheduledJob) {
-  if (!canTrigger.value || triggeringID.value) return;
+  if (!canTrigger.value || !canRead.value || triggeringID.value) return;
+  const operation = `trigger:${row.id}:${row.version}:${row.status}`;
   triggeringID.value = row.id;
   try {
-    const result = await triggerJob(row.id, ensureIdempotencyKey(''));
+    const current = await operationPromise(triggerBaselines, operation, async () => {
+      const detail = await getJob(row.id);
+      if (
+        hasPersistedVersionChanged(row.version, detail.version) ||
+        hasPersistedStateChanged(row.status, detail.status) ||
+        !detail.enabled
+      ) {
+        throw new Error('调度任务已发生变化或已停用，请刷新后重试');
+      }
+      return detail;
+    });
+    const result = await triggerJob(current.id, operationIdempotencyKey(triggerKeys, operation));
+    triggerKeys.delete(operation);
+    triggerBaselines.delete(operation);
     window.$message?.success(`执行完成：${result.status}`);
   } catch {
     window.$message?.warning('触发已返回失败，请在执行记录中查看详情');
@@ -234,6 +250,8 @@ watch([tenantID, applicationID], () => {
   formKeys.clear();
   deleteKeys.clear();
   deleteBaselines.clear();
+  triggerKeys.clear();
+  triggerBaselines.clear();
   page.value = 1;
   rows.value = [];
   total.value = 0;
@@ -297,7 +315,7 @@ onMounted(loadData);
         <template #default="{ row }">
           <ElButton v-if="canUpdate && canRead" link type="primary" @click="openEdit(row)">编辑</ElButton>
           <ElButton
-            v-if="canTrigger"
+            v-if="canTrigger && canRead"
             link
             type="primary"
             :loading="triggeringID === row.id"
