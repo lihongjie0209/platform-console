@@ -57,6 +57,12 @@ export interface WorkflowTask extends Omit<TaskSchema, 'input_json' | 'output_js
   output_json: Record<string, unknown>;
   version: number;
 }
+export type WorkflowTaskInstanceCandidate = WorkflowContract['schemas']['httptransport.TaskInstanceCandidateDTO'] & {
+  id: string;
+  title: string;
+  business_key: string;
+  status: string;
+};
 export interface WorkflowTaskHistory extends Omit<TaskHistorySchema, 'detail_json'>, Record<string, unknown> {
   id: string;
   tenant_id: string;
@@ -292,6 +298,26 @@ export function listTasks(input: {
         ...applicationScope(input.tenantID, input.applicationID),
         instance_id: input.instanceID,
         status: input.status,
+        search: input.search,
+        page: input.page,
+        page_size: input.pageSize
+      }
+    })
+  );
+}
+export function listTaskInstanceCandidates(input: {
+  tenantID: string;
+  applicationID: string;
+  search: string;
+  page: number;
+  pageSize: number;
+}) {
+  return unwrap<Page<WorkflowTaskInstanceCandidate>>(
+    request({
+      url: '/api/v1/workflow/tasks/instances/list',
+      method: 'post',
+      data: {
+        ...applicationScope(input.tenantID, input.applicationID),
         search: input.search,
         page: input.page,
         page_size: input.pageSize

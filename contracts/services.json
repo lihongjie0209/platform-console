@@ -10,7 +10,7 @@
   "scheduler": "https://raw.githubusercontent.com/lihongjie0209/scheduler-service/2f1cfbc0d1098bba5b604473b0e6117ff776e988/docs/swagger.json",
   "dictionary": "https://raw.githubusercontent.com/lihongjie0209/dictionary-service/0c5bdd03a89a35df0ba15f5ddbf2bf8b5405edc0/docs/swagger.json",
   "service-registry": "https://raw.githubusercontent.com/lihongjie0209/service-registry-service/695aa5acc20831285479dc3b4b0c9d4028270165/docs/swagger.json",
-  "workflow": "https://raw.githubusercontent.com/lihongjie0209/workflow-service/52ad2bbe60a68232b410ead34fccb73a2d4ef38a/docs/swagger.json",
+  "workflow": "https://raw.githubusercontent.com/lihongjie0209/workflow-service/0c7baf9ac93c773c409431cb960e39bc7c47d842/docs/swagger.json",
   "search": "https://raw.githubusercontent.com/lihongjie0209/search-service/58ec0c38b8d534cbefd584d9fd7abb7c136d46db/docs/swagger.json",
   "metering": "https://raw.githubusercontent.com/lihongjie0209/metering-service/e4d25f195ac134245f1c8aaec4c01137b2a4108e/docs/swagger.json",
   "billing": "https://raw.githubusercontent.com/lihongjie0209/billing-service/40fb24b6cbf1d1515045cd5a985f9de7b9462611/docs/swagger.json",

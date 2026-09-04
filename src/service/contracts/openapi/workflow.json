@@ -1778,6 +1778,54 @@
                 }
             }
         },
+        "/api/v1/workflow/tasks/instances/list": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "workflow-tasks"
+                ],
+                "summary": "Search instances referenced by tasks visible to the caller",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.ListTaskInstanceCandidatesRequest"
+                            }
+                        }
+                    },
+                    "description": "Search and pagination",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.PageDTO-httptransport_TaskInstanceCandidateDTO"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/workflow/tasks/list": {
             "post": {
                 "security": [
@@ -2529,6 +2577,30 @@
                     }
                 }
             },
+            "httptransport.ListTaskInstanceCandidatesRequest": {
+                "type": "object",
+                "required": [
+                    "application_id",
+                    "tenant_id"
+                ],
+                "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "search": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
             "httptransport.ListTasksRequest": {
                 "type": "object",
                 "required": [
@@ -2654,6 +2726,26 @@
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/httptransport.TaskHistoryDTO"
+                        }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "total": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "httptransport.PageDTO-httptransport_TaskInstanceCandidateDTO": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.TaskInstanceCandidateDTO"
                         }
                     },
                     "page": {
@@ -2831,6 +2923,23 @@
                     },
                     "version": {
                         "type": "integer"
+                    }
+                }
+            },
+            "httptransport.TaskInstanceCandidateDTO": {
+                "type": "object",
+                "properties": {
+                    "business_key": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
                     }
                 }
             },

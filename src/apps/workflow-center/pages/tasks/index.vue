@@ -1,13 +1,22 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
+import { BizRemoteSelect } from '@/components/business';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformDateTime, formatPlatformTableDateTime } from '@/platform/date-time';
 import { operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
 import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
 import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import type { WorkflowTask, WorkflowTaskHistory } from '../../api';
-import { claimTask, completeTask, delegateTask, getTask, listTaskHistory, listTasks } from '../../api';
+import {
+  claimTask,
+  completeTask,
+  delegateTask,
+  getTask,
+  listTaskHistory,
+  listTaskInstanceCandidates,
+  listTasks
+} from '../../api';
 import { parseJSONObject } from '../../json';
 import { isTaskActionable } from '../../mutation';
 defineOptions({ name: 'WorkflowCenterTasks' });
@@ -76,6 +85,23 @@ async function loadData() {
 function search() {
   page.value = 1;
   loadData();
+}
+async function loadTaskInstances(keyword: string, nextPage: number, nextPageSize: number) {
+  if (!scopeReady.value) return { items: [], total: 0 };
+  const result = await listTaskInstanceCandidates({
+    tenantID: tenantID.value,
+    applicationID: applicationID.value,
+    search: keyword.trim(),
+    page: nextPage,
+    pageSize: nextPageSize
+  });
+  return {
+    items: (result.items || []).map(item => ({
+      value: item.id,
+      label: `${item.title} (${item.business_key})`
+    })),
+    total: result.total
+  };
 }
 async function claim(row: WorkflowTask) {
   if (!canClaim.value || !canRead.value) return;
@@ -195,6 +221,7 @@ watch([tenantID, applicationID], () => {
   delegateKeys.clear();
   rows.value = [];
   total.value = 0;
+  instanceID.value = '';
   selected.value = undefined;
   completeVisible.value = false;
   delegateVisible.value = false;
@@ -217,7 +244,16 @@ onMounted(loadData);
     <template v-else>
       <ElForm inline>
         <ElFormItem label="搜索"><ElInput v-model="searchText" /></ElFormItem>
-        <ElFormItem label="实例 ID"><ElInput v-model="instanceID" /></ElFormItem>
+        <ElFormItem label="流程实例">
+          <BizRemoteSelect
+            :key="`${tenantID}:${applicationID}:task-instances`"
+            v-model="instanceID"
+            :loader="loadTaskInstances"
+            :page-size="50"
+            class="w-280px"
+            placeholder="全部可见实例"
+          />
+        </ElFormItem>
         <ElFormItem label="状态">
           <ElSelect v-model="status" clearable class="w-140px">
             <ElOption

@@ -1617,6 +1617,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workflow/tasks/instances/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Search instances referenced by tasks visible to the caller */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Search and pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.ListTaskInstanceCandidatesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PageDTO-httptransport_TaskInstanceCandidateDTO"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workflow/tasks/list": {
         parameters: {
             query?: never;
@@ -1948,6 +1991,13 @@ export interface components {
             task_id: string;
             tenant_id: string;
         };
+        "httptransport.ListTaskInstanceCandidatesRequest": {
+            application_id: string;
+            page?: number;
+            page_size?: number;
+            search?: string;
+            tenant_id: string;
+        };
         "httptransport.ListTasksRequest": {
             application_id: string;
             instance_id?: string;
@@ -1986,6 +2036,12 @@ export interface components {
         };
         "httptransport.PageDTO-httptransport_TaskHistoryDTO": {
             items?: components["schemas"]["httptransport.TaskHistoryDTO"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
+        "httptransport.PageDTO-httptransport_TaskInstanceCandidateDTO": {
+            items?: components["schemas"]["httptransport.TaskInstanceCandidateDTO"][];
             page?: number;
             page_size?: number;
             total?: number;
@@ -2044,6 +2100,12 @@ export interface components {
             updated_at?: string;
             updated_by?: string;
             version?: number;
+        };
+        "httptransport.TaskInstanceCandidateDTO": {
+            business_key?: string;
+            id?: string;
+            status?: string;
+            title?: string;
         };
         "httptransport.TaskVersionRequest": {
             application_id: string;
