@@ -2,9 +2,9 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
-import { operationIdempotencyKey, operationValue } from '@/platform/idempotency-key';
+import { operationIdempotencyKey, operationPromise, operationValue } from '@/platform/idempotency-key';
 import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
-import { hasPersistedStateChanged } from '@/platform/optimistic-mutation';
+import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import { confirmUserAction, promptUserInput } from '@/platform/user-action';
 import type { Invoice } from '../../api';
 import { finalizeInvoice, getInvoice, listInvoices, voidInvoice } from '../../api';
@@ -22,6 +22,7 @@ const status = ref('');
 const loadGuard = createLatestRequestGuard();
 const actionIdempotencyKeys = new Map<string, string>();
 const finalizeDueDates = new Map<string, string>();
+const actionBaselines = new Map<string, Promise<Invoice>>();
 const { active: actionLoading, run: runAction, reset: resetAction } = useKeyedAsyncAction();
 const canFinalize = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.invoice.finalize' }));
 const canVoid = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.invoice.void' }));
@@ -57,9 +58,14 @@ async function finalize(v: Invoice) {
   if (!confirmed) return;
   const key = `${v.id}:finalize`;
   await runAction(key, async () => {
-    const current = await getInvoice(v);
-    if (hasPersistedStateChanged(v.status, current.status) || current.status !== 'draft') {
+    const current = await operationPromise(actionBaselines, key, () => getInvoice(v));
+    if (
+      hasPersistedVersionChanged(v.version, current.version) ||
+      hasPersistedStateChanged(v.status, current.status) ||
+      current.status !== 'draft'
+    ) {
       actionIdempotencyKeys.delete(key);
+      actionBaselines.delete(key);
       finalizeDueDates.delete(key);
       window.$message?.warning('账单状态已变化，请确认最新状态后重试');
       await load();
@@ -68,6 +74,7 @@ async function finalize(v: Invoice) {
     const dueAt = operationValue(finalizeDueDates, key, () => new Date(Date.now() + 7 * 86400000).toISOString());
     await finalizeInvoice(current, dueAt, operationIdempotencyKey(actionIdempotencyKeys, key));
     actionIdempotencyKeys.delete(key);
+    actionBaselines.delete(key);
     finalizeDueDates.delete(key);
     await load();
   });
@@ -84,15 +91,21 @@ async function voidOne(v: Invoice) {
   if (!reason) return;
   const key = `${v.id}:void:${reason}`;
   await runAction(key, async () => {
-    const current = await getInvoice(v);
-    if (hasPersistedStateChanged(v.status, current.status) || current.status === 'void') {
+    const current = await operationPromise(actionBaselines, key, () => getInvoice(v));
+    if (
+      hasPersistedVersionChanged(v.version, current.version) ||
+      hasPersistedStateChanged(v.status, current.status) ||
+      current.status === 'void'
+    ) {
       actionIdempotencyKeys.delete(key);
+      actionBaselines.delete(key);
       window.$message?.warning('账单状态已变化，请确认最新状态后重试');
       await load();
       return;
     }
     await voidInvoice(current, reason, operationIdempotencyKey(actionIdempotencyKeys, key));
     actionIdempotencyKeys.delete(key);
+    actionBaselines.delete(key);
     await load();
   });
 }
@@ -101,6 +114,7 @@ watch([tenantID, applicationID], () => {
   total.value = 0;
   page.value = 1;
   actionIdempotencyKeys.clear();
+  actionBaselines.clear();
   finalizeDueDates.clear();
   resetAction();
   load();

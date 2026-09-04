@@ -284,14 +284,16 @@ export const listInvoices = (input: {
       }
     })
   );
-export const getInvoice = (value: Pick<Invoice, 'id' | 'tenant_id' | 'application_id'>) =>
-  unwrap<Invoice>(
+export const getInvoiceDetail = (value: Pick<Invoice, 'id' | 'tenant_id' | 'application_id'>) =>
+  unwrap<{ invoice: Invoice; lines: BillingContract['schemas']['httptransport.InvoiceLineBody'][] }>(
     request({
       url: '/api/v1/invoices/get',
       method: 'post',
       data: { id: value.id, ...applicationScope(value.tenant_id, value.application_id) }
     })
   );
+export const getInvoice = async (value: Pick<Invoice, 'id' | 'tenant_id' | 'application_id'>) =>
+  (await getInvoiceDetail(value)).invoice;
 export const finalizeInvoice = (value: Invoice, dueAt: string, idempotencyKey: string) =>
   unwrap<Invoice>(
     request({
