@@ -95,8 +95,8 @@ const adapter: BizCrudAdapter<TenantDirectoryItem, Query, TenantForm, string> = 
     return { items: result.items, total: result.total, page: result.page, pageSize: result.page_size };
   },
   detail: getTenant,
-  create: createTenant,
-  update: updateTenant
+  create: (form, context) => createTenant(form, context.idempotencyKey),
+  update: (id, form, context) => updateTenant(id, form, context.idempotencyKey)
 };
 function userLabel(user: UserIdentity) {
   return `${user.display_name || user.username} (${user.username})`;

@@ -124,9 +124,16 @@ const adapter: BizCrudAdapter<Permission, Query, PermissionForm, string> = {
     ...emptyForm(),
     ...(await getMyPermission({ tenantID: tenantID.value, permissionScope: permissionScope.value, permissionID }))
   }),
-  create: form => createMyPermission({ tenantID: tenantID.value, permissionScope: permissionScope.value, form }),
-  update: (permissionID, form) =>
-    updateMyPermission({ tenantID: tenantID.value, permissionScope: permissionScope.value, permissionID, form })
+  create: (form, context) =>
+    createMyPermission(
+      { tenantID: tenantID.value, permissionScope: permissionScope.value, form },
+      context.idempotencyKey
+    ),
+  update: (permissionID, form, context) =>
+    updateMyPermission(
+      { tenantID: tenantID.value, permissionScope: permissionScope.value, permissionID, form },
+      context.idempotencyKey
+    )
 };
 </script>
 

@@ -73,8 +73,8 @@ const adapter: BizCrudAdapter<Quota, Query, QuotaForm, string> = {
     const quota = await getQuota(tenantID.value, key);
     return { key: String(quota.key), limit: Number(quota.limit), version: Number(quota.version) };
   },
-  create: form => setQuota(tenantID.value, form),
-  update: (_key, form) => setQuota(tenantID.value, form)
+  create: (form, context) => setQuota(tenantID.value, form, context.idempotencyKey),
+  update: (_key, form, context) => setQuota(tenantID.value, form, context.idempotencyKey)
 };
 function percentage(row: Quota) {
   const limit = Number(row.limit || 0);

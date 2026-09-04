@@ -150,8 +150,8 @@ const adapter: BizCrudAdapter<Membership, Query, MembershipForm, string> = {
     return { items: result.memberships, total: result.total, page: result.page, pageSize: result.page_size };
   },
   detail: async id => ({ ...emptyForm(), ...(await getMembership(id)) }),
-  create: form => addMembership(tenantID.value, form),
-  update: updateMembership
+  create: (form, context) => addMembership(tenantID.value, form, context.idempotencyKey),
+  update: (id, form, context) => updateMembership(id, form, context.idempotencyKey)
 };
 function userLabel(id: string) {
   const user = userByID.value.get(id);

@@ -117,8 +117,10 @@ const adapter: BizCrudAdapter<Role, Query, RoleForm, string> = {
     ...emptyForm(),
     ...(await getMyRole({ tenantID: tenantID.value, permissionScope: roleScope.value, roleID }))
   }),
-  create: form => createMyRole({ tenantID: tenantID.value, permissionScope: roleScope.value, form }),
-  update: (roleID, form) => updateMyRole({ tenantID: tenantID.value, permissionScope: roleScope.value, roleID, form })
+  create: (form, context) =>
+    createMyRole({ tenantID: tenantID.value, permissionScope: roleScope.value, form }, context.idempotencyKey),
+  update: (roleID, form, context) =>
+    updateMyRole({ tenantID: tenantID.value, permissionScope: roleScope.value, roleID, form }, context.idempotencyKey)
 };
 </script>
 

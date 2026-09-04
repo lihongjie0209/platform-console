@@ -160,8 +160,8 @@ const adapter: BizCrudAdapter<UserIdentity, Query, UserForm, string> = {
     return { items: result.items, total: result.total, page: result.page, pageSize: result.page_size };
   },
   detail: getUser,
-  create: createUser,
-  update: updateUserStatus
+  create: (form, context) => createUser(form, context.idempotencyKey),
+  update: (id, form, context) => updateUserStatus(id, form, context.idempotencyKey)
 };
 
 const resettingMFAUserID = ref('');

@@ -65,8 +65,8 @@ const adapter: BizCrudAdapter<Group, Query, GroupForm, string> = {
     return { items: result.items, total: result.total, page: result.page, pageSize: result.page_size };
   },
   detail: async id => ({ ...emptyForm(), ...(await getGroup(id)) }),
-  create: form => createGroup(tenantID.value, form),
-  update: updateGroup
+  create: (form, context) => createGroup(tenantID.value, form, context.idempotencyKey),
+  update: (id, form, context) => updateGroup(id, form, context.idempotencyKey)
 };
 </script>
 

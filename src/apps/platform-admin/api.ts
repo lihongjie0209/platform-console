@@ -500,11 +500,12 @@ export function batchGetUsers(userIDs: string[]) {
   );
 }
 
-export async function createUser(form: UserForm) {
+export async function createUser(form: UserForm, idempotencyKey: string) {
   await unwrap<UserIdentity>(
     identityRequest({
       url: '/api/v1/identities/register',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         username: form.username,
         display_name: form.display_name,
@@ -516,11 +517,12 @@ export async function createUser(form: UserForm) {
   );
 }
 
-export async function updateUserStatus(id: string, form: UserForm) {
+export async function updateUserStatus(id: string, form: UserForm, idempotencyKey: string) {
   await unwrap<UserIdentity>(
     identityRequest({
       url: '/api/v1/identities/update-status',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { id, status: form.status, reason: form.reason, version: form.version }
     })
   );
@@ -689,21 +691,23 @@ export function getTenant(tenantID: string) {
   );
 }
 
-export async function createTenant(form: TenantForm) {
+export async function createTenant(form: TenantForm, idempotencyKey: string) {
   await unwrap<{ tenant: TenantDirectoryItem }>(
     tenantRequest({
       url: '/api/v1/tenants/manage/create',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { code: form.code, name: form.name, owner_user_id: form.owner_user_id }
     })
   );
 }
 
-export async function updateTenant(id: string, form: TenantForm) {
+export async function updateTenant(id: string, form: TenantForm, idempotencyKey: string) {
   await unwrap<TenantDirectoryItem>(
     tenantRequest({
       url: '/api/v1/tenants/update',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { tenant_id: id, name: form.name, status: form.status, version: form.version }
     })
   );
@@ -868,11 +872,12 @@ export function batchGetMyRoles(tenantID: string, permissionScope: 'tenant' | 'p
   );
 }
 
-export async function createMyRole(request: ScopedRoleRequest) {
+export async function createMyRole(request: ScopedRoleRequest, idempotencyKey: string) {
   await unwrap(
     authorizationRequest<Role>({
       url: '/api/v1/authorization/my-roles/create',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         tenant_id: request.tenantID,
         permission_scope: request.permissionScope,
@@ -885,11 +890,12 @@ export async function createMyRole(request: ScopedRoleRequest) {
   );
 }
 
-export async function updateMyRole(request: ScopedRoleRequest) {
+export async function updateMyRole(request: ScopedRoleRequest, idempotencyKey: string) {
   await unwrap(
     authorizationRequest<Role>({
       url: '/api/v1/authorization/my-roles/update',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         tenant_id: request.tenantID,
         permission_scope: request.permissionScope,
@@ -969,11 +975,12 @@ export function listMyPermissions(query: PermissionCatalogQuery) {
   );
 }
 
-export async function createMyPermission(request: ScopedPermissionRequest) {
+export async function createMyPermission(request: ScopedPermissionRequest, idempotencyKey: string) {
   await unwrap(
     authorizationRequest<Permission>({
       url: '/api/v1/authorization/my-permissions/create',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         tenant_id: request.tenantID,
         permission_scope: request.permissionScope,
@@ -987,11 +994,12 @@ export async function createMyPermission(request: ScopedPermissionRequest) {
   );
 }
 
-export async function updateMyPermission(request: ScopedPermissionRequest) {
+export async function updateMyPermission(request: ScopedPermissionRequest, idempotencyKey: string) {
   await unwrap(
     authorizationRequest<Permission>({
       url: '/api/v1/authorization/my-permissions/update',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         tenant_id: request.tenantID,
         permission_scope: request.permissionScope,
@@ -1277,21 +1285,23 @@ export async function listGroups(query: GroupQuery): Promise<ResourcePage<Group>
   };
 }
 
-export async function createGroup(tenantID: string, form: GroupForm) {
+export async function createGroup(tenantID: string, form: GroupForm, idempotencyKey: string) {
   await unwrap<Group>(
     tenantRequest({
       url: '/api/v1/groups/create',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { tenant_id: tenantID, code: form.code, name: form.name }
     })
   );
 }
 
-export async function updateGroup(id: string, form: GroupForm) {
+export async function updateGroup(id: string, form: GroupForm, idempotencyKey: string) {
   await unwrap<Group>(
     tenantRequest({
       url: '/api/v1/groups/update',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { group_id: id, name: form.name, status: form.status, version: form.version }
     })
   );
@@ -1453,11 +1463,12 @@ export function searchMembershipDirectory(tenantID: string, keyword: string, lim
   );
 }
 
-export async function addMembership(tenantID: string, form: MembershipForm) {
+export async function addMembership(tenantID: string, form: MembershipForm, idempotencyKey: string) {
   await unwrap<Membership>(
     tenantRequest({
       url: '/api/v1/memberships/add',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         tenant_id: tenantID,
         user_id: form.user_id,
@@ -1467,11 +1478,12 @@ export async function addMembership(tenantID: string, form: MembershipForm) {
   );
 }
 
-export async function updateMembership(id: string, form: MembershipForm) {
+export async function updateMembership(id: string, form: MembershipForm, idempotencyKey: string) {
   await unwrap<Membership>(
     tenantRequest({
       url: '/api/v1/memberships/update',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         membership_id: id,
         status: form.status,
@@ -1553,11 +1565,12 @@ export function getQuota(tenantID: string, key: string) {
   );
 }
 
-export async function setQuota(tenantID: string, form: QuotaForm) {
+export async function setQuota(tenantID: string, form: QuotaForm, idempotencyKey: string) {
   await unwrap<Quota>(
     tenantRequest({
       url: '/api/v1/quotas/set',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { tenant_id: tenantID, key: form.key, limit: form.limit, version: form.version }
     })
   );
