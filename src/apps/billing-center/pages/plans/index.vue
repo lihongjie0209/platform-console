@@ -33,6 +33,7 @@ const detailGuard = createLatestRequestGuard();
 const formKeys = new Map<string, string>();
 const priceKeys = new Map<string, string>();
 const priceBaselines = new Map<string, Promise<UsagePrice | undefined>>();
+const priceWriteBaselines = new Map<string, Promise<{ plan: Plan; price?: UsagePrice }>>();
 const form = reactive({
   code: '',
   name: '',
@@ -119,6 +120,7 @@ async function manage(v: Plan) {
   if (selected.value?.id !== v.id) {
     priceKeys.clear();
     priceBaselines.clear();
+    priceWriteBaselines.clear();
   }
   selected.value = v;
   const detail = await getPlan(v.id);
@@ -130,6 +132,7 @@ function editPrice(v?: UsagePrice) {
   if (!canUpdate.value || savingPrice.value || deletingPriceID.value) return;
   priceKeys.clear();
   priceBaselines.clear();
+  priceWriteBaselines.clear();
   Object.assign(
     price,
     v
@@ -152,11 +155,15 @@ async function savePrice() {
   const operation = JSON.stringify(['usage-price', selectedPlan.id, price.id, price.version, price]);
   savingPrice.value = true;
   try {
-    const current = await operationPromise(priceBaselines, operation, async () => {
-      if (!price.id) return undefined;
+    const baseline = await operationPromise(priceWriteBaselines, operation, async () => {
       const detail = await getPlan(selectedPlan.id);
-      return detail.usage_prices.find(item => item.id === price.id);
+      return { plan: detail.plan, price: detail.usage_prices.find(item => item.id === price.id) };
     });
+    const current = baseline.price;
+    if (baseline.plan.status !== 'active' || hasPersistedVersionChanged(selectedPlan.version, baseline.plan.version)) {
+      window.$message?.warning('套餐已发生变化，请刷新后重试');
+      return;
+    }
     if (price.id && !current) {
       window.$message?.warning('用量价格已被删除，请刷新后重试');
       return;
@@ -172,10 +179,12 @@ async function savePrice() {
         version: current?.version || 0,
         tiers_json: parseJSONArray(price.tiers, '阶梯')
       } as never,
-      operationIdempotencyKey(priceKeys, operation)
+      operationIdempotencyKey(priceKeys, operation),
+      baseline.plan.version
     );
     priceKeys.clear();
     priceBaselines.clear();
+    priceWriteBaselines.clear();
     await manage(selectedPlan);
   } finally {
     savingPrice.value = false;

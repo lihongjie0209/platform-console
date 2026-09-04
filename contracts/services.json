@@ -13,7 +13,7 @@
   "workflow": "https://raw.githubusercontent.com/lihongjie0209/workflow-service/fbafac58027689eabd0c6bb2a67d001063614854/docs/swagger.json",
   "search": "https://raw.githubusercontent.com/lihongjie0209/search-service/58ec0c38b8d534cbefd584d9fd7abb7c136d46db/docs/swagger.json",
   "metering": "https://raw.githubusercontent.com/lihongjie0209/metering-service/e4d25f195ac134245f1c8aaec4c01137b2a4108e/docs/swagger.json",
-  "billing": "https://raw.githubusercontent.com/lihongjie0209/billing-service/09fbb8c49df8a9be795a7f7c43ef048900d8ae8b/docs/swagger.json",
+  "billing": "https://raw.githubusercontent.com/lihongjie0209/billing-service/11cac2241483d50fb6f73878b37ad5e0ae4cd5aa/docs/swagger.json",
   "rule": "https://raw.githubusercontent.com/lihongjie0209/rule-service/0c9ca57a1a48fa06b351685fd693272b14edcd52/docs/swagger.json",
   "data-export": "https://raw.githubusercontent.com/lihongjie0209/data-export-service/c7312c41a1c436534fc3b3a0733d5b7b9b7c6054/docs/swagger.json",
   "import": "https://raw.githubusercontent.com/lihongjie0209/import-service/0e4a1a2e65f7b2d75208a08a4158012ca7e15ad6/docs/swagger.json",

@@ -158,14 +158,15 @@ export const getPlan = (id: string) =>
   );
 export const upsertUsagePrice = (
   value: Partial<UsagePrice> & Pick<UsagePrice, 'plan_id' | 'meter_code'>,
-  idempotencyKey: string
+  idempotencyKey: string,
+  planVersion: number
 ) =>
   unwrap<UsagePrice>(
     request({
       url: '/api/v1/plans/usage-prices/upsert',
       method: 'post',
       headers: { 'Idempotency-Key': idempotencyKey },
-      data: { ...value, expected_version: value.version || 0 }
+      data: { ...value, expected_version: value.version || 0, plan_version: planVersion }
     })
   );
 export const deleteUsagePrice = (value: UsagePrice, idempotencyKey: string) =>

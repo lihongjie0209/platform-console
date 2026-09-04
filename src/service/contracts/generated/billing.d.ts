@@ -1559,6 +1559,7 @@ export interface components {
             included_quantity?: number;
             meter_code?: string;
             plan_id?: string;
+            plan_version?: number;
             pricing_model?: string;
             tiers_json?: Record<string, never>[];
             unit_amount_minor?: number;
