@@ -5,6 +5,8 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { BizCopyText } from '@/components/business';
 import { createLatestRequestGuard } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
+import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import { remoteSearchPage } from '@/platform/remote-search';
 import type { TenantDirectoryItem, UserIdentity, UserSession } from '../../api';
 import { getSession, listSessions, listTenantDirectory, listUsers, revokeSession } from '../../api';
@@ -34,6 +36,8 @@ const revokeVisible = ref(false);
 const selected = ref<UserSession>();
 const formRef = ref<FormInstance>();
 const form = reactive<RevokeForm>({ reason: '' });
+const revokeKeys = new Map<string, string>();
+const revokeBaselines = new Map<string, Promise<UserSession>>();
 const rules: FormRules<RevokeForm> = {
   reason: [{ required: true, message: '请输入撤销原因', trigger: 'blur' }]
 };
@@ -130,6 +134,8 @@ function resetSearch() {
 function openRevoke(row: UserSession) {
   if (!canRevokeSession.value || !canReadSession.value) return;
   selected.value = row;
+  revokeKeys.clear();
+  revokeBaselines.clear();
   form.reason = '';
   formRef.value?.clearValidate();
   revokeVisible.value = true;
@@ -139,14 +145,28 @@ async function submitRevoke() {
   if (!canRevokeSession.value || !canReadSession.value || !selected.value || !(await formRef.value?.validate())) return;
   submitting.value = true;
   try {
-    const current = await getSession(selected.value.session_id);
-    if (current.status !== 'active') {
-      window.$message?.warning('会话状态已发生变化，请刷新后重试');
-      revokeVisible.value = false;
-      await loadData();
-      return;
-    }
-    await revokeSession(current.session_id, form.reason, current.version);
+    const snapshot = selected.value;
+    const reason = form.reason.trim();
+    const operation = `revoke:${snapshot.session_id}:${snapshot.version}:${reason}`;
+    const current = await operationPromise(revokeBaselines, operation, async () => {
+      const detail = await getSession(snapshot.session_id);
+      if (
+        hasPersistedVersionChanged(snapshot.version, detail.version) ||
+        hasPersistedStateChanged(snapshot.status, detail.status) ||
+        detail.status !== 'active'
+      ) {
+        throw new Error('会话状态已发生变化，请刷新后重试');
+      }
+      return detail;
+    });
+    await revokeSession({
+      sessionID: current.session_id,
+      reason,
+      version: current.version,
+      idempotencyKey: operationIdempotencyKey(revokeKeys, operation)
+    });
+    revokeKeys.delete(operation);
+    revokeBaselines.delete(operation);
     revokeVisible.value = false;
     selected.value = undefined;
     window.$message?.success('会话已撤销');

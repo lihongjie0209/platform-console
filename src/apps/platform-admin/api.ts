@@ -668,12 +668,13 @@ export function getSession(sessionID: string) {
   );
 }
 
-export function revokeSession(sessionID: string, reason: string, version: number) {
+export function revokeSession(input: { sessionID: string; reason: string; version: number; idempotencyKey: string }) {
   return unwrap<UserSession>(
     identityRequest({
       url: '/api/v1/sessions/revoke',
       method: 'post',
-      data: { session_id: sessionID, reason, version }
+      headers: { 'Idempotency-Key': input.idempotencyKey },
+      data: { session_id: input.sessionID, reason: input.reason, version: input.version }
     })
   );
 }
