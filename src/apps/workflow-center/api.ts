@@ -310,11 +310,12 @@ export function listInstanceTaskHistory(input: {
     })
   );
 }
-export function claimTask(value: WorkflowTask) {
+export function claimTask(value: WorkflowTask, idempotencyKey: string) {
   return unwrap<WorkflowTask>(
     request({
       url: '/api/v1/workflow/tasks/claim',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         id: value.id,
         ...applicationScope(value.tenant_id, value.application_id),
@@ -325,12 +326,14 @@ export function claimTask(value: WorkflowTask) {
 }
 export function completeTask(
   value: WorkflowTask,
-  input: { decision: string; comment: string; output: Record<string, unknown> }
+  input: { decision: string; comment: string; output: Record<string, unknown> },
+  idempotencyKey: string
 ) {
   return unwrap<{ task: WorkflowTask; instance: WorkflowInstance }>(
     request({
       url: '/api/v1/workflow/tasks/complete',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         id: value.id,
         ...applicationScope(value.tenant_id, value.application_id),
@@ -342,16 +345,21 @@ export function completeTask(
     })
   );
 }
-export function delegateTask(value: WorkflowTask, delegateTo: string, reason: string) {
+export function delegateTask(
+  value: WorkflowTask,
+  input: { delegateTo: string; reason: string },
+  idempotencyKey: string
+) {
   return unwrap<WorkflowTask>(
     request({
       url: '/api/v1/workflow/tasks/delegate',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         id: value.id,
         ...applicationScope(value.tenant_id, value.application_id),
-        delegate_to: delegateTo,
-        reason,
+        delegate_to: input.delegateTo,
+        reason: input.reason,
         expected_version: value.version
       }
     })

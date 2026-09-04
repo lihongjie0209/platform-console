@@ -3,8 +3,9 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformDateTime, formatPlatformTableDateTime } from '@/platform/date-time';
+import { operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
 import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
-import { hasPersistedStateChanged } from '@/platform/optimistic-mutation';
+import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import type { WorkflowTask, WorkflowTaskHistory } from '../../api';
 import { claimTask, completeTask, delegateTask, getTask, listTaskHistory, listTasks } from '../../api';
 import { parseJSONObject } from '../../json';
@@ -37,6 +38,10 @@ const form = reactive({ decision: 'approved', comment: '', output: '{}' });
 const delegation = reactive({ userID: '', reason: '' });
 const loadGuard = createLatestRequestGuard();
 const { active: activeAction, run: runAction } = useKeyedAsyncAction();
+const claimKeys = new Map<string, string>();
+const claimBaselines = new Map<string, Promise<WorkflowTask>>();
+const completeKeys = new Map<string, string>();
+const delegateKeys = new Map<string, string>();
 const canClaim = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.task.claim' }));
 const canComplete = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.task.complete' }));
 const canDelegate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.task.delegate' }));
@@ -75,13 +80,21 @@ function search() {
 async function claim(row: WorkflowTask) {
   if (!canClaim.value || !canRead.value) return;
   await runAction(`${row.id}:claim`, async () => {
-    const current = await getTask(row);
-    if (hasPersistedStateChanged(row.status, current.status) || current.status !== 'pending') {
-      window.$message?.warning('任务状态已变化，请确认最新状态后重试');
-      await loadData();
-      return;
-    }
-    await claimTask(current);
+    const operation = `claim:${row.id}:${row.version}`;
+    const current = await operationPromise(claimBaselines, operation, async () => {
+      const value = await getTask(row);
+      if (
+        hasPersistedVersionChanged(row.version, value.version) ||
+        hasPersistedStateChanged(row.status, value.status) ||
+        value.status !== 'pending'
+      ) {
+        throw new Error('任务状态已变化，请确认最新状态后重试');
+      }
+      return value;
+    });
+    await claimTask(current, operationIdempotencyKey(claimKeys, operation));
+    claimBaselines.delete(operation);
+    claimKeys.delete(operation);
     await loadData();
   });
 }
@@ -121,6 +134,7 @@ async function openComplete(row: WorkflowTask) {
       return;
     }
     selected.value = current;
+    completeKeys.clear();
     Object.assign(form, { decision: 'approved', comment: '', output: '{}' });
     completeVisible.value = true;
   });
@@ -136,7 +150,10 @@ async function complete() {
   }
   const task = selected.value;
   await runAction(`${task.id}:complete`, async () => {
-    await completeTask(task, { decision: form.decision, comment: form.comment, output });
+    const input = { decision: form.decision, comment: form.comment, output };
+    const operation = JSON.stringify(['complete', task.id, task.version, input]);
+    await completeTask(task, input, operationIdempotencyKey(completeKeys, operation));
+    completeKeys.clear();
     completeVisible.value = false;
     await loadData();
   });
@@ -151,6 +168,7 @@ async function openDelegate(row: WorkflowTask) {
       return;
     }
     selected.value = current;
+    delegateKeys.clear();
     Object.assign(delegation, { userID: '', reason: '' });
     delegateVisible.value = true;
   });
@@ -159,7 +177,10 @@ async function delegate() {
   if (!canDelegate.value || !selected.value) return;
   const task = selected.value;
   await runAction(`${task.id}:delegate`, async () => {
-    await delegateTask(task, delegation.userID, delegation.reason);
+    const input = { delegateTo: delegation.userID, reason: delegation.reason };
+    const operation = JSON.stringify(['delegate', task.id, task.version, input]);
+    await delegateTask(task, input, operationIdempotencyKey(delegateKeys, operation));
+    delegateKeys.clear();
     delegateVisible.value = false;
     detailVisible.value = false;
     detail.value = undefined;
@@ -168,6 +189,10 @@ async function delegate() {
   });
 }
 watch([tenantID, applicationID], () => {
+  claimKeys.clear();
+  claimBaselines.clear();
+  completeKeys.clear();
+  delegateKeys.clear();
   rows.value = [];
   total.value = 0;
   selected.value = undefined;
