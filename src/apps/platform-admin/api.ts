@@ -106,6 +106,7 @@ export interface UpdateUserProfileInput {
   phone: string;
   reason: string;
   version: number;
+  idempotencyKey: string;
 }
 
 export interface AdminMFAStatus {
@@ -533,6 +534,7 @@ export function updateUserProfile(input: UpdateUserProfileInput) {
     identityRequest({
       url: '/api/v1/identities/update-profile',
       method: 'post',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
       data: {
         id: input.id,
         display_name: input.displayName,
@@ -555,21 +557,23 @@ export function getUserMFAStatus(userID: string) {
   );
 }
 
-export function resetUserMFA(userID: string, reason: string, version: number) {
+export function resetUserMFA(input: { userID: string; reason: string; version: number; idempotencyKey: string }) {
   return unwrap<AdminMFAResetResult>(
     identityRequest({
       url: '/api/v1/identities/mfa/reset',
       method: 'post',
-      data: { user_id: userID, reason, version }
+      headers: { 'Idempotency-Key': input.idempotencyKey },
+      data: { user_id: input.userID, reason: input.reason, version: input.version }
     })
   );
 }
 
-export function issueUserPasswordReset(userID: string, reason: string) {
+export function issueUserPasswordReset(userID: string, reason: string, idempotencyKey: string) {
   return unwrap<PasswordResetIssue>(
     identityRequest({
       url: '/api/v1/identities/password-reset/issue',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { user_id: userID, reason }
     })
   );

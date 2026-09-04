@@ -6,6 +6,7 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { BizCopyText, BizCrudPage, BizStatusTag } from '@/components/business';
 import type { BizCrudAdapter, BizCrudConfig } from '@/components/business';
 import { formatPlatformDateTime } from '@/platform/date-time';
+import { operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
 import { passwordPolicyError } from '@/platform/password-policy';
 import { buildPasswordResetURL } from '@/platform/password-reset';
 import { promptUserInput } from '@/platform/user-action';
@@ -174,6 +175,10 @@ const profileSaving = ref(false);
 const profileFormRef = ref<FormInstance>();
 const profileRow = ref<UserIdentity>();
 const profileForm = reactive<UserProfileForm>(createUserProfileForm({}));
+const profileKeys = new Map<string, string>();
+const passwordResetKeys = new Map<string, string>();
+const mfaResetKeys = new Map<string, string>();
+const mfaStatusBaselines = new Map<string, ReturnType<typeof getUserMFAStatus>>();
 const profileRules: FormRules<UserProfileForm> = {
   display_name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
   email: [
@@ -197,6 +202,7 @@ function closePasswordResetIssue() {
 async function openProfile(row: UserIdentity) {
   if (!canUpdateProfile.value || !canReadUser.value || profileSaving.value) return;
   const current = await getUser(row.id);
+  profileKeys.clear();
   profileRow.value = current;
   Object.assign(profileForm, createUserProfileForm(current));
   profileVisible.value = true;
@@ -209,14 +215,17 @@ async function saveProfile() {
   profileSaving.value = true;
   try {
     const normalized = normalizeUserProfileForm(profileForm);
+    const operation = JSON.stringify(['profile', row.id, row.version, normalized]);
     const updated = await updateUserProfile({
       id: row.id,
       displayName: normalized.display_name,
       email: normalized.email,
       phone: normalized.phone,
       reason: normalized.reason,
-      version: row.version
+      version: row.version,
+      idempotencyKey: operationIdempotencyKey(profileKeys, operation)
     });
+    profileKeys.delete(operation);
     Object.assign(row, updated);
     if (authStore.userInfo.subject === updated.id) {
       Object.assign(authStore.userInfo, {
@@ -250,7 +259,9 @@ async function issuePasswordReset(row: UserIdentity) {
       )
     );
     if (!reason) return;
-    const issue = await issueUserPasswordReset(row.id, reason);
+    const operation = JSON.stringify(['password-reset', row.id, row.version, reason]);
+    const issue = await issueUserPasswordReset(row.id, reason, operationIdempotencyKey(passwordResetKeys, operation));
+    passwordResetKeys.delete(operation);
     passwordResetToken.value = issue.reset_token;
     passwordResetExpiresAt.value = issue.expires_at;
     passwordResetVisible.value = true;
@@ -265,11 +276,6 @@ async function resetMFA(row: UserIdentity) {
   if (!canResetMFA.value) return;
   resettingMFAUserID.value = row.id;
   try {
-    const status = await getUserMFAStatus(row.id);
-    if (!status.enabled) {
-      window.$message?.info('该用户未启用 MFA，无需重置');
-      return;
-    }
     const reason = await promptUserInput(() =>
       ElMessageBox.prompt(
         `重置后，${row.username} 的所有恢复码和登录会话将立即失效。请输入可审计的重置原因。`,
@@ -285,7 +291,21 @@ async function resetMFA(row: UserIdentity) {
       )
     );
     if (!reason) return;
-    const result = await resetUserMFA(row.id, reason, status.version);
+    const operation = JSON.stringify(['mfa-reset', row.id, row.version, reason]);
+    const status = await operationPromise(mfaStatusBaselines, operation, () => getUserMFAStatus(row.id));
+    if (!status.enabled) {
+      mfaStatusBaselines.delete(operation);
+      window.$message?.info('该用户未启用 MFA，无需重置');
+      return;
+    }
+    const result = await resetUserMFA({
+      userID: row.id,
+      reason,
+      version: status.version,
+      idempotencyKey: operationIdempotencyKey(mfaResetKeys, operation)
+    });
+    mfaStatusBaselines.delete(operation);
+    mfaResetKeys.delete(operation);
     window.$message?.success(`MFA 已重置，并撤销 ${result.revoked_sessions} 个活跃会话`);
   } catch {
     // The request layer reports service failures; prompt cancellation needs no extra notice.
