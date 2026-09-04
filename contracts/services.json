@@ -18,5 +18,5 @@
   "data-export": "https://raw.githubusercontent.com/lihongjie0209/data-export-service/c7312c41a1c436534fc3b3a0733d5b7b9b7c6054/docs/swagger.json",
   "import": "https://raw.githubusercontent.com/lihongjie0209/import-service/0e4a1a2e65f7b2d75208a08a4158012ca7e15ad6/docs/swagger.json",
   "swagger": "https://raw.githubusercontent.com/lihongjie0209/swagger-service/55315d690764ce04e36f297b0233ba32b5d2eb7e/docs/swagger.json",
-  "webhook": "https://raw.githubusercontent.com/lihongjie0209/webhook-service/9930fa081a6b6d72c313122fd9a18e157f632c89/docs/swagger.json"
+  "webhook": "https://raw.githubusercontent.com/lihongjie0209/webhook-service/398266fe3a7449edc5e2b4ab59cb4272c4eadfe5/docs/swagger.json"
 }

@@ -735,6 +735,7 @@ export interface components {
         };
         "httptransport.TestSubscriptionRequest": {
             application_id: string;
+            expected_version: number;
             id: string;
             payload_json: Record<string, never>;
             tenant_id: string;

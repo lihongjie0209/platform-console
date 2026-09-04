@@ -141,7 +141,12 @@ export const testSubscription = (
       url: '/api/v1/webhooks/subscriptions/test',
       method: 'post',
       headers: { 'Idempotency-Key': idempotencyKey },
-      data: { id: value.id, ...applicationScope(value.tenant_id, value.application_id), payload_json: payload }
+      data: {
+        id: value.id,
+        ...applicationScope(value.tenant_id, value.application_id),
+        payload_json: payload,
+        expected_version: value.version
+      }
     })
   );
 export const listDeliveries = (input: {
