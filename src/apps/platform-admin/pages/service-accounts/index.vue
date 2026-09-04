@@ -3,6 +3,9 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
 import { BizCopyText } from '@/components/business';
+import { operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
+import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
+import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import { confirmUserAction } from '@/platform/user-action';
 import type { ServiceAccount, ServiceAccountForm } from '../../api';
 import {
@@ -29,6 +32,10 @@ const createdClientID = ref('');
 const createdSecret = ref('');
 const credentialTitle = ref('请立即保存客户端凭据');
 const rotatingID = ref('');
+const createKeys = new Map<string, string>();
+const actionKeys = new Map<string, string>();
+const actionBaselines = new Map<string, Promise<ServiceAccount>>();
+const statusAction = useKeyedAsyncAction();
 const formRef = ref<FormInstance>();
 const form = reactive<ServiceAccountForm>({ name: '', audiences: [] });
 const rules: FormRules<ServiceAccountForm> = {
@@ -48,6 +55,19 @@ const canUpdateAccount = computed(() =>
 const canRotateSecret = computed(() =>
   platformStore.hasPermission({ scope: 'platform', codes: 'identity.service-account.rotate-secret' })
 );
+
+async function loadActionBaseline(operation: string, row: ServiceAccount) {
+  return operationPromise(actionBaselines, operation, async () => {
+    const detail = await getServiceAccount(row.id);
+    if (
+      hasPersistedVersionChanged(row.version, detail.version) ||
+      hasPersistedStateChanged(row.status, detail.status)
+    ) {
+      throw new Error('服务账号已发生变化，请刷新后重试');
+    }
+    return detail;
+  });
+}
 
 async function loadData() {
   loading.value = true;
@@ -79,6 +99,7 @@ function resetSearch() {
 function openCreate() {
   if (!canCreateAccount.value) return;
   Object.assign(form, { name: '', audiences: [] });
+  createKeys.clear();
   formRef.value?.clearValidate();
   createVisible.value = true;
 }
@@ -87,7 +108,9 @@ async function submit() {
   if (!canCreateAccount.value || !(await formRef.value?.validate())) return;
   submitting.value = true;
   try {
-    const result = await createServiceAccount(form);
+    const operation = JSON.stringify([form.name, form.audiences]);
+    const result = await createServiceAccount(form, operationIdempotencyKey(createKeys, operation));
+    createKeys.clear();
     createdClientID.value = String(result.account?.client_id || '');
     createdSecret.value = String(result.client_secret || '');
     credentialTitle.value = '请立即保存客户端凭据';
@@ -110,10 +133,17 @@ async function rotateSecret(row: ServiceAccount) {
   );
   if (!confirmed) return;
 
+  const operation = `rotate:${row.id}:${row.version}`;
   rotatingID.value = row.id;
   try {
-    const current = await getServiceAccount(row.id);
-    const result = await rotateServiceAccountSecret(current.id, current.version);
+    const current = await loadActionBaseline(operation, row);
+    const result = await rotateServiceAccountSecret(
+      current.id,
+      current.version,
+      operationIdempotencyKey(actionKeys, operation)
+    );
+    actionBaselines.delete(operation);
+    actionKeys.delete(operation);
     createdClientID.value = current.client_id;
     createdSecret.value = result.client_secret || '';
     credentialTitle.value = '请立即保存轮换后的客户端密钥';
@@ -127,15 +157,20 @@ async function rotateSecret(row: ServiceAccount) {
 async function changeStatus(row: ServiceAccount) {
   if (!canUpdateAccount.value || !canReadAccount.value) return;
   const nextStatus = row.status === 'active' ? 'disabled' : 'active';
-  const current = await getServiceAccount(row.id);
-  if (current.status !== row.status) {
-    window.$message?.warning('服务账号状态已变化，请确认最新状态后重试');
+  const operation = `status:${row.id}:${row.version}:${nextStatus}`;
+  await statusAction.run(operation, async () => {
+    const current = await loadActionBaseline(operation, row);
+    await updateServiceAccountStatus({
+      id: current.id,
+      status: nextStatus,
+      version: current.version,
+      idempotencyKey: operationIdempotencyKey(actionKeys, operation)
+    });
+    actionBaselines.delete(operation);
+    actionKeys.delete(operation);
+    window.$message?.success(nextStatus === 'active' ? '服务账号已启用' : '服务账号已停用');
     await loadData();
-    return;
-  }
-  await updateServiceAccountStatus(current.id, nextStatus, current.version);
-  window.$message?.success(nextStatus === 'active' ? '服务账号已启用' : '服务账号已停用');
-  await loadData();
+  });
 }
 
 function closeCredential() {
@@ -216,7 +251,15 @@ onMounted(loadData);
             @confirm="changeStatus(row)"
           >
             <template #reference>
-              <ElButton link :type="row.status === 'active' ? 'danger' : 'primary'">
+              <ElButton
+                link
+                :type="row.status === 'active' ? 'danger' : 'primary'"
+                :loading="
+                  statusAction.active.value ===
+                  `status:${row.id}:${row.version}:${row.status === 'active' ? 'disabled' : 'active'}`
+                "
+                :disabled="Boolean(statusAction.active.value)"
+              >
                 {{ row.status === 'active' ? '停用' : '启用' }}
               </ElButton>
             </template>

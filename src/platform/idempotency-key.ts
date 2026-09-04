@@ -27,3 +27,17 @@ export function operationValue<Value>(values: Map<string, Value>, operation: str
   values.set(operation, value);
   return value;
 }
+
+export async function operationPromise<Value>(
+  values: Map<string, Promise<Value>>,
+  operation: string,
+  create: () => Promise<Value>
+) {
+  const promise = operationValue(values, operation, create);
+  try {
+    return await promise;
+  } catch (error) {
+    if (values.get(operation) === promise) values.delete(operation);
+    throw error;
+  }
+}

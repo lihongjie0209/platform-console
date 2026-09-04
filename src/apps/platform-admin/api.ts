@@ -604,31 +604,39 @@ export function batchGetServiceAccounts(serviceAccountIDs: string[]) {
   );
 }
 
-export function createServiceAccount(form: ServiceAccountForm) {
+export function createServiceAccount(form: ServiceAccountForm, idempotencyKey: string) {
   return unwrap<CreateServiceAccountResult>(
     identityRequest({
       url: '/api/v1/service-accounts/create',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { name: form.name, audiences: form.audiences }
     })
   );
 }
 
-export async function updateServiceAccountStatus(id: string, status: string, version: number) {
+export async function updateServiceAccountStatus(input: {
+  id: string;
+  status: string;
+  version: number;
+  idempotencyKey: string;
+}) {
   await unwrap<{ updated: boolean }>(
     identityRequest({
       url: '/api/v1/service-accounts/update-status',
       method: 'post',
-      data: { id, status, version }
+      headers: { 'Idempotency-Key': input.idempotencyKey },
+      data: { id: input.id, status: input.status, version: input.version }
     })
   );
 }
 
-export function rotateServiceAccountSecret(id: string, version: number) {
+export function rotateServiceAccountSecret(id: string, version: number, idempotencyKey: string) {
   return unwrap<RotateServiceAccountSecretResult>(
     identityRequest({
       url: '/api/v1/service-accounts/rotate-secret',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { id, version }
     })
   );
