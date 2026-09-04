@@ -113,6 +113,14 @@ export const listPlans = (input: { status: string; keyword: string; page: number
       }
     })
   );
+export const listAvailablePlans = (input: { keyword: string; page: number; pageSize: number }) =>
+  unwrap<Page<Plan>>(
+    request({
+      url: '/api/v1/subscriptions/plans/list',
+      method: 'post',
+      data: { keyword: input.keyword, page: input.page, page_size: input.pageSize }
+    })
+  );
 export function savePlan(current: Plan | undefined, input: Omit<Plan, 'id' | 'version'> & { idempotencyKey: string }) {
   return unwrap<Plan>(
     request({
@@ -200,6 +208,7 @@ export const createSubscription = (input: {
   tenantID: string;
   applicationID: string;
   planID: string;
+  planVersion: number;
   startsAt: string;
   externalReference: string;
   idempotencyKey: string;
@@ -212,6 +221,7 @@ export const createSubscription = (input: {
       data: {
         ...applicationScope(input.tenantID, input.applicationID),
         plan_id: input.planID,
+        plan_version: input.planVersion,
         starts_at: input.startsAt,
         external_reference: input.externalReference
       }

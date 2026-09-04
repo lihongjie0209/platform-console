@@ -1028,6 +1028,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/subscriptions/plans/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List active plans available for subscription */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Search and pagination */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.listAvailablePlansRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PlanPageBody"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/version": {
         parameters: {
             query?: never;
@@ -1418,6 +1461,7 @@ export interface components {
             application_id: string;
             external_reference?: string;
             plan_id?: string;
+            plan_version?: number;
             starts_at?: string;
             tenant_id?: string;
         };
@@ -1454,6 +1498,11 @@ export interface components {
             period_start?: string;
             subscription_id?: string;
             tenant_id?: string;
+        };
+        "httptransport.listAvailablePlansRequest": {
+            keyword?: string;
+            page?: number;
+            page_size?: number;
         };
         "httptransport.listInvoicesRequest": {
             application_id: string;

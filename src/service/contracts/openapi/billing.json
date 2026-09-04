@@ -1130,6 +1130,54 @@
                 }
             }
         },
+        "/api/v1/subscriptions/plans/list": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "List active plans available for subscription",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.listAvailablePlansRequest"
+                            }
+                        }
+                    },
+                    "description": "Search and pagination",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.PlanPageBody"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/version": {
             "post": {
                 "tags": [
@@ -2071,6 +2119,9 @@
                     "plan_id": {
                         "type": "string"
                     },
+                    "plan_version": {
+                        "type": "integer"
+                    },
                     "starts_at": {
                         "type": "string"
                     },
@@ -2185,6 +2236,20 @@
                     },
                     "tenant_id": {
                         "type": "string"
+                    }
+                }
+            },
+            "httptransport.listAvailablePlansRequest": {
+                "type": "object",
+                "properties": {
+                    "keyword": {
+                        "type": "string"
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
                     }
                 }
             },
