@@ -3,6 +3,8 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { parseJSONObject } from '@/platform/json';
+import { operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
+import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import { confirmUserAction } from '@/platform/user-action';
 import type { WebhookSubscription } from '../../api';
 import {
@@ -26,10 +28,15 @@ const pageSize = ref(20);
 const status = ref('');
 const search = ref('');
 const visible = ref(false);
+const saving = ref(false);
+const activeAction = ref('');
 const editing = ref<WebhookSubscription>();
 const secret = ref('');
 const testPayload = ref('{}');
 const loadGuard = createLatestRequestGuard();
+const formKeys = new Map<string, string>();
+const actionKeys = new Map<string, string>();
+const actionBaselines = new Map<string, Promise<WebhookSubscription>>();
 const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.subscription.create' }));
 const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.subscription.read' }));
 const canUpdate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.subscription.update' }));
@@ -74,6 +81,7 @@ function applyFilters() {
 async function open(v?: WebhookSubscription) {
   if ((v && (!canUpdate.value || !canRead.value)) || (!v && !canCreate.value)) return;
   const current = v ? await getSubscription(v) : undefined;
+  formKeys.clear();
   editing.value = current;
   Object.assign(
     form,
@@ -100,52 +108,107 @@ async function open(v?: WebhookSubscription) {
   visible.value = true;
 }
 async function save() {
-  if ((editing.value && !canUpdate.value) || (!editing.value && !canCreate.value) || !scopeReady.value) return;
-  const result = await saveSubscription(editing.value, tenantID.value, {
-    ...form,
-    applicationID: applicationID.value
-  });
-  if ('signing_secret' in result) {
-    secret.value = result.signing_secret;
-    window.$message?.warning('签名密钥仅显示一次，请立即保存');
+  if (saving.value || (editing.value && !canUpdate.value) || (!editing.value && !canCreate.value) || !scopeReady.value)
+    return;
+  const input = { ...form, applicationID: applicationID.value };
+  const operation = JSON.stringify(['subscription', editing.value?.id || '', editing.value?.version || 0, input]);
+  saving.value = true;
+  try {
+    const result = await saveSubscription(editing.value, tenantID.value, {
+      ...input,
+      idempotencyKey: operationIdempotencyKey(formKeys, operation)
+    });
+    formKeys.clear();
+    if ('signing_secret' in result) {
+      secret.value = result.signing_secret;
+      window.$message?.warning('签名密钥仅显示一次，请立即保存');
+    }
+    visible.value = false;
+    await load();
+  } finally {
+    saving.value = false;
   }
-  visible.value = false;
-  await load();
 }
 async function rotate(v: WebhookSubscription) {
-  if (!canRotateSecret.value || !canRead.value) return;
+  if (!canRotateSecret.value || !canRead.value || activeAction.value) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm('轮换后旧签名密钥立即失效，新密钥仅显示一次。确认继续吗？', '轮换签名密钥', {
       type: 'warning'
     })
   );
   if (!confirmed) return;
-  const current = await getSubscription(v);
-  const result = await rotateSecret(current);
-  secret.value = result.signing_secret;
-  window.$message?.warning('新密钥仅显示一次，请立即保存');
-  await load();
+  const operation = `rotate:${v.id}:${v.version}`;
+  activeAction.value = operation;
+  try {
+    const current = await loadActionBaseline(v, operation);
+    const result = await rotateSecret(current, operationIdempotencyKey(actionKeys, operation));
+    actionBaselines.delete(operation);
+    actionKeys.delete(operation);
+    secret.value = result.signing_secret;
+    window.$message?.warning('新密钥仅显示一次，请立即保存');
+    await load();
+  } finally {
+    activeAction.value = '';
+  }
 }
 async function remove(v: WebhookSubscription) {
-  if (!canDelete.value || !canRead.value) return;
+  if (!canDelete.value || !canRead.value || activeAction.value) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm(`确认删除 Webhook 订阅“${v.name}”吗？`, '删除订阅', { type: 'warning' })
   );
   if (!confirmed) return;
-  const current = await getSubscription(v);
-  await deleteSubscription(current);
-  await load();
+  const operation = `delete:${v.id}:${v.version}`;
+  activeAction.value = operation;
+  try {
+    const current = await loadActionBaseline(v, operation);
+    await deleteSubscription(current, operationIdempotencyKey(actionKeys, operation));
+    actionBaselines.delete(operation);
+    actionKeys.delete(operation);
+    await load();
+  } finally {
+    activeAction.value = '';
+  }
 }
 async function test(v: WebhookSubscription) {
-  if (!canTest.value) return;
+  if (!canTest.value || activeAction.value) return;
+  let payload: Record<string, unknown>;
   try {
-    await testSubscription(v, parseJSONObject(testPayload.value, '测试负载'));
+    payload = parseJSONObject(testPayload.value, '测试负载');
+  } catch (error) {
+    window.$message?.error(error instanceof Error ? error.message : '测试负载格式错误');
+    return;
+  }
+  const operation = `test:${v.id}:${v.version}:${JSON.stringify(payload)}`;
+  activeAction.value = operation;
+  try {
+    await testSubscription(v, payload, operationIdempotencyKey(actionKeys, operation));
+    actionKeys.delete(operation);
     window.$message?.success('测试投递已入队');
   } catch (e) {
     window.$message?.error(e instanceof Error ? e.message : '测试失败');
+  } finally {
+    activeAction.value = '';
   }
 }
+function isActionActive(kind: string, value: WebhookSubscription) {
+  return activeAction.value.startsWith(`${kind}:${value.id}:`);
+}
+async function loadActionBaseline(value: WebhookSubscription, operation: string) {
+  return operationPromise(actionBaselines, operation, async () => {
+    const current = await getSubscription(value);
+    if (
+      hasPersistedVersionChanged(value.version, current.version) ||
+      hasPersistedStateChanged(value.status, current.status)
+    ) {
+      throw new Error('Webhook 订阅已发生变化，请刷新后重试');
+    }
+    return current;
+  });
+}
 watch([tenantID, applicationID], () => {
+  formKeys.clear();
+  actionKeys.clear();
+  actionBaselines.clear();
   rows.value = [];
   total.value = 0;
   page.value = 1;
@@ -202,9 +265,34 @@ onMounted(load);
         <ElTableColumn label="操作" width="250">
           <template #default="{ row }">
             <ElButton v-if="canUpdate && canRead" link @click="open(row)">编辑</ElButton>
-            <ElButton v-if="canTest" link @click="test(row)">测试</ElButton>
-            <ElButton v-if="canRotateSecret && canRead" link @click="rotate(row)">轮换密钥</ElButton>
-            <ElButton v-if="canDelete && canRead" link type="danger" @click="remove(row)">删除</ElButton>
+            <ElButton
+              v-if="canTest"
+              link
+              :loading="isActionActive('test', row)"
+              :disabled="Boolean(activeAction)"
+              @click="test(row)"
+            >
+              测试
+            </ElButton>
+            <ElButton
+              v-if="canRotateSecret && canRead"
+              link
+              :loading="isActionActive('rotate', row)"
+              :disabled="Boolean(activeAction)"
+              @click="rotate(row)"
+            >
+              轮换密钥
+            </ElButton>
+            <ElButton
+              v-if="canDelete && canRead"
+              link
+              type="danger"
+              :loading="isActionActive('delete', row)"
+              :disabled="Boolean(activeAction)"
+              @click="remove(row)"
+            >
+              删除
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>
@@ -237,7 +325,7 @@ onMounted(load);
     </ElForm>
     <template #footer>
       <ElButton @click="visible = false">取消</ElButton>
-      <ElButton v-if="editing ? canUpdate : canCreate" type="primary" @click="save">保存</ElButton>
+      <ElButton v-if="editing ? canUpdate : canCreate" type="primary" :loading="saving" @click="save">保存</ElButton>
     </template>
   </ElDialog>
 </template>

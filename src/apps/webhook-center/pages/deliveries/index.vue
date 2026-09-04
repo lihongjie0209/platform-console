@@ -2,7 +2,8 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
-import { hasPersistedStateChanged } from '@/platform/optimistic-mutation';
+import { operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
+import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import { confirmUserAction } from '@/platform/user-action';
 import type { WebhookDelivery } from '../../api';
 import { getDelivery, listDeliveries, replayDelivery } from '../../api';
@@ -19,6 +20,9 @@ const pageSize = ref(20);
 const status = ref('');
 const subscriptionID = ref('');
 const detail = ref<WebhookDelivery>();
+const replayingID = ref('');
+const replayKeys = new Map<string, string>();
+const replayBaselines = new Map<string, Promise<WebhookDelivery>>();
 const loadGuard = createLatestRequestGuard();
 const canReplay = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.delivery.replay' }));
 const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'webhook.delivery.read' }));
@@ -48,25 +52,40 @@ function applyFilters() {
   load();
 }
 async function replay(v: WebhookDelivery) {
-  if (!canReplay.value || !canRead.value) return;
+  if (!canReplay.value || !canRead.value || replayingID.value) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm('重放可能使外部系统再次处理同一事件，确认继续吗？', '重放 Webhook', { type: 'warning' })
   );
   if (!confirmed) return;
-  const current = await getDelivery(v);
-  if (hasPersistedStateChanged(v.status, current.status) || !['succeeded', 'dead'].includes(current.status)) {
-    window.$message?.warning('投递状态已变化，请确认最新状态后重试');
+  const operation = `replay:${v.id}:${v.version}`;
+  replayingID.value = v.id;
+  try {
+    const current = await operationPromise(replayBaselines, operation, async () => {
+      const value = await getDelivery(v);
+      if (
+        hasPersistedVersionChanged(v.version, value.version) ||
+        hasPersistedStateChanged(v.status, value.status) ||
+        !['succeeded', 'dead'].includes(value.status)
+      ) {
+        throw new Error('投递状态已变化，请确认最新状态后重试');
+      }
+      return value;
+    });
+    await replayDelivery(current, operationIdempotencyKey(replayKeys, operation));
+    replayBaselines.delete(operation);
+    replayKeys.delete(operation);
     await load();
-    return;
+  } finally {
+    replayingID.value = '';
   }
-  await replayDelivery(current);
-  await load();
 }
 async function showDetail(v: WebhookDelivery) {
   if (!canRead.value) return;
   detail.value = await getDelivery(v);
 }
 watch([tenantID, applicationID], () => {
+  replayKeys.clear();
+  replayBaselines.clear();
   rows.value = [];
   total.value = 0;
   page.value = 1;
@@ -103,6 +122,8 @@ onMounted(load);
             <ElButton
               v-if="canReplay && canRead && ['succeeded', 'dead'].includes(row.status)"
               link
+              :loading="replayingID === row.id"
+              :disabled="Boolean(replayingID)"
               @click="replay(row)"
             >
               重放

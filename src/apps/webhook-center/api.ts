@@ -72,12 +72,14 @@ export function saveSubscription(
     timeoutMS: number;
     maxAttempts: number;
     retryInitialSeconds: number;
+    idempotencyKey: string;
   }
 ) {
   return unwrap<WebhookSubscription | { subscription: WebhookSubscription; signing_secret: string }>(
     request({
       url: current ? '/api/v1/webhooks/subscriptions/update' : '/api/v1/webhooks/subscriptions/create',
       method: 'post',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
       data: current
         ? {
             id: current.id,
@@ -103,11 +105,12 @@ export function saveSubscription(
     })
   );
 }
-export const rotateSecret = (value: WebhookSubscription) =>
+export const rotateSecret = (value: WebhookSubscription, idempotencyKey: string) =>
   unwrap<{ subscription: WebhookSubscription; signing_secret: string }>(
     request({
       url: '/api/v1/webhooks/subscriptions/rotate-secret',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         id: value.id,
         ...applicationScope(value.tenant_id, value.application_id),
@@ -115,11 +118,12 @@ export const rotateSecret = (value: WebhookSubscription) =>
       }
     })
   );
-export const deleteSubscription = (value: WebhookSubscription) =>
+export const deleteSubscription = (value: WebhookSubscription, idempotencyKey: string) =>
   unwrap<null>(
     request({
       url: '/api/v1/webhooks/subscriptions/delete',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         id: value.id,
         ...applicationScope(value.tenant_id, value.application_id),
@@ -127,11 +131,16 @@ export const deleteSubscription = (value: WebhookSubscription) =>
       }
     })
   );
-export const testSubscription = (value: WebhookSubscription, payload: Record<string, unknown>) =>
+export const testSubscription = (
+  value: WebhookSubscription,
+  payload: Record<string, unknown>,
+  idempotencyKey: string
+) =>
   unwrap<WebhookDelivery>(
     request({
       url: '/api/v1/webhooks/subscriptions/test',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { id: value.id, ...applicationScope(value.tenant_id, value.application_id), payload_json: payload }
     })
   );
@@ -163,11 +172,12 @@ export const getDelivery = (value: Pick<WebhookDelivery, 'id' | 'tenant_id' | 'a
       data: { id: value.id, ...applicationScope(value.tenant_id, value.application_id) }
     })
   );
-export const replayDelivery = (value: WebhookDelivery) =>
+export const replayDelivery = (value: WebhookDelivery, idempotencyKey: string) =>
   unwrap<WebhookDelivery>(
     request({
       url: '/api/v1/webhooks/deliveries/replay',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         id: value.id,
         ...applicationScope(value.tenant_id, value.application_id),
