@@ -427,6 +427,7 @@ export const recordRefund = (input: {
       data: {
         ...applicationScope(input.payment.tenant_id, input.payment.application_id),
         payment_attempt_id: input.payment.id,
+        payment_version: input.payment.version,
         provider_refund_id: input.providerRefundID,
         amount_minor: input.amountMinor,
         reason: input.reason,

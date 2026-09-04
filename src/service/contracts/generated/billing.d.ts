@@ -1596,6 +1596,7 @@ export interface components {
             application_id: string;
             idempotency_key?: string;
             payment_attempt_id?: string;
+            payment_version?: number;
             provider_refund_id?: string;
             reason?: string;
             status?: string;

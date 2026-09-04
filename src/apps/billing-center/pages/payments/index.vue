@@ -52,6 +52,7 @@ const paymentForm = reactive({
   idempotencyKey: ''
 });
 const paymentBaselines = new Map<string, Promise<Invoice>>();
+const refundBaselines = new Map<string, Promise<PaymentAttempt>>();
 const refundForm = reactive({
   providerRefundID: '',
   amountMinor: 0,
@@ -206,6 +207,7 @@ async function openRefundDialog(payment: PaymentAttempt) {
   refundForm.reason = '';
   refundForm.status = 'succeeded';
   refundForm.idempotencyKey = '';
+  refundBaselines.clear();
   refundDialogVisible.value = true;
 }
 
@@ -217,17 +219,38 @@ async function submitRefund() {
     return;
   }
   const payment = selectedPayment.value;
+  const input = {
+    payment,
+    providerRefundID: refundForm.providerRefundID,
+    amountMinor: refundForm.amountMinor,
+    reason: refundForm.reason,
+    status: refundForm.status
+  };
+  const operation = JSON.stringify([
+    payment.id,
+    payment.version,
+    input.providerRefundID,
+    input.amountMinor,
+    input.reason,
+    input.status
+  ]);
   await runAction(`payment:${payment.id}:refund`, async () => {
+    const current = await operationPromise(refundBaselines, operation, () => getPayment(payment));
+    if (!canRefundPayment(current.status) || hasPersistedVersionChanged(payment.version, current.version)) {
+      window.$message?.warning('支付状态或版本已变化，请重新确认后重试');
+      return;
+    }
     refundForm.idempotencyKey = ensureIdempotencyKey(refundForm.idempotencyKey);
     await recordRefund({
-      payment,
-      providerRefundID: refundForm.providerRefundID,
-      amountMinor: refundForm.amountMinor,
-      reason: refundForm.reason,
-      status: refundForm.status,
+      payment: current,
+      providerRefundID: input.providerRefundID,
+      amountMinor: input.amountMinor,
+      reason: input.reason,
+      status: input.status,
       idempotencyKey: refundForm.idempotencyKey
     });
     selectedPayment.value = undefined;
+    refundBaselines.clear();
     refundDialogVisible.value = false;
     await load();
   });
@@ -244,6 +267,7 @@ watch(
   () => [refundForm.providerRefundID, refundForm.amountMinor, refundForm.reason, refundForm.status],
   () => {
     refundForm.idempotencyKey = '';
+    refundBaselines.clear();
   }
 );
 
@@ -257,6 +281,7 @@ watch([tenantID, applicationID], () => {
   refundDialogVisible.value = false;
   payableInvoices.value = [];
   paymentBaselines.clear();
+  refundBaselines.clear();
   invoiceGuard.invalidate();
   load();
 });
