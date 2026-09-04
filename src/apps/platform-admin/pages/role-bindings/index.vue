@@ -3,8 +3,9 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard } from '@/platform/application-context';
+import { operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
+import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import { remoteSearchPage } from '@/platform/remote-search';
-import { confirmUserAction } from '@/platform/user-action';
 import {
   type AuthorizationManagementScope,
   authorizationManagementScopeOptions
@@ -43,6 +44,7 @@ defineOptions({ name: 'PlatformAdminRoleBindings' });
 const platformStore = usePlatformStore();
 const loading = ref(false);
 const submitting = ref(false);
+const revokingID = ref('');
 const subjectSearching = ref(false);
 const roleSearching = ref(false);
 const organizationSearching = ref(false);
@@ -66,6 +68,9 @@ const form = reactive<BindingForm>({
   role_id: '',
   organization_unit_id: ''
 });
+const createKeys = new Map<string, string>();
+const revokeKeys = new Map<string, string>();
+const revokeBaselines = new Map<string, Promise<Binding>>();
 const tenantID = computed(() => platformStore.selectedTenantId);
 const canCreateBinding = computed(() =>
   platformStore.hasPermission({ scope: bindingScope.value, codes: 'authorization.binding.create' })
@@ -322,6 +327,7 @@ async function openCreate() {
     role_id: '',
     organization_unit_id: ''
   });
+  createKeys.clear();
   formRef.value?.clearValidate();
   dialogVisible.value = true;
   await Promise.all([searchSubjects(), searchRoles(), searchOrganizations()]);
@@ -330,7 +336,12 @@ async function submit() {
   if (!canCreateBinding.value || !(await formRef.value?.validate())) return;
   submitting.value = true;
   try {
-    await createMyBinding({ tenantID: tenantID.value, permissionScope: bindingScope.value, form });
+    const operation = JSON.stringify([tenantID.value, bindingScope.value, form]);
+    await createMyBinding(
+      { tenantID: tenantID.value, permissionScope: bindingScope.value, form },
+      operationIdempotencyKey(createKeys, operation)
+    );
+    createKeys.clear();
     dialogVisible.value = false;
     window.$message?.success('角色已绑定');
     await loadRows();
@@ -339,31 +350,39 @@ async function submit() {
   }
 }
 async function revoke(row: Binding) {
-  if (!canRevokeBinding.value || !canReadBinding.value) return;
-  const confirmed = await confirmUserAction(() =>
-    ElMessageBox.confirm('撤销后目标主体将立即失去该角色授予的权限，确认继续吗？', '撤销角色绑定', {
-      type: 'warning'
-    })
-  );
-  if (!confirmed) return;
-  const current = await getMyBinding({
-    tenantID: tenantID.value,
-    permissionScope: bindingScope.value,
-    bindingID: String(row.id)
-  });
-  if (current.status !== 'active') {
-    window.$message?.warning('角色绑定状态已发生变化，请刷新后重试');
+  if (!canRevokeBinding.value || !canReadBinding.value || revokingID.value) return;
+  const operation = `revoke:${tenantID.value}:${bindingScope.value}:${row.id}:${row.version}`;
+  revokingID.value = String(row.id);
+  try {
+    const current = await operationPromise(revokeBaselines, operation, async () => {
+      const detail = await getMyBinding({
+        tenantID: tenantID.value,
+        permissionScope: bindingScope.value,
+        bindingID: String(row.id)
+      });
+      if (
+        hasPersistedVersionChanged(Number(row.version), Number(detail.version)) ||
+        hasPersistedStateChanged(String(row.status), String(detail.status)) ||
+        detail.status !== 'active'
+      ) {
+        throw new Error('角色绑定状态已发生变化，请刷新后重试');
+      }
+      return detail;
+    });
+    await revokeMyBinding({
+      tenantID: tenantID.value,
+      permissionScope: bindingScope.value,
+      bindingID: String(current.id),
+      version: Number(current.version),
+      idempotencyKey: operationIdempotencyKey(revokeKeys, operation)
+    });
+    revokeBaselines.delete(operation);
+    revokeKeys.delete(operation);
+    window.$message?.success('角色绑定已撤销');
     await loadRows();
-    return;
+  } finally {
+    revokingID.value = '';
   }
-  await revokeMyBinding({
-    tenantID: tenantID.value,
-    permissionScope: bindingScope.value,
-    bindingID: String(row.id),
-    version: Number(current.version)
-  });
-  window.$message?.success('角色绑定已撤销');
-  await loadRows();
 }
 function changePage(value: number) {
   page.value = value;
@@ -428,7 +447,11 @@ onMounted(() => Promise.all([loadCatalogs(), loadRows()]));
               title="确认撤销该角色绑定？"
               @confirm="revoke(row)"
             >
-              <template #reference><ElButton link type="danger">撤销</ElButton></template>
+              <template #reference>
+                <ElButton link type="danger" :loading="revokingID === String(row.id)" :disabled="Boolean(revokingID)">
+                  撤销
+                </ElButton>
+              </template>
             </ElPopconfirm>
             <span v-else>-</span>
           </template>

@@ -1228,11 +1228,12 @@ export function listMyBindings(query: ScopedBindingQuery) {
   );
 }
 
-export function createMyBinding(request: ScopedBindingRequest) {
+export function createMyBinding(request: ScopedBindingRequest, idempotencyKey: string) {
   return unwrap<Binding>(
     authorizationRequest({
       url: '/api/v1/authorization/my-bindings/create',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         tenant_id: request.tenantID,
         permission_scope: request.permissionScope,
@@ -1250,11 +1251,13 @@ export function revokeMyBinding(request: {
   permissionScope: 'tenant' | 'platform';
   bindingID: string;
   version: number;
+  idempotencyKey: string;
 }) {
   return unwrap<Binding>(
     authorizationRequest({
       url: '/api/v1/authorization/my-bindings/revoke',
       method: 'post',
+      headers: { 'Idempotency-Key': request.idempotencyKey },
       data: {
         tenant_id: request.tenantID,
         permission_scope: request.permissionScope,
