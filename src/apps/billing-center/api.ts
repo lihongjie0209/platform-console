@@ -197,14 +197,16 @@ export const listSubscriptions = (input: {
       }
     })
   );
-export const getSubscription = (value: Pick<Subscription, 'id' | 'tenant_id' | 'application_id'>) =>
-  unwrap<Subscription>(
+export const getSubscriptionDetail = (value: Pick<Subscription, 'id' | 'tenant_id' | 'application_id'>) =>
+  unwrap<{ subscription: Subscription; plan: Plan }>(
     request({
       url: '/api/v1/subscriptions/get',
       method: 'post',
       data: { id: value.id, ...applicationScope(value.tenant_id, value.application_id) }
     })
   );
+export const getSubscription = async (value: Pick<Subscription, 'id' | 'tenant_id' | 'application_id'>) =>
+  (await getSubscriptionDetail(value)).subscription;
 export const createSubscription = (input: {
   tenantID: string;
   applicationID: string;
@@ -239,6 +241,27 @@ export const cancelSubscription = (value: Subscription, atPeriodEnd: boolean, id
         id: value.id,
         at_period_end: atPeriodEnd,
         version: value.version
+      }
+    })
+  );
+export const changeSubscription = (input: {
+  value: Subscription;
+  plan: Pick<Plan, 'id' | 'version'>;
+  effectiveMode: 'immediate' | 'next_period';
+  idempotencyKey: string;
+}) =>
+  unwrap<Subscription>(
+    request({
+      url: '/api/v1/subscriptions/change',
+      method: 'post',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
+      data: {
+        ...applicationScope(input.value.tenant_id, input.value.application_id),
+        id: input.value.id,
+        plan_id: input.plan.id,
+        plan_version: input.plan.version,
+        effective_mode: input.effectiveMode,
+        version: input.value.version
       }
     })
   );

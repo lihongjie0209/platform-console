@@ -10,6 +10,7 @@ import { confirmUserAction } from '@/platform/user-action';
 import type { Plan, Subscription } from '../../api';
 import {
   cancelSubscription,
+  changeSubscription,
   createSubscription,
   getSubscription,
   listAvailablePlans,
@@ -27,17 +28,27 @@ const page = ref(1);
 const pageSize = ref(20);
 const status = ref('');
 const visible = ref(false);
+const changeVisible = ref(false);
+const changingSubscription = ref<Subscription>();
 const form = reactive({ planID: '', planVersion: 0, startsAt: '', externalReference: '' });
+const changeForm = reactive<{ planID: string; planVersion: number; effectiveMode: 'immediate' | 'next_period' }>({
+  planID: '',
+  planVersion: 0,
+  effectiveMode: 'next_period'
+});
 const plans = ref<Plan[]>([]);
 const plansLoading = ref(false);
 const createIdempotencyKey = ref('');
 const createBaselines = new Map<string, Promise<Plan>>();
+const changeKeys = new Map<string, string>();
+const changeBaselines = new Map<string, Promise<{ subscription: Subscription; plan: Plan }>>();
 const cancelIdempotencyKeys = new Map<string, string>();
 const { active: actionLoading, run: runAction, reset: resetAction } = useKeyedAsyncAction();
 const loadGuard = createLatestRequestGuard();
 const planGuard = createLatestRequestGuard();
 const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.subscription.create' }));
 const canCancel = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.subscription.cancel' }));
+const canChange = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.subscription.update' }));
 const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.subscription.read' }));
 async function load() {
   const request = loadGuard.begin();
@@ -74,6 +85,9 @@ async function searchPlans(keyword = '') {
 }
 function selectPlan(planID: string) {
   form.planVersion = plans.value.find(plan => plan.id === planID)?.version || 0;
+}
+function selectChangePlan(planID: string) {
+  changeForm.planVersion = plans.value.find(plan => plan.id === planID)?.version || 0;
 }
 function openCreate() {
   Object.assign(form, { planID: '', planVersion: 0, startsAt: '', externalReference: '' });
@@ -130,6 +144,70 @@ async function create() {
     await load();
   });
 }
+async function openChange(value: Subscription) {
+  if (!canChange.value || !canRead.value) return;
+  await runAction(`${value.id}:prepare-change`, async () => {
+    const current = await getSubscription(value);
+    if (hasPersistedVersionChanged(value.version, current.version)) {
+      window.$message?.warning('订阅已发生变化，请确认最新状态后重试');
+      await load();
+      return;
+    }
+    changingSubscription.value = current;
+    Object.assign(changeForm, { planID: '', planVersion: 0, effectiveMode: 'next_period' });
+    changeKeys.clear();
+    changeBaselines.clear();
+    changeVisible.value = true;
+    searchPlans();
+  });
+}
+async function change() {
+  const visibleSubscription = changingSubscription.value;
+  const selectedPlan = plans.value.find(plan => plan.id === changeForm.planID);
+  if (!visibleSubscription || !selectedPlan || changeForm.planVersion < 1) return;
+  const input = {
+    subscription: visibleSubscription,
+    plan: { id: selectedPlan.id, version: changeForm.planVersion },
+    effectiveMode: changeForm.effectiveMode
+  };
+  const operation = JSON.stringify([
+    'subscription:change',
+    input.subscription.id,
+    input.subscription.version,
+    input.plan.id,
+    input.plan.version,
+    input.effectiveMode
+  ]);
+  await runAction(`${visibleSubscription.id}:change`, async () => {
+    const baseline = await operationPromise(changeBaselines, operation, async () => {
+      const [subscription, planPage] = await Promise.all([
+        getSubscription(input.subscription),
+        listAvailablePlans({ keyword: selectedPlan.code, ...remoteSearchPage(50) })
+      ]);
+      const plan = planPage.items.find(item => item.id === input.plan.id);
+      if (!plan) throw new Error('目标套餐已不可订阅，请重新选择');
+      return { subscription, plan };
+    });
+    if (
+      hasPersistedVersionChanged(input.subscription.version, baseline.subscription.version) ||
+      baseline.plan.status !== 'active' ||
+      hasPersistedVersionChanged(input.plan.version, baseline.plan.version)
+    ) {
+      window.$message?.warning('订阅或目标套餐已发生变化，请刷新后重试');
+      return;
+    }
+    await changeSubscription({
+      value: baseline.subscription,
+      plan: baseline.plan,
+      effectiveMode: input.effectiveMode,
+      idempotencyKey: operationIdempotencyKey(changeKeys, operation)
+    });
+    changeKeys.clear();
+    changeBaselines.clear();
+    changeVisible.value = false;
+    await load();
+  });
+}
 async function cancel(v: Subscription) {
   if (!canCancel.value || !canRead.value) return;
   const confirmed = await confirmUserAction(() =>
@@ -157,13 +235,24 @@ watch(
     createBaselines.clear();
   }
 );
+watch(
+  () => [changeForm.planID, changeForm.planVersion, changeForm.effectiveMode],
+  () => {
+    changeKeys.clear();
+    changeBaselines.clear();
+  }
+);
 watch([tenantID, applicationID], () => {
   rows.value = [];
   total.value = 0;
   page.value = 1;
   visible.value = false;
+  changeVisible.value = false;
+  changingSubscription.value = undefined;
   createIdempotencyKey.value = '';
   createBaselines.clear();
+  changeKeys.clear();
+  changeBaselines.clear();
   plans.value = [];
   planGuard.invalidate();
   cancelIdempotencyKeys.clear();
@@ -198,6 +287,16 @@ onMounted(load);
         <ElTableColumn prop="current_period_end" label="周期结束" />
         <ElTableColumn label="操作">
           <template #default="{ row }">
+            <ElButton
+              v-if="canChange && canRead && ['active', 'trialing'].includes(row.status)"
+              link
+              type="primary"
+              :loading="actionLoading === `${row.id}:prepare-change` || actionLoading === `${row.id}:change`"
+              :disabled="Boolean(actionLoading)"
+              @click="openChange(row)"
+            >
+              变更套餐
+            </ElButton>
             <ElButton
               v-if="canCancel && canRead && row.status === 'active'"
               link
@@ -256,6 +355,42 @@ onMounted(load);
         @click="create"
       >
         创建
+      </ElButton>
+    </template>
+  </ElDialog>
+  <ElDialog v-model="changeVisible" title="变更套餐" :close-on-click-modal="!actionLoading">
+    <ElForm label-width="100px">
+      <ElFormItem label="目标套餐">
+        <ElSelect
+          v-model="changeForm.planID"
+          class="w-full"
+          filterable
+          remote
+          reserve-keyword
+          placeholder="搜索并选择可订阅套餐"
+          :remote-method="searchPlans"
+          :loading="plansLoading"
+          @change="selectChangePlan"
+        >
+          <ElOption v-for="plan in plans" :key="plan.id" :label="`${plan.name} (${plan.code})`" :value="plan.id" />
+        </ElSelect>
+      </ElFormItem>
+      <ElFormItem label="生效时间">
+        <ElRadioGroup v-model="changeForm.effectiveMode">
+          <ElRadio value="next_period">下个计费周期</ElRadio>
+          <ElRadio value="immediate">立即生效</ElRadio>
+        </ElRadioGroup>
+      </ElFormItem>
+    </ElForm>
+    <template #footer>
+      <ElButton :disabled="Boolean(actionLoading)" @click="changeVisible = false">取消</ElButton>
+      <ElButton
+        type="primary"
+        :loading="actionLoading === `${changingSubscription?.id}:change`"
+        :disabled="!changeForm.planID || changeForm.planVersion < 1"
+        @click="change"
+      >
+        确认变更
       </ElButton>
     </template>
   </ElDialog>

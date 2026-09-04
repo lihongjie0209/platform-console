@@ -1436,6 +1436,7 @@ export interface components {
             effective_mode?: string;
             id?: string;
             plan_id?: string;
+            plan_version?: number;
             tenant_id?: string;
             version?: number;
         };
