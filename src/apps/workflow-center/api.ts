@@ -117,12 +117,14 @@ export function saveDefinition(
     description: string;
     nodes: WorkflowNode[];
     edges: WorkflowEdge[];
-  }
+  },
+  idempotencyKey: string
 ) {
   return unwrap<WorkflowDefinition>(
     request({
       url: current ? '/api/v1/workflow/definitions/update' : '/api/v1/workflow/definitions/create',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: current
         ? {
             id: current.id,
@@ -144,11 +146,16 @@ export function saveDefinition(
     })
   );
 }
-export function changeDefinitionStatus(value: WorkflowDefinition, action: 'publish' | 'disable') {
+export function changeDefinitionStatus(
+  value: WorkflowDefinition,
+  action: 'publish' | 'disable',
+  idempotencyKey: string
+) {
   return unwrap<WorkflowDefinition>(
     request({
       url: `/api/v1/workflow/definitions/${action}`,
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         id: value.id,
         ...applicationScope(value.tenant_id, value.application_id),

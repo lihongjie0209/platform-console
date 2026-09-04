@@ -3,7 +3,8 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformDateTime } from '@/platform/date-time';
-import { hasPersistedStateChanged } from '@/platform/optimistic-mutation';
+import { operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
+import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import type { WorkflowDefinition, WorkflowEdge, WorkflowNode } from '../../api';
 import { changeDefinitionStatus, getDefinition, listDefinitions, saveDefinition } from '../../api';
 import { parseJSONArray } from '../../json';
@@ -22,11 +23,15 @@ const status = ref('');
 const searchText = ref('');
 const visible = ref(false);
 const saving = ref(false);
+const changingAction = ref('');
 const editing = ref<WorkflowDefinition>();
 const detail = ref<WorkflowDefinition>();
 const detailVisible = ref(false);
 const form = reactive({ key: '', name: '', description: '', nodes: '[]', edges: '[]' });
 const loadGuard = createLatestRequestGuard();
+const formKeys = new Map<string, string>();
+const actionKeys = new Map<string, string>();
+const actionBaselines = new Map<string, Promise<WorkflowDefinition>>();
 const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.definition.create' }));
 const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.definition.read' }));
 const canUpdate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'workflow.definition.update' }));
@@ -65,6 +70,7 @@ function search() {
 function openCreate() {
   if (!canCreate.value) return;
   editing.value = undefined;
+  formKeys.clear();
   Object.assign(form, {
     key: '',
     name: '',
@@ -80,6 +86,7 @@ async function loadDefinition(row: WorkflowDefinition) {
 async function openEdit(row: WorkflowDefinition) {
   if (!canUpdate.value || !canRead.value) return;
   const current = await loadDefinition(row);
+  formKeys.clear();
   editing.value = current;
   Object.assign(form, {
     key: current.key,
@@ -114,7 +121,7 @@ async function save() {
   }
   saving.value = true;
   try {
-    await saveDefinition(editing.value, {
+    const input = {
       tenantID: tenantID.value,
       applicationID: applicationID.value,
       key: form.key,
@@ -122,7 +129,10 @@ async function save() {
       description: form.description,
       nodes,
       edges
-    });
+    };
+    const operation = JSON.stringify(['definition', editing.value?.id || '', editing.value?.version || 0, input]);
+    await saveDefinition(editing.value, input, operationIdempotencyKey(formKeys, operation));
+    formKeys.clear();
     visible.value = false;
     await loadData();
   } finally {
@@ -132,17 +142,33 @@ async function save() {
 async function changeStatus(row: WorkflowDefinition, action: 'publish' | 'disable') {
   if (!canRead.value || (action === 'publish' && !canPublish.value) || (action === 'disable' && !canDisable.value))
     return;
-  const current = await loadDefinition(row);
-  if (hasPersistedStateChanged(row.status, current.status)) {
-    window.$message?.warning('工作流状态已变化，请确认最新状态后重试');
+  if (changingAction.value) return;
+  const operation = `${action}:${row.id}:${row.version}`;
+  changingAction.value = operation;
+  try {
+    const current = await operationPromise(actionBaselines, operation, async () => {
+      const value = await loadDefinition(row);
+      if (
+        hasPersistedVersionChanged(row.version, value.version) ||
+        hasPersistedStateChanged(row.status, value.status)
+      ) {
+        throw new Error('工作流定义已发生变化，请确认最新状态后重试');
+      }
+      return value;
+    });
+    await changeDefinitionStatus(current, action, operationIdempotencyKey(actionKeys, operation));
+    actionBaselines.delete(operation);
+    actionKeys.delete(operation);
+    window.$message?.success(action === 'publish' ? '工作流已发布' : '工作流已停用');
     await loadData();
-    return;
+  } finally {
+    changingAction.value = '';
   }
-  await changeDefinitionStatus(current, action);
-  window.$message?.success(action === 'publish' ? '工作流已发布' : '工作流已停用');
-  await loadData();
 }
 watch([tenantID, applicationID], () => {
+  formKeys.clear();
+  actionKeys.clear();
+  actionBaselines.clear();
   rows.value = [];
   total.value = 0;
   visible.value = false;
@@ -202,6 +228,8 @@ onMounted(loadData);
               v-if="canPublish && canRead && row.status === 'draft'"
               link
               type="primary"
+              :loading="changingAction === `publish:${row.id}:${row.version}`"
+              :disabled="Boolean(changingAction)"
               @click="changeStatus(row, 'publish')"
             >
               发布
@@ -210,6 +238,8 @@ onMounted(loadData);
               v-if="canDisable && canRead && row.status === 'published'"
               link
               type="danger"
+              :loading="changingAction === `disable:${row.id}:${row.version}`"
+              :disabled="Boolean(changingAction)"
               @click="changeStatus(row, 'disable')"
             >
               停用
