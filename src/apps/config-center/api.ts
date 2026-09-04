@@ -39,6 +39,7 @@ export interface ConfigDraftInput extends ConfigScope {
   secretRef?: string;
   rolloutPercentage: number;
   expectedVersion?: number;
+  idempotencyKey: string;
 }
 
 const configRequest = platformRequest('config');
@@ -75,6 +76,7 @@ export function putConfigDraft(input: ConfigDraftInput) {
     configRequest({
       url: '/api/v1/config/entries/put-draft',
       method: 'post',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
       data: {
         id: input.id || '',
         environment: input.environment,
@@ -90,37 +92,39 @@ export function putConfigDraft(input: ConfigDraftInput) {
   );
 }
 
-function transition(path: string, entry: ConfigEntry, comment = '') {
+function transition(input: { path: string; entry: ConfigEntry; idempotencyKey: string; comment?: string }) {
   return unwrap<ConfigEntry>(
     configRequest({
-      url: path,
+      url: input.path,
       method: 'post',
-      data: { id: entry.id, expected_version: entry.version, comment }
+      headers: { 'Idempotency-Key': input.idempotencyKey },
+      data: { id: input.entry.id, expected_version: input.entry.version, comment: input.comment || '' }
     })
   );
 }
 
-export function submitConfig(entry: ConfigEntry) {
-  return transition('/api/v1/config/entries/submit', entry);
+export function submitConfig(entry: ConfigEntry, idempotencyKey: string) {
+  return transition({ path: '/api/v1/config/entries/submit', entry, idempotencyKey });
 }
 
-export function approveConfig(entry: ConfigEntry, comment: string) {
-  return transition('/api/v1/config/entries/approve', entry, comment);
+export function approveConfig(entry: ConfigEntry, comment: string, idempotencyKey: string) {
+  return transition({ path: '/api/v1/config/entries/approve', entry, idempotencyKey, comment });
 }
 
-export function rejectConfig(entry: ConfigEntry, comment: string) {
-  return transition('/api/v1/config/entries/reject', entry, comment);
+export function rejectConfig(entry: ConfigEntry, comment: string, idempotencyKey: string) {
+  return transition({ path: '/api/v1/config/entries/reject', entry, idempotencyKey, comment });
 }
 
-export function publishConfig(entry: ConfigEntry) {
-  return transition('/api/v1/config/entries/publish', entry);
+export function publishConfig(entry: ConfigEntry, idempotencyKey: string) {
+  return transition({ path: '/api/v1/config/entries/publish', entry, idempotencyKey });
 }
 
-export function rollbackConfig(entry: ConfigEntry, targetRevision: number) {
+export function rollbackConfig(entry: ConfigEntry, targetRevision: number, idempotencyKey: string) {
   return unwrap<ConfigEntry>(
     configRequest({
       url: '/api/v1/config/entries/rollback',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { id: entry.id, expected_version: entry.version, target_revision: targetRevision }
     })
   );

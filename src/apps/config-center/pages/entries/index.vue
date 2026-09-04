@@ -2,6 +2,8 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
+import { ensureIdempotencyKey, operationIdempotencyKey } from '@/platform/idempotency-key';
+import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
 import { hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
 import { promptUserInput } from '@/platform/user-action';
@@ -35,6 +37,9 @@ const serviceName = ref('');
 const editorVisible = ref(false);
 const valueMode = ref<'json' | 'secret'>('json');
 const form = reactive({ id: '', key: '', jsonValue: '{}', secretRef: '', rolloutPercentage: 100, version: 0 });
+const draftIdempotencyKey = ref('');
+const entryIdempotencyKeys = new Map<string, string>();
+const { active: actionLoading, run: runAction, reset: resetAction } = useKeyedAsyncAction();
 const loadGuard = createLatestRequestGuard();
 const canUpdate = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'config.entry.update' }));
 const canRead = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'config.entry.read' }));
@@ -137,9 +142,12 @@ async function saveDraft() {
       value,
       secretRef,
       rolloutPercentage: form.rolloutPercentage,
-      expectedVersion: form.version
+      expectedVersion: form.version,
+      idempotencyKey: ensureIdempotencyKey(draftIdempotencyKey.value)
     };
+    draftIdempotencyKey.value = input.idempotencyKey;
     await putConfigDraft(input);
+    draftIdempotencyKey.value = '';
     editorVisible.value = false;
     window.$message?.success('草稿已保存');
     await loadData();
@@ -150,29 +158,37 @@ async function saveDraft() {
 
 async function runEntryAction(
   entry: ConfigEntry,
-  action: (current: ConfigEntry) => Promise<ConfigEntry>,
-  message: string
+  input: {
+    operation: string;
+    action: (current: ConfigEntry, idempotencyKey: string) => Promise<ConfigEntry>;
+    message: string;
+  }
 ) {
   if (!canRead.value) return;
-  const current = await getConfigEntry(entry.id);
-  if (hasPersistedVersionChanged(entry.version, current.version)) {
-    window.$message?.warning('配置已发生变化，请确认最新内容后重试');
+  const key = `${entry.id}:${input.operation}`;
+  await runAction(key, async () => {
+    const current = await getConfigEntry(entry.id);
+    if (hasPersistedVersionChanged(entry.version, current.version)) {
+      entryIdempotencyKeys.delete(key);
+      window.$message?.warning('配置已发生变化，请确认最新内容后重试');
+      await loadData();
+      return;
+    }
+    await input.action(current, operationIdempotencyKey(entryIdempotencyKeys, key));
+    entryIdempotencyKeys.delete(key);
+    window.$message?.success(input.message);
     await loadData();
-    return;
-  }
-  await action(current);
-  window.$message?.success(message);
-  await loadData();
+  });
 }
 
 async function submitEntry(entry: ConfigEntry) {
   if (!canSubmit.value) return;
-  await runEntryAction(entry, submitConfig, '已提交审批');
+  await runEntryAction(entry, { operation: 'submit', action: submitConfig, message: '已提交审批' });
 }
 
 async function publishEntry(entry: ConfigEntry) {
   if (!canPublish.value) return;
-  await runEntryAction(entry, publishConfig, '已发布');
+  await runEntryAction(entry, { operation: 'publish', action: publishConfig, message: '已发布' });
 }
 
 async function review(entry: ConfigEntry, approve: boolean) {
@@ -183,11 +199,12 @@ async function review(entry: ConfigEntry, approve: boolean) {
     })
   );
   if (comment === undefined) return;
-  await runEntryAction(
-    entry,
-    current => (approve ? approveConfig(current, comment) : rejectConfig(current, comment)),
-    approve ? '审批通过' : '已驳回'
-  );
+  await runEntryAction(entry, {
+    operation: `${approve ? 'approve' : 'reject'}:${comment}`,
+    action: (current, idempotencyKey) =>
+      approve ? approveConfig(current, comment, idempotencyKey) : rejectConfig(current, comment, idempotencyKey),
+    message: approve ? '审批通过' : '已驳回'
+  });
 }
 
 async function rollback(entry: ConfigEntry) {
@@ -199,8 +216,29 @@ async function rollback(entry: ConfigEntry) {
     })
   );
   if (!revision) return;
-  await runEntryAction(entry, current => rollbackConfig(current, Number(revision)), '配置已回滚');
+  await runEntryAction(entry, {
+    operation: `rollback:${revision}`,
+    action: (current, idempotencyKey) => rollbackConfig(current, Number(revision), idempotencyKey),
+    message: '配置已回滚'
+  });
 }
+
+watch(
+  () => [
+    form.id,
+    form.key,
+    form.jsonValue,
+    form.secretRef,
+    form.rolloutPercentage,
+    form.version,
+    valueMode.value,
+    environment.value,
+    serviceName.value
+  ],
+  () => {
+    draftIdempotencyKey.value = '';
+  }
+);
 
 function statusType(status: string) {
   if (status === 'published' || status === 'approved') return 'success';
@@ -213,6 +251,9 @@ watch([tenantID, applicationID], () => {
   rows.value = [];
   total.value = 0;
   editorVisible.value = false;
+  draftIdempotencyKey.value = '';
+  entryIdempotencyKeys.clear();
+  resetAction();
   search();
 });
 onMounted(loadData);
@@ -279,23 +320,51 @@ onMounted(loadData);
             <ElButton
               v-if="canSubmit && canRead && ['draft', 'rejected'].includes(row.status)"
               link
+              :loading="actionLoading === `${row.id}:submit`"
+              :disabled="Boolean(actionLoading)"
               @click="submitEntry(row)"
             >
               提交
             </ElButton>
             <template v-if="row.status === 'pending_approval'">
-              <ElButton v-if="canApprove && canRead" link type="success" @click="review(row, true)">通过</ElButton>
-              <ElButton v-if="canReject && canRead" link type="danger" @click="review(row, false)">驳回</ElButton>
+              <ElButton
+                v-if="canApprove && canRead"
+                link
+                type="success"
+                :loading="actionLoading?.startsWith(`${row.id}:approve:`)"
+                :disabled="Boolean(actionLoading)"
+                @click="review(row, true)"
+              >
+                通过
+              </ElButton>
+              <ElButton
+                v-if="canReject && canRead"
+                link
+                type="danger"
+                :loading="actionLoading?.startsWith(`${row.id}:reject:`)"
+                :disabled="Boolean(actionLoading)"
+                @click="review(row, false)"
+              >
+                驳回
+              </ElButton>
             </template>
             <ElButton
               v-if="canPublish && canRead && row.status === 'approved'"
               link
               type="success"
+              :loading="actionLoading === `${row.id}:publish`"
+              :disabled="Boolean(actionLoading)"
               @click="publishEntry(row)"
             >
               发布
             </ElButton>
-            <ElButton v-if="canRollback && canRead && row.published_revision > 0" link @click="rollback(row)">
+            <ElButton
+              v-if="canRollback && canRead && row.published_revision > 0"
+              link
+              :loading="actionLoading?.startsWith(`${row.id}:rollback:`)"
+              :disabled="Boolean(actionLoading)"
+              @click="rollback(row)"
+            >
               回滚
             </ElButton>
           </template>
