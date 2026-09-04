@@ -23,6 +23,13 @@ export interface WorkflowDefinition extends Omit<DefinitionSchema, 'nodes'>, Rec
   edges: WorkflowEdge[];
   version: number;
 }
+export type WorkflowDefinitionCandidate = WorkflowContract['schemas']['httptransport.DefinitionCandidateDTO'] & {
+  id: string;
+  key: string;
+  name: string;
+  status: string;
+  published_revision: number;
+};
 export interface WorkflowInstance
   extends Omit<InstanceSchema, 'variables_json' | 'result_json'>, Record<string, unknown> {
   id: string;
@@ -188,6 +195,37 @@ export function listInstances(input: {
     })
   );
 }
+function listDefinitionCandidates(
+  path: '/api/v1/workflow/instances/definitions/list' | '/api/v1/workflow/instances/start-definitions/list',
+  input: { tenantID: string; applicationID: string; search: string; page: number; pageSize: number }
+) {
+  return unwrap<Page<WorkflowDefinitionCandidate>>(
+    request({
+      url: path,
+      method: 'post',
+      data: {
+        ...applicationScope(input.tenantID, input.applicationID),
+        search: input.search,
+        page: input.page,
+        page_size: input.pageSize
+      }
+    })
+  );
+}
+export const listInstanceDefinitionCandidates = (input: {
+  tenantID: string;
+  applicationID: string;
+  search: string;
+  page: number;
+  pageSize: number;
+}) => listDefinitionCandidates('/api/v1/workflow/instances/definitions/list', input);
+export const listStartDefinitionCandidates = (input: {
+  tenantID: string;
+  applicationID: string;
+  search: string;
+  page: number;
+  pageSize: number;
+}) => listDefinitionCandidates('/api/v1/workflow/instances/start-definitions/list', input);
 export function getInstance(value: Pick<WorkflowInstance, 'id' | 'tenant_id' | 'application_id'>) {
   return unwrap<WorkflowInstance>(
     request({

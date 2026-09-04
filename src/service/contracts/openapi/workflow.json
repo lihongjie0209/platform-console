@@ -786,6 +786,46 @@
                 }
             }
         },
+        "/api/v1/workflow/instances/definitions/list": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "workflow-instances"
+                ],
+                "summary": "Search definitions referenced by visible workflow instances",
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/httptransport.ListDefinitionCandidatesRequest"
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.PageDTO-httptransport_DefinitionCandidateDTO"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/workflow/instances/get": {
             "post": {
                 "security": [
@@ -1073,6 +1113,46 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/httptransport.Response"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/workflow/instances/start-definitions/list": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "tags": [
+                    "workflow-instances"
+                ],
+                "summary": "Search published definitions available for starting an instance",
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/httptransport.ListDefinitionCandidatesRequest"
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/httptransport.Response"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "body": {
+                                                    "$ref": "#/components/schemas/httptransport.PageDTO-httptransport_DefinitionCandidateDTO"
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -1881,6 +1961,17 @@
     ],
     "components": {
         "requestBodies": {
+            "httptransport.ListDefinitionCandidatesRequest": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/httptransport.ListDefinitionCandidatesRequest"
+                        }
+                    }
+                },
+                "description": "Search and pagination",
+                "required": true
+            },
             "httptransport.VersionedDefinitionRequest": {
                 "content": {
                     "application/json": {
@@ -2060,6 +2151,26 @@
                         }
                     },
                     "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.DefinitionCandidateDTO": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "key": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "published_revision": {
+                        "type": "integer"
+                    },
+                    "status": {
                         "type": "string"
                     }
                 }
@@ -2279,6 +2390,30 @@
                     }
                 }
             },
+            "httptransport.ListDefinitionCandidatesRequest": {
+                "type": "object",
+                "required": [
+                    "application_id",
+                    "tenant_id"
+                ],
+                "properties": {
+                    "application_id": {
+                        "type": "string"
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "search": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
             "httptransport.ListDefinitionsRequest": {
                 "type": "object",
                 "required": [
@@ -2429,6 +2564,26 @@
                 "properties": {
                     "subject": {
                         "type": "string"
+                    }
+                }
+            },
+            "httptransport.PageDTO-httptransport_DefinitionCandidateDTO": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/httptransport.DefinitionCandidateDTO"
+                        }
+                    },
+                    "page": {
+                        "type": "integer"
+                    },
+                    "page_size": {
+                        "type": "integer"
+                    },
+                    "total": {
+                        "type": "integer"
                     }
                 }
             },

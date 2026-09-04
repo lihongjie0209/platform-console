@@ -1,14 +1,22 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
-import { useAsyncAction } from '@/components/business';
+import { BizRemoteSelect, useAsyncAction } from '@/components/business';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformDateTime, formatPlatformTableDateTime } from '@/platform/date-time';
 import { ensureIdempotencyKey, operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
 import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import { promptUserInput } from '@/platform/user-action';
 import type { WorkflowInstance, WorkflowTaskHistory } from '../../api';
-import { cancelInstance, getInstance, listInstanceTaskHistory, listInstances, startInstance } from '../../api';
+import {
+  cancelInstance,
+  getInstance,
+  listInstanceDefinitionCandidates,
+  listInstanceTaskHistory,
+  listInstances,
+  listStartDefinitionCandidates,
+  startInstance
+} from '../../api';
 import { parseJSONObject } from '../../json';
 defineOptions({ name: 'WorkflowCenterInstances' });
 const store = usePlatformStore();
@@ -72,6 +80,34 @@ async function loadData() {
 function search() {
   page.value = 1;
   loadData();
+}
+async function loadFilterDefinitions(keyword: string, nextPage: number, nextPageSize: number) {
+  if (!scopeReady.value) return { items: [], total: 0 };
+  const result = await listInstanceDefinitionCandidates({
+    tenantID: tenantID.value,
+    applicationID: applicationID.value,
+    search: keyword.trim(),
+    page: nextPage,
+    pageSize: nextPageSize
+  });
+  return {
+    items: (result.items || []).map(item => ({ value: item.id, label: `${item.name} (${item.key})` })),
+    total: result.total
+  };
+}
+async function loadStartDefinitions(keyword: string, nextPage: number, nextPageSize: number) {
+  if (!scopeReady.value) return { items: [], total: 0 };
+  const result = await listStartDefinitionCandidates({
+    tenantID: tenantID.value,
+    applicationID: applicationID.value,
+    search: keyword.trim(),
+    page: nextPage,
+    pageSize: nextPageSize
+  });
+  return {
+    items: (result.items || []).map(item => ({ value: item.key, label: `${item.name} (${item.key})` })),
+    total: result.total
+  };
 }
 function openStart() {
   if (!canStart.value) return;
@@ -180,6 +216,7 @@ watch([tenantID, applicationID], () => {
   rows.value = [];
   total.value = 0;
   visible.value = false;
+  definitionID.value = '';
   detail.value = undefined;
   history.value = [];
   detailVisible.value = false;
@@ -203,8 +240,25 @@ onMounted(loadData);
     <template v-else>
       <ElForm inline>
         <ElFormItem label="搜索"><ElInput v-model="searchText" /></ElFormItem>
-        <ElFormItem label="定义 ID"><ElInput v-model="definitionID" /></ElFormItem>
-        <ElFormItem label="状态"><ElInput v-model="status" /></ElFormItem>
+        <ElFormItem label="流程定义">
+          <BizRemoteSelect
+            :key="`${tenantID}:${applicationID}:instance-definitions`"
+            v-model="definitionID"
+            :loader="loadFilterDefinitions"
+            :page-size="50"
+            class="w-260px"
+            placeholder="全部定义"
+          />
+        </ElFormItem>
+        <ElFormItem label="状态">
+          <ElSelect v-model="status" clearable class="w-150px" placeholder="全部状态">
+            <ElOption label="运行中" value="running" />
+            <ElOption label="已完成" value="completed" />
+            <ElOption label="已拒绝" value="rejected" />
+            <ElOption label="已取消" value="cancelled" />
+            <ElOption label="失败" value="failed" />
+          </ElSelect>
+        </ElFormItem>
         <ElFormItem><ElButton type="primary" @click="search">查询</ElButton></ElFormItem>
       </ElForm>
       <ElTable v-loading="loading" :data="rows" border>
@@ -249,7 +303,17 @@ onMounted(loadData);
   </ElCard>
   <ElDialog v-model="visible" title="启动流程" width="650px">
     <ElForm label-width="110px">
-      <ElFormItem label="流程 Key" required><ElInput v-model="form.definitionKey" /></ElFormItem>
+      <ElFormItem label="流程定义" required>
+        <BizRemoteSelect
+          :key="`${tenantID}:${applicationID}:start-definitions`"
+          v-model="form.definitionKey"
+          :loader="loadStartDefinitions"
+          :page-size="50"
+          :clearable="false"
+          class="w-full"
+          placeholder="搜索已发布流程定义"
+        />
+      </ElFormItem>
       <ElFormItem label="业务键" required><ElInput v-model="form.businessKey" /></ElFormItem>
       <ElFormItem label="标题" required><ElInput v-model="form.title" /></ElFormItem>
       <ElFormItem label="变量 JSON"><ElInput v-model="form.variables" type="textarea" :rows="7" /></ElFormItem>

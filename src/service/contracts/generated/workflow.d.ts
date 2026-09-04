@@ -722,6 +722,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workflow/instances/definitions/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Search definitions referenced by visible workflow instances */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["httptransport.ListDefinitionCandidatesRequest"];
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PageDTO-httptransport_DefinitionCandidateDTO"];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workflow/instances/get": {
         parameters: {
             query?: never;
@@ -976,6 +1014,44 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["httptransport.Response"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/instances/start-definitions/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Search published definitions available for starting an instance */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["httptransport.ListDefinitionCandidatesRequest"];
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["httptransport.Response"] & {
+                            body?: components["schemas"]["httptransport.PageDTO-httptransport_DefinitionCandidateDTO"];
+                        };
                     };
                 };
             };
@@ -1760,6 +1836,13 @@ export interface components {
             nodes: components["schemas"]["httptransport.WorkflowNodeDTO"][];
             tenant_id: string;
         };
+        "httptransport.DefinitionCandidateDTO": {
+            id?: string;
+            key?: string;
+            name?: string;
+            published_revision?: number;
+            status?: string;
+        };
         "httptransport.DefinitionDTO": {
             application_id?: string;
             created_at?: string;
@@ -1824,6 +1907,13 @@ export interface components {
             variables_json?: Record<string, never>;
             version?: number;
         };
+        "httptransport.ListDefinitionCandidatesRequest": {
+            application_id: string;
+            page?: number;
+            page_size?: number;
+            search?: string;
+            tenant_id: string;
+        };
         "httptransport.ListDefinitionsRequest": {
             application_id?: string;
             page?: number;
@@ -1869,6 +1959,12 @@ export interface components {
         };
         "httptransport.MeResponseBody": {
             subject?: string;
+        };
+        "httptransport.PageDTO-httptransport_DefinitionCandidateDTO": {
+            items?: components["schemas"]["httptransport.DefinitionCandidateDTO"][];
+            page?: number;
+            page_size?: number;
+            total?: number;
         };
         "httptransport.PageDTO-httptransport_DefinitionDTO": {
             items?: components["schemas"]["httptransport.DefinitionDTO"][];
@@ -1995,6 +2091,12 @@ export interface components {
     responses: never;
     parameters: never;
     requestBodies: {
+        /** @description Search and pagination */
+        "httptransport.ListDefinitionCandidatesRequest": {
+            content: {
+                "application/json": components["schemas"]["httptransport.ListDefinitionCandidatesRequest"];
+            };
+        };
         /** @description Definition version */
         "httptransport.VersionedDefinitionRequest": {
             content: {
