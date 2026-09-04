@@ -345,6 +345,26 @@ export const listPayments = (input: PaymentListInput) =>
     })
   );
 
+export const listPayableInvoices = (input: {
+  tenantID: string;
+  applicationID: string;
+  keyword: string;
+  page: number;
+  pageSize: number;
+}) =>
+  unwrap<Page<Invoice>>(
+    request({
+      url: '/api/v1/payments/invoices/list',
+      method: 'post',
+      data: {
+        ...applicationScope(input.tenantID, input.applicationID),
+        keyword: input.keyword,
+        page: input.page,
+        page_size: input.pageSize
+      }
+    })
+  );
+
 export const getPayment = (payment: Pick<PaymentAttempt, 'tenant_id' | 'application_id' | 'id'>) =>
   unwrap<PaymentAttempt>(
     request({
@@ -372,6 +392,7 @@ export const createPaymentAttempt = (input: {
   tenantID: string;
   applicationID: string;
   invoiceID: string;
+  invoiceVersion: number;
   provider: string;
   paymentMethodReference: string;
   idempotencyKey: string;
@@ -383,6 +404,7 @@ export const createPaymentAttempt = (input: {
       data: {
         ...applicationScope(input.tenantID, input.applicationID),
         invoice_id: input.invoiceID,
+        invoice_version: input.invoiceVersion,
         provider: input.provider,
         payment_method_reference: input.paymentMethodReference,
         idempotency_key: input.idempotencyKey

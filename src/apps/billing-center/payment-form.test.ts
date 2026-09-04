@@ -4,18 +4,26 @@ import { canRefundPayment, ensureIdempotencyKey, validatePaymentInput, validateR
 
 test('payment forms reject incomplete or unsafe input', () => {
   assert.equal(
-    validatePaymentInput({ invoiceID: '', provider: 'test', paymentMethodReference: 'ref' }),
-    '请输入账单 ID'
+    validatePaymentInput({ invoiceID: '', invoiceVersion: 0, provider: 'test', paymentMethodReference: 'ref' }),
+    '请选择可支付账单'
   );
   assert.equal(
-    validatePaymentInput({ invoiceID: 'invoice-1', provider: '', paymentMethodReference: 'ref' }),
+    validatePaymentInput({ invoiceID: 'invoice-1', invoiceVersion: 1, provider: '', paymentMethodReference: 'ref' }),
     '请输入支付渠道'
   );
   assert.equal(
-    validatePaymentInput({ invoiceID: 'invoice-1', provider: 'test', paymentMethodReference: '' }),
+    validatePaymentInput({ invoiceID: 'invoice-1', invoiceVersion: 1, provider: 'test', paymentMethodReference: '' }),
     '请输入支付方式引用'
   );
-  assert.equal(validatePaymentInput({ invoiceID: 'invoice-1', provider: 'test', paymentMethodReference: 'ref' }), '');
+  assert.equal(
+    validatePaymentInput({
+      invoiceID: 'invoice-1',
+      invoiceVersion: 1,
+      provider: 'test',
+      paymentMethodReference: 'ref'
+    }),
+    ''
+  );
   assert.equal(validateRefundInput({ amountMinor: 0, reason: 'duplicate' }), '退款金额必须是正整数');
   assert.equal(validateRefundInput({ amountMinor: 10.5, reason: 'duplicate' }), '退款金额必须是正整数');
   assert.equal(validateRefundInput({ amountMinor: 10, reason: ' ' }), '请输入退款原因');

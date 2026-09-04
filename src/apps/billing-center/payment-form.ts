@@ -4,8 +4,13 @@ export function canRefundPayment(status: string) {
 
 export { ensureIdempotencyKey } from '@/platform/idempotency-key';
 
-export function validatePaymentInput(input: { invoiceID: string; provider: string; paymentMethodReference: string }) {
-  if (!input.invoiceID.trim()) return '请输入账单 ID';
+export function validatePaymentInput(input: {
+  invoiceID: string;
+  invoiceVersion: number;
+  provider: string;
+  paymentMethodReference: string;
+}) {
+  if (!input.invoiceID.trim() || input.invoiceVersion < 1) return '请选择可支付账单';
   if (!input.provider.trim()) return '请输入支付渠道';
   if (!input.paymentMethodReference.trim()) return '请输入支付方式引用';
   return '';

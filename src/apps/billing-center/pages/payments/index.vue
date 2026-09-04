@@ -3,9 +3,19 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { operationPromise } from '@/platform/idempotency-key';
 import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
-import type { PaymentAttempt, Refund } from '../../api';
-import { createPaymentAttempt, getPayment, listPayments, listRefunds, recordRefund } from '../../api';
+import { hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
+import { remoteSearchPage } from '@/platform/remote-search';
+import type { Invoice, PaymentAttempt, Refund } from '../../api';
+import {
+  createPaymentAttempt,
+  getPayment,
+  listPayableInvoices,
+  listPayments,
+  listRefunds,
+  recordRefund
+} from '../../api';
 import { canRefundPayment, ensureIdempotencyKey, validatePaymentInput, validateRefundInput } from '../../payment-form';
 
 defineOptions({ name: 'BillingCenterPayments' });
@@ -26,12 +36,22 @@ const pageSize = ref(20);
 const paymentDialogVisible = ref(false);
 const refundDialogVisible = ref(false);
 const selectedPayment = ref<PaymentAttempt>();
+const payableInvoices = ref<Invoice[]>([]);
+const invoicesLoading = ref(false);
 const loadGuard = createLatestRequestGuard();
+const invoiceGuard = createLatestRequestGuard();
 const { active: activeAction, run: runAction } = useKeyedAsyncAction();
 const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.payment.create' }));
 const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.payment.read' }));
 const canRefund = computed(() => store.hasPermission({ scope: 'tenant', codes: 'billing.payment.refund' }));
-const paymentForm = reactive({ invoiceID: '', provider: '', paymentMethodReference: '', idempotencyKey: '' });
+const paymentForm = reactive({
+  invoiceID: '',
+  invoiceVersion: 0,
+  provider: '',
+  paymentMethodReference: '',
+  idempotencyKey: ''
+});
+const paymentBaselines = new Map<string, Promise<Invoice>>();
 const refundForm = reactive({
   providerRefundID: '',
   amountMinor: 0,
@@ -85,13 +105,34 @@ function search() {
   load();
 }
 
+async function searchPayableInvoices(keyword = '') {
+  const request = invoiceGuard.begin();
+  invoicesLoading.value = true;
+  try {
+    const result = await listPayableInvoices({
+      tenantID: tenantID.value,
+      applicationID: applicationID.value,
+      keyword,
+      ...remoteSearchPage(50)
+    });
+    if (invoiceGuard.isCurrent(request)) payableInvoices.value = result.items || [];
+  } finally {
+    if (invoiceGuard.isCurrent(request)) invoicesLoading.value = false;
+  }
+}
+function selectInvoice(invoiceID: string) {
+  paymentForm.invoiceVersion = payableInvoices.value.find(invoice => invoice.id === invoiceID)?.version || 0;
+}
 function openPaymentDialog() {
   if (!canCreate.value) return;
   paymentForm.invoiceID = '';
+  paymentForm.invoiceVersion = 0;
   paymentForm.provider = '';
   paymentForm.paymentMethodReference = '';
   paymentForm.idempotencyKey = '';
+  paymentBaselines.clear();
   paymentDialogVisible.value = true;
+  searchPayableInvoices();
 }
 
 async function submitPayment() {
@@ -102,16 +143,50 @@ async function submitPayment() {
     return;
   }
   await runAction('payment:create', async () => {
-    paymentForm.idempotencyKey = ensureIdempotencyKey(paymentForm.idempotencyKey);
-    await createPaymentAttempt({
+    const selectedInvoice = payableInvoices.value.find(invoice => invoice.id === paymentForm.invoiceID);
+    if (!selectedInvoice) return;
+    const input = {
       tenantID: tenantID.value,
       applicationID: applicationID.value,
       invoiceID: paymentForm.invoiceID,
+      invoiceVersion: paymentForm.invoiceVersion,
       provider: paymentForm.provider,
-      paymentMethodReference: paymentForm.paymentMethodReference,
+      paymentMethodReference: paymentForm.paymentMethodReference
+    };
+    const operation = JSON.stringify([
+      input.tenantID,
+      input.applicationID,
+      input.invoiceID,
+      input.invoiceVersion,
+      input.provider
+    ]);
+    const current = await operationPromise(paymentBaselines, operation, async () => {
+      const result = await listPayableInvoices({
+        tenantID: input.tenantID,
+        applicationID: input.applicationID,
+        keyword: selectedInvoice.number,
+        ...remoteSearchPage(50)
+      });
+      const invoice = result.items.find(item => item.id === selectedInvoice.id);
+      if (!invoice) throw new Error('所选账单已不可支付，请重新选择');
+      return invoice;
+    });
+    if (current.status !== 'open' || hasPersistedVersionChanged(input.invoiceVersion, current.version)) {
+      window.$message?.warning('账单金额或状态已变化，请重新选择后重试');
+      return;
+    }
+    paymentForm.idempotencyKey = ensureIdempotencyKey(paymentForm.idempotencyKey);
+    await createPaymentAttempt({
+      tenantID: input.tenantID,
+      applicationID: input.applicationID,
+      invoiceID: input.invoiceID,
+      invoiceVersion: current.version,
+      provider: input.provider,
+      paymentMethodReference: input.paymentMethodReference,
       idempotencyKey: paymentForm.idempotencyKey
     });
     paymentForm.paymentMethodReference = '';
+    paymentBaselines.clear();
     paymentDialogVisible.value = false;
     await load();
   });
@@ -159,9 +234,10 @@ async function submitRefund() {
 }
 
 watch(
-  () => [paymentForm.invoiceID, paymentForm.provider, paymentForm.paymentMethodReference],
+  () => [paymentForm.invoiceID, paymentForm.invoiceVersion, paymentForm.provider, paymentForm.paymentMethodReference],
   () => {
     paymentForm.idempotencyKey = '';
+    paymentBaselines.clear();
   }
 );
 watch(
@@ -179,6 +255,9 @@ watch([tenantID, applicationID], () => {
   selectedPayment.value = undefined;
   paymentDialogVisible.value = false;
   refundDialogVisible.value = false;
+  payableInvoices.value = [];
+  paymentBaselines.clear();
+  invoiceGuard.invalidate();
   load();
 });
 watch(activeTab, () => {
@@ -272,7 +351,26 @@ onMounted(load);
       :closable="false"
     />
     <ElForm label-width="110px">
-      <ElFormItem label="账单 ID"><ElInput v-model="paymentForm.invoiceID" /></ElFormItem>
+      <ElFormItem label="账单">
+        <ElSelect
+          v-model="paymentForm.invoiceID"
+          class="w-full"
+          filterable
+          remote
+          reserve-keyword
+          placeholder="搜索账单号并选择可支付账单"
+          :remote-method="searchPayableInvoices"
+          :loading="invoicesLoading"
+          @change="selectInvoice"
+        >
+          <ElOption
+            v-for="invoice in payableInvoices"
+            :key="invoice.id"
+            :label="`${invoice.number} · ${invoice.currency} ${invoice.total_minor - invoice.paid_minor}`"
+            :value="invoice.id"
+          />
+        </ElSelect>
+      </ElFormItem>
       <ElFormItem label="支付渠道">
         <ElInput v-model="paymentForm.provider" placeholder="如 stripe、alipay" />
       </ElFormItem>
