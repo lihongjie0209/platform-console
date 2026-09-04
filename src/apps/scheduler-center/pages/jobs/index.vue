@@ -197,7 +197,7 @@ async function trigger(row: ScheduledJob) {
       }
       return detail;
     });
-    const result = await triggerJob(current.id, operationIdempotencyKey(triggerKeys, operation));
+    const result = await triggerJob(current, operationIdempotencyKey(triggerKeys, operation));
     triggerKeys.delete(operation);
     triggerBaselines.delete(operation);
     window.$message?.success(`执行完成：${result.status}`);

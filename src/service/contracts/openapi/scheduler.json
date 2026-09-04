@@ -246,7 +246,15 @@
                 ],
                 "summary": "Get a scheduled job",
                 "requestBody": {
-                    "$ref": "#/components/requestBodies/httptransport.JobIDRequest"
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.JobIDRequest"
+                            }
+                        }
+                    },
+                    "description": "Job ID",
+                    "required": true
                 },
                 "responses": {
                     "200": {
@@ -334,7 +342,15 @@
                 ],
                 "summary": "Trigger a job immediately",
                 "requestBody": {
-                    "$ref": "#/components/requestBodies/httptransport.JobIDRequest"
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httptransport.TriggerJobRequest"
+                            }
+                        }
+                    },
+                    "description": "Job ID and expected version",
+                    "required": true
                 },
                 "responses": {
                     "200": {
@@ -535,19 +551,6 @@
         }
     ],
     "components": {
-        "requestBodies": {
-            "httptransport.JobIDRequest": {
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "$ref": "#/components/schemas/httptransport.JobIDRequest"
-                        }
-                    }
-                },
-                "description": "Job ID",
-                "required": true
-            }
-        },
         "securitySchemes": {
             "Bearer": {
                 "description": "Enter \"Bearer {JWT}\".",
@@ -885,6 +888,21 @@
                         "type": "string"
                     },
                     "request_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httptransport.TriggerJobRequest": {
+                "type": "object",
+                "required": [
+                    "expected_version",
+                    "id"
+                ],
+                "properties": {
+                    "expected_version": {
+                        "type": "integer"
+                    },
+                    "id": {
                         "type": "string"
                     }
                 }

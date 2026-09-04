@@ -145,13 +145,13 @@ export function deleteJob(job: ScheduledJob, idempotencyKey: string) {
   );
 }
 
-export function triggerJob(id: string, idempotencyKey: string) {
+export function triggerJob(job: ScheduledJob, idempotencyKey: string) {
   return unwrap<JobExecution>(
     schedulerRequest({
       url: '/api/v1/scheduler/jobs/trigger',
       method: 'post',
       headers: { 'Idempotency-Key': idempotencyKey },
-      data: { id }
+      data: { id: job.id, expected_version: job.version }
     })
   );
 }

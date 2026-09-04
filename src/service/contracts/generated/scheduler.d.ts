@@ -238,7 +238,12 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["httptransport.JobIDRequest"];
+            /** @description Job ID */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.JobIDRequest"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -319,7 +324,12 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["httptransport.JobIDRequest"];
+            /** @description Job ID and expected version */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["httptransport.TriggerJobRequest"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -618,6 +628,10 @@ export interface components {
             message?: string;
             request_id?: string;
         };
+        "httptransport.TriggerJobRequest": {
+            expected_version: number;
+            id: string;
+        };
         "httptransport.UpdateJobRequest": {
             application_id?: string;
             cron_expression: string;
@@ -635,14 +649,7 @@ export interface components {
     };
     responses: never;
     parameters: never;
-    requestBodies: {
-        /** @description Job ID */
-        "httptransport.JobIDRequest": {
-            content: {
-                "application/json": components["schemas"]["httptransport.JobIDRequest"];
-            };
-        };
-    };
+    requestBodies: never;
     headers: never;
     pathItems: never;
 }
