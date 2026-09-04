@@ -707,6 +707,7 @@ export interface components {
             definition?: Record<string, never>;
             idempotency_key?: string;
             rule_set_id?: string;
+            rule_set_version?: number;
             tenant_id?: string;
         };
         "httptransport.EvaluateRequest": {

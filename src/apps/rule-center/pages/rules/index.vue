@@ -42,6 +42,7 @@ const versionPage = ref(1);
 const versionPageSize = ref(20);
 const definition = ref('{\n  "rules": []\n}');
 const versionIdempotencyKey = ref('');
+const versionBaselines = new Map<string, Promise<RuleSet>>();
 const { loading: versionCreating, run: runVersionCreate } = useAsyncAction();
 const facts = ref('{}');
 const evaluation = ref('');
@@ -130,6 +131,8 @@ async function versionsFor(v: RuleSet) {
   }
 }
 function openVersions(v: RuleSet) {
+  versionIdempotencyKey.value = '';
+  versionBaselines.clear();
   versionPage.value = 1;
   versionsFor(v);
 }
@@ -144,19 +147,34 @@ async function createVersion() {
   await runVersionCreate(async () => {
     if (!canCreateVersion.value || !selected.value) return;
     const value = parseJSONObject(definition.value, '规则定义');
-    const check = await validateRule(selected.value.tenant_id, selected.value.application_id, value);
+    const selectedSet = selected.value;
+    const operation = `create-version:${selectedSet.id}:${selectedSet.version}:${definition.value}`;
+    const current = await operationPromise(versionBaselines, operation, async () => {
+      const detail = await getRuleSet(selectedSet);
+      if (
+        hasPersistedVersionChanged(selectedSet.version, detail.version) ||
+        hasPersistedStateChanged(selectedSet.status, detail.status) ||
+        detail.status === 'disabled'
+      ) {
+        throw new Error('规则集已发生变化或已停用，请刷新后重试');
+      }
+      return detail;
+    });
+    const check = await validateRule(current.tenant_id, current.application_id, value);
     if (!check.valid) {
       window.$message?.error(check.issues.join('; ') || '规则无效');
       return;
     }
     versionIdempotencyKey.value = ensureIdempotencyKey(versionIdempotencyKey.value);
-    await createRuleVersion(selected.value, value, versionIdempotencyKey.value);
+    await createRuleVersion(current, value, versionIdempotencyKey.value);
     versionIdempotencyKey.value = '';
-    await versionsFor(selected.value);
+    versionBaselines.clear();
+    await versionsFor(selectedSet);
   });
 }
 watch(definition, () => {
   versionIdempotencyKey.value = '';
+  versionBaselines.clear();
 });
 async function publish(v: RuleVersion) {
   if (!canPublish.value || !canRead.value || !canReadVersion.value || !selected.value || publishingVersionID.value)
@@ -202,6 +220,8 @@ watch([tenantID, applicationID], () => {
   formKeys.clear();
   publishKeys.clear();
   publishBaselines.clear();
+  versionIdempotencyKey.value = '';
+  versionBaselines.clear();
   versionGuard.invalidate();
   rows.value = [];
   total.value = 0;

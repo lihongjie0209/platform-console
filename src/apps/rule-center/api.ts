@@ -137,6 +137,7 @@ export const createRuleVersion = (value: RuleSet, definition: Record<string, unk
       data: {
         ...applicationScope(value.tenant_id, value.application_id),
         rule_set_id: value.id,
+        rule_set_version: value.version,
         definition,
         idempotency_key: idempotencyKey
       }
