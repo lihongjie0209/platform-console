@@ -43,6 +43,7 @@ const createBaselines = new Map<string, Promise<Plan>>();
 const changeKeys = new Map<string, string>();
 const changeBaselines = new Map<string, Promise<{ subscription: Subscription; plan: Plan }>>();
 const cancelIdempotencyKeys = new Map<string, string>();
+const cancelBaselines = new Map<string, Promise<Subscription>>();
 const { active: actionLoading, run: runAction, reset: resetAction } = useKeyedAsyncAction();
 const loadGuard = createLatestRequestGuard();
 const planGuard = createLatestRequestGuard();
@@ -216,15 +217,17 @@ async function cancel(v: Subscription) {
   if (!confirmed) return;
   const key = `${v.id}:cancel`;
   await runAction(key, async () => {
-    const current = await getSubscription(v);
+    const current = await operationPromise(cancelBaselines, key, () => getSubscription(v));
     if (hasPersistedStateChanged(v.status, current.status) || current.cancel_at_period_end) {
       cancelIdempotencyKeys.delete(key);
+      cancelBaselines.delete(key);
       window.$message?.warning('订阅状态已变化，请确认最新状态后重试');
       await load();
       return;
     }
     await cancelSubscription(current, true, operationIdempotencyKey(cancelIdempotencyKeys, key));
     cancelIdempotencyKeys.delete(key);
+    cancelBaselines.delete(key);
     await load();
   });
 }
@@ -256,6 +259,7 @@ watch([tenantID, applicationID], () => {
   plans.value = [];
   planGuard.invalidate();
   cancelIdempotencyKeys.clear();
+  cancelBaselines.clear();
   resetAction();
   load();
 });
