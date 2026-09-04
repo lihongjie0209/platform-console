@@ -3,6 +3,8 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { ensureIdempotencyKey, operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
+import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import { confirmUserAction } from '@/platform/user-action';
 import type { JobExecution, JobInput, ScheduledJob } from '../../api';
 import { createJob, deleteJob, getExecution, getJob, listExecutions, listJobs, triggerJob, updateJob } from '../../api';
@@ -15,6 +17,8 @@ const tenantID = computed(() => platformStore.selectedTenantId);
 const applicationID = computed(() => platformStore.selectedApplicationId);
 const loading = ref(false);
 const saving = ref(false);
+const deletingID = ref('');
+const triggeringID = ref('');
 const rows = ref<ScheduledJob[]>([]);
 const total = ref(0);
 const page = ref(1);
@@ -32,6 +36,9 @@ const executionDetail = ref<JobExecution>();
 const executionDetailVisible = ref(false);
 const loadGuard = createLatestRequestGuard();
 const executionGuard = createLatestRequestGuard();
+const formKeys = new Map<string, string>();
+const deleteKeys = new Map<string, string>();
+const deleteBaselines = new Map<string, Promise<ScheduledJob>>();
 const canCreate = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.job.create' }));
 const canRead = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.job.read' }));
 const canUpdate = computed(() => platformStore.hasPermission({ scope: 'tenant', codes: 'scheduler.job.update' }));
@@ -87,6 +94,7 @@ function search() {
 function openCreate() {
   if (!canCreate.value || !tenantID.value || !applicationID.value) return;
   editing.value = undefined;
+  formKeys.clear();
   Object.assign(form, {
     name: '',
     cronExpression: '0 0 * * * *',
@@ -102,6 +110,7 @@ function openCreate() {
 async function openEdit(row: ScheduledJob) {
   if (!canUpdate.value || !canRead.value) return;
   const current = await getJob(row.id);
+  formKeys.clear();
   editing.value = current;
   Object.assign(form, {
     name: current.name,
@@ -116,6 +125,9 @@ async function openEdit(row: ScheduledJob) {
   formVisible.value = true;
 }
 async function save() {
+  const currentTenantID = tenantID.value;
+  const currentApplicationID = applicationID.value;
+  if (!currentTenantID || !currentApplicationID) return;
   if ((editing.value && !canUpdate.value) || (!editing.value && !canCreate.value)) return;
   let requestJSON: string;
   try {
@@ -127,8 +139,11 @@ async function save() {
   saving.value = true;
   try {
     const input = { ...form, requestJSON };
-    if (editing.value) await updateJob(editing.value, input);
-    else await createJob({ tenantID: tenantID.value, applicationID: applicationID.value }, input);
+    const operation = JSON.stringify(['job', editing.value?.id || '', editing.value?.version || 0, input]);
+    const idempotencyKey = operationIdempotencyKey(formKeys, operation);
+    if (editing.value) await updateJob(editing.value, input, idempotencyKey);
+    else await createJob({ tenantID: currentTenantID, applicationID: currentApplicationID }, input, idempotencyKey);
+    formKeys.clear();
     formVisible.value = false;
     window.$message?.success(editing.value ? '任务已更新' : '任务已创建');
     await loadData();
@@ -137,23 +152,43 @@ async function save() {
   }
 }
 async function remove(row: ScheduledJob) {
-  if (!canDelete.value || !canRead.value) return;
+  if (!canDelete.value || !canRead.value || deletingID.value) return;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm(`确认删除调度任务“${row.name}”吗？`, '删除任务', { type: 'warning' })
   );
   if (!confirmed) return;
-  const current = await getJob(row.id);
-  await deleteJob(current);
-  window.$message?.success('任务已删除');
-  await loadData();
+  const operation = `delete:${row.id}:${row.version}`;
+  deletingID.value = row.id;
+  try {
+    const current = await operationPromise(deleteBaselines, operation, async () => {
+      const detail = await getJob(row.id);
+      if (
+        hasPersistedVersionChanged(row.version, detail.version) ||
+        hasPersistedStateChanged(row.status, detail.status)
+      ) {
+        throw new Error('调度任务已发生变化，请刷新后重试');
+      }
+      return detail;
+    });
+    await deleteJob(current, operationIdempotencyKey(deleteKeys, operation));
+    deleteBaselines.delete(operation);
+    deleteKeys.delete(operation);
+    window.$message?.success('任务已删除');
+    await loadData();
+  } finally {
+    deletingID.value = '';
+  }
 }
 async function trigger(row: ScheduledJob) {
-  if (!canTrigger.value) return;
+  if (!canTrigger.value || triggeringID.value) return;
+  triggeringID.value = row.id;
   try {
-    const result = await triggerJob(row.id);
+    const result = await triggerJob(row.id, ensureIdempotencyKey(''));
     window.$message?.success(`执行完成：${result.status}`);
   } catch {
     window.$message?.warning('触发已返回失败，请在执行记录中查看详情');
+  } finally {
+    triggeringID.value = '';
   }
   if (selectedJob.value?.id === row.id) await loadExecutions();
 }
@@ -196,6 +231,9 @@ async function showExecution(row: JobExecution) {
 }
 watch([tenantID, applicationID], () => {
   executionGuard.invalidate();
+  formKeys.clear();
+  deleteKeys.clear();
+  deleteBaselines.clear();
   page.value = 1;
   rows.value = [];
   total.value = 0;
@@ -258,9 +296,27 @@ onMounted(loadData);
       <ElTableColumn label="操作" width="250" fixed="right">
         <template #default="{ row }">
           <ElButton v-if="canUpdate && canRead" link type="primary" @click="openEdit(row)">编辑</ElButton>
-          <ElButton v-if="canTrigger" link type="primary" @click="trigger(row)">立即执行</ElButton>
+          <ElButton
+            v-if="canTrigger"
+            link
+            type="primary"
+            :loading="triggeringID === row.id"
+            :disabled="Boolean(triggeringID)"
+            @click="trigger(row)"
+          >
+            立即执行
+          </ElButton>
           <ElButton v-if="canListExecutions" link type="primary" @click="showExecutions(row)">记录</ElButton>
-          <ElButton v-if="canDelete && canRead" link type="danger" @click="remove(row)">删除</ElButton>
+          <ElButton
+            v-if="canDelete && canRead"
+            link
+            type="danger"
+            :loading="deletingID === row.id"
+            :disabled="Boolean(deletingID)"
+            @click="remove(row)"
+          >
+            删除
+          </ElButton>
         </template>
       </ElTableColumn>
     </ElTable>

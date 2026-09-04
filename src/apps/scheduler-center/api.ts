@@ -112,39 +112,47 @@ export function getJob(id: string) {
   return unwrap<ScheduledJob>(schedulerRequest({ url: '/api/v1/scheduler/jobs/get', method: 'post', data: { id } }));
 }
 
-export function createJob(scope: SchedulerScope, input: JobInput) {
+export function createJob(scope: SchedulerScope, input: JobInput, idempotencyKey: string) {
   return unwrap<ScheduledJob>(
     schedulerRequest({
       url: '/api/v1/scheduler/jobs/create',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { ...applicationScope(scope.tenantID, scope.applicationID), ...jobPayload(input) }
     })
   );
 }
 
-export function updateJob(job: ScheduledJob, input: JobInput) {
+export function updateJob(job: ScheduledJob, input: JobInput, idempotencyKey: string) {
   return unwrap<ScheduledJob>(
     schedulerRequest({
       url: '/api/v1/scheduler/jobs/update',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { id: job.id, version: job.version, ...jobPayload(input) }
     })
   );
 }
 
-export function deleteJob(job: ScheduledJob) {
+export function deleteJob(job: ScheduledJob, idempotencyKey: string) {
   return unwrap<{ deleted: boolean }>(
     schedulerRequest({
       url: '/api/v1/scheduler/jobs/delete',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: { id: job.id, version: job.version }
     })
   );
 }
 
-export function triggerJob(id: string) {
+export function triggerJob(id: string, idempotencyKey: string) {
   return unwrap<JobExecution>(
-    schedulerRequest({ url: '/api/v1/scheduler/jobs/trigger', method: 'post', data: { id } })
+    schedulerRequest({
+      url: '/api/v1/scheduler/jobs/trigger',
+      method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
+      data: { id }
+    })
   );
 }
 
