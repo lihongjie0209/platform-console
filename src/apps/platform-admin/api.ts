@@ -1131,11 +1131,12 @@ export function batchGetMyRolePermissions(
   );
 }
 
-export function grantMyRolePermission(request: ScopedRolePermissionRequest) {
+export function grantMyRolePermission(request: ScopedRolePermissionRequest, idempotencyKey: string) {
   return unwrap<RolePermission>(
     authorizationRequest({
       url: '/api/v1/authorization/my-role-permissions/grant',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         tenant_id: request.tenantID,
         permission_scope: request.permissionScope,
@@ -1151,11 +1152,13 @@ export function revokeMyRolePermission(request: {
   permissionScope: 'tenant' | 'platform';
   rolePermissionID: string;
   version: number;
+  idempotencyKey: string;
 }) {
   return unwrap<RolePermission>(
     authorizationRequest({
       url: '/api/v1/authorization/my-role-permissions/revoke',
       method: 'post',
+      headers: { 'Idempotency-Key': request.idempotencyKey },
       data: {
         tenant_id: request.tenantID,
         permission_scope: request.permissionScope,

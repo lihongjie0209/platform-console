@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { remoteSearchPage } from '@/platform/remote-search';
+import { operationIdempotencyKey } from '@/platform/idempotency-key';
 import { confirmUserAction } from '@/platform/user-action';
 import {
   type AuthorizationManagementScope,
@@ -38,6 +39,7 @@ const canRevokePermission = computed(() =>
   platformStore.hasPermission({ scope: assignmentScope.value, codes: 'authorization.role-permission.revoke' })
 );
 const assignmentByPermission = computed(() => new Map(assignments.value.map(item => [item.permission_id, item])));
+const mutationKeys = new Map<string, string>();
 
 async function loadCatalogs() {
   if (!tenantID.value) {
@@ -137,12 +139,17 @@ async function toggle(permission: Permission, enabled: boolean) {
   changing.value = permission.id;
   try {
     if (enabled) {
-      await grantMyRolePermission({
-        tenantID: tenantID.value,
-        permissionScope: assignmentScope.value,
-        roleID: roleID.value,
-        permissionID: permission.id
-      });
+      const operation = `grant:${tenantID.value}:${assignmentScope.value}:${roleID.value}:${permission.id}`;
+      await grantMyRolePermission(
+        {
+          tenantID: tenantID.value,
+          permissionScope: assignmentScope.value,
+          roleID: roleID.value,
+          permissionID: permission.id
+        },
+        operationIdempotencyKey(mutationKeys, operation)
+      );
+      mutationKeys.delete(operation);
     } else if (assignment) {
       const confirmed = await confirmUserAction(() =>
         ElMessageBox.confirm(`确认从当前角色撤销权限“${permission.code}”吗？`, '撤销角色权限', {
@@ -150,12 +157,15 @@ async function toggle(permission: Permission, enabled: boolean) {
         })
       );
       if (!confirmed) return;
+      const operation = `revoke:${tenantID.value}:${assignmentScope.value}:${assignment.id}:${assignment.version}`;
       await revokeMyRolePermission({
         tenantID: tenantID.value,
         permissionScope: assignmentScope.value,
         rolePermissionID: assignment.id,
-        version: assignment.version
+        version: assignment.version,
+        idempotencyKey: operationIdempotencyKey(mutationKeys, operation)
       });
+      mutationKeys.delete(operation);
     }
     window.$message?.success(enabled ? '权限已授予' : '权限已撤销');
     await loadAssignments();
