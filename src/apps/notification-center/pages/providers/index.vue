@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { operationIdempotencyKey } from '@/platform/idempotency-key';
 import type { NotificationProvider } from '../../api';
 import { getProvider, listProviders, putProvider } from '../../api';
 import { normalizeProviderForm, providerFormError } from '../../provider-form';
@@ -29,6 +30,7 @@ const keyword = ref('');
 const channel = ref('');
 const status = ref('');
 const loadGuard = createLatestRequestGuard();
+const mutationKeys = new Map<string, string>();
 const form = reactive({
   code: '',
   channel: 'email',
@@ -75,6 +77,7 @@ async function edit(row?: NotificationProvider) {
   if (!canUpdate.value) return;
   if (row && !canRead.value) return;
   const value = row ? await getProvider(row) : undefined;
+  mutationKeys.clear();
   Object.assign(
     form,
     value || { code: '', channel: 'email', upstream: '', path: '/send', priority: 100, status: 'active', version: 0 }
@@ -92,7 +95,13 @@ async function save() {
   }
   saving.value = true;
   try {
-    await putProvider(tenantID.value, applicationID.value, { ...normalized, version: form.version });
+    const payload = { ...normalized, version: form.version };
+    const operation = JSON.stringify([tenantID.value, applicationID.value, payload]);
+    await putProvider(tenantID.value, applicationID.value, {
+      ...payload,
+      idempotencyKey: operationIdempotencyKey(mutationKeys, operation)
+    });
+    mutationKeys.clear();
     visible.value = false;
     window.$message?.success('供应商路由已保存');
     await loadData();
@@ -102,6 +111,7 @@ async function save() {
 }
 
 watch([tenantID, applicationID], () => {
+  mutationKeys.clear();
   rows.value = [];
   total.value = 0;
   visible.value = false;

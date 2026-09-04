@@ -126,11 +126,16 @@ export function listProviders(query: TemplateQuery) {
   );
 }
 
-export function putProvider(tenantID: string, applicationID: string, value: Partial<NotificationProvider>) {
+export function putProvider(
+  tenantID: string,
+  applicationID: string,
+  value: Partial<NotificationProvider> & { idempotencyKey: string }
+) {
   return unwrap<NotificationProvider>(
     notificationRequest({
       url: '/api/v1/notifications/providers/put',
       method: 'post',
+      headers: { 'Idempotency-Key': value.idempotencyKey },
       data: {
         ...applicationScope(tenantID, applicationID),
         code: value.code,
@@ -155,11 +160,16 @@ export function getProvider(value: Pick<NotificationProvider, 'tenant_id' | 'app
   );
 }
 
-export function putTemplate(tenantID: string, applicationID: string, value: Partial<NotificationTemplate>) {
+export function putTemplate(
+  tenantID: string,
+  applicationID: string,
+  value: Partial<NotificationTemplate> & { idempotencyKey: string }
+) {
   return unwrap<NotificationTemplate>(
     notificationRequest({
       url: '/api/v1/notifications/templates/put',
       method: 'post',
+      headers: { 'Idempotency-Key': value.idempotencyKey },
       data: {
         ...applicationScope(tenantID, applicationID),
         code: value.code,
@@ -230,6 +240,7 @@ export function sendNotification(input: {
     notificationRequest({
       url: '/api/v1/notifications/send',
       method: 'post',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
       data: {
         ...applicationScope(input.tenantID, input.applicationID),
         template_code: input.templateCode,

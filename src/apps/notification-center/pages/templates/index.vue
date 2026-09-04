@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePlatformStore } from '@/store/modules/platform';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { formatPlatformTableDateTime } from '@/platform/date-time';
+import { operationIdempotencyKey } from '@/platform/idempotency-key';
 import type { NotificationTemplate } from '../../api';
 import { getTemplate, listTemplates, putTemplate } from '../../api';
 
@@ -32,6 +33,7 @@ const form = reactive({
   version: 0
 });
 const loadGuard = createLatestRequestGuard();
+const mutationKeys = new Map<string, string>();
 const canUpdate = computed(() =>
   platformStore.hasPermission({ scope: 'tenant', codes: 'notification.template.update' })
 );
@@ -72,6 +74,7 @@ async function edit(row?: NotificationTemplate) {
   if (!canUpdate.value) return;
   if (row && !canRead.value) return;
   const value = row ? await getTemplate(row) : undefined;
+  mutationKeys.clear();
   Object.assign(
     form,
     value || {
@@ -90,7 +93,12 @@ async function save() {
   if (!canUpdate.value || !scopeReady.value || !form.code.trim() || !form.content) return;
   saving.value = true;
   try {
-    await putTemplate(tenantID.value, applicationID.value, form);
+    const operation = JSON.stringify([tenantID.value, applicationID.value, form]);
+    await putTemplate(tenantID.value, applicationID.value, {
+      ...form,
+      idempotencyKey: operationIdempotencyKey(mutationKeys, operation)
+    });
+    mutationKeys.clear();
     visible.value = false;
     window.$message?.success('模板已保存');
     await loadData();
@@ -99,6 +107,7 @@ async function save() {
   }
 }
 watch([tenantID, applicationID], () => {
+  mutationKeys.clear();
   rows.value = [];
   total.value = 0;
   visible.value = false;
