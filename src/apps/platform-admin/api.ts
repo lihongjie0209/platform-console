@@ -810,39 +810,6 @@ export function listRoles(tenantID: string, page: number, pageSize: number) {
   );
 }
 
-export async function createRole(tenantID: string, form: RoleForm) {
-  await unwrap(
-    authorizationRequest<Role>({
-      url: '/api/v1/authorization/roles/create',
-      method: 'post',
-      data: {
-        tenant_id: tenantID,
-        code: form.code,
-        name: form.name,
-        description: form.description,
-        data_scope: form.data_scope
-      }
-    })
-  );
-}
-
-export async function updateRole(id: string, form: RoleForm) {
-  await unwrap(
-    authorizationRequest<Role>({
-      url: '/api/v1/authorization/roles/update',
-      method: 'post',
-      data: {
-        role_id: id,
-        name: form.name,
-        description: form.description,
-        data_scope: form.data_scope,
-        status: form.status,
-        version: form.version
-      }
-    })
-  );
-}
-
 export interface ScopedRoleRequest {
   tenantID: string;
   permissionScope: 'tenant' | 'platform';
@@ -1043,63 +1010,6 @@ export function getMyPermission(request: {
   );
 }
 
-export async function createPermission(tenantID: string, form: PermissionForm) {
-  await unwrap(
-    authorizationRequest<Permission>({
-      url: '/api/v1/authorization/permissions/create',
-      method: 'post',
-      data: {
-        tenant_id: tenantID,
-        code: form.code,
-        name: form.name,
-        resource_type: form.resource_type,
-        action: form.action,
-        condition_expression: form.condition_expression
-      }
-    })
-  );
-}
-
-export async function updatePermission(id: string, form: PermissionForm) {
-  await unwrap(
-    authorizationRequest<Permission>({
-      url: '/api/v1/authorization/permissions/update',
-      method: 'post',
-      data: {
-        permission_id: id,
-        name: form.name,
-        condition_expression: form.condition_expression,
-        status: form.status,
-        version: form.version
-      }
-    })
-  );
-}
-
-export function grantRolePermission(tenantID: string, roleID: string, permissionID: string) {
-  return unwrap<RolePermission>(
-    authorizationRequest({
-      url: '/api/v1/authorization/role-permissions/grant',
-      method: 'post',
-      data: {
-        tenant_id: tenantID,
-        role_id: roleID,
-        permission_id: permissionID
-      }
-    })
-  );
-}
-
-export function revokeRolePermission(rolePermissionID: string, version: number) {
-  return unwrap<RolePermission>(
-    authorizationRequest({
-      url: '/api/v1/authorization/role-permissions/revoke',
-      method: 'post',
-      data: { role_permission_id: rolePermissionID, version }
-    })
-  );
-}
-
 export function listMyRolePermissions(request: Omit<ScopedRolePermissionRequest, 'permissionID'>) {
   return unwrap<{ role_permissions: RolePermission[] }>(
     authorizationRequest({
@@ -1181,32 +1091,6 @@ export function listBindings(query: BindingQuery) {
         page: query.page,
         page_size: query.pageSize
       }
-    })
-  );
-}
-
-export function createBinding(tenantID: string, form: BindingForm) {
-  return unwrap<Binding>(
-    authorizationRequest({
-      url: '/api/v1/authorization/bindings/create',
-      method: 'post',
-      data: {
-        tenant_id: tenantID,
-        subject_id: form.subject_id,
-        subject_type: form.subject_type,
-        role_id: form.role_id,
-        organization_unit_id: form.organization_unit_id
-      }
-    })
-  );
-}
-
-export function revokeBinding(id: string, version: number) {
-  return unwrap<Binding>(
-    authorizationRequest({
-      url: '/api/v1/authorization/bindings/revoke',
-      method: 'post',
-      data: { binding_id: id, version }
     })
   );
 }
