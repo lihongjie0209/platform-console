@@ -2,6 +2,8 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { usePlatformStore } from '@/store/modules/platform';
+import { ensureIdempotencyKey, operationIdempotencyKey } from '@/platform/idempotency-key';
+import { useKeyedAsyncAction } from '@/platform/keyed-async-action';
 import { remoteSearchPage } from '@/platform/remote-search';
 import { confirmUserAction } from '@/platform/user-action';
 import type { Application, ApplicationGrant, ApplicationGrantForm, TenantDirectoryItem } from '../../api';
@@ -14,6 +16,7 @@ import {
   searchApplications
 } from '../../api';
 import { parseJSONRecord } from '../../metadata';
+import { applicationGrantChanged, applicationGrantExpectedVersion } from '../../application-grant';
 
 defineOptions({ name: 'PlatformAdminApplicationGrants' });
 
@@ -36,6 +39,9 @@ const dialogVisible = ref(false);
 const editingApplication = ref<GrantRow>();
 const formRef = ref<FormInstance>();
 const form = reactive<ApplicationGrantForm>(emptyForm());
+const grantIdempotencyKey = ref('');
+const revokeIdempotencyKeys = new Map<string, string>();
+const { active: revoking, run: runRevoke, reset: resetRevoke } = useKeyedAsyncAction();
 const platformStore = usePlatformStore();
 const canGrant = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'application.grant.grant' }));
 const canRevoke = computed(() => platformStore.hasPermission({ scope: 'platform', codes: 'application.grant.revoke' }));
@@ -155,15 +161,15 @@ async function submitGrant() {
   }
   submitting.value = true;
   try {
-    const currentGrant = editingApplication.value.grant
-      ? await getApplicationGrant(tenantID.value, String(editingApplication.value.id))
-      : undefined;
+    grantIdempotencyKey.value = ensureIdempotencyKey(grantIdempotencyKey.value);
     await grantApplication({
       tenantID: tenantID.value,
       applicationID: String(editingApplication.value.id),
       form,
-      version: Number(currentGrant?.version || 0)
+      version: applicationGrantExpectedVersion(editingApplication.value.grant),
+      idempotencyKey: grantIdempotencyKey.value
     });
+    grantIdempotencyKey.value = '';
     dialogVisible.value = false;
     window.$message?.success(editingApplication.value.grant ? '授权已更新' : '应用已授权');
     await loadApplications();
@@ -174,22 +180,47 @@ async function submitGrant() {
 
 async function revoke(row: GrantRow) {
   if (!canRevoke.value || !canReadGrant.value || !row.id || !row.grant?.version) return;
+  const snapshot = row.grant;
   const confirmed = await confirmUserAction(() =>
     ElMessageBox.confirm(`撤销后租户将无法继续使用“${row.name}”，确认继续吗？`, '撤销应用授权', {
       type: 'warning'
     })
   );
   if (!confirmed) return;
-  const current = await getApplicationGrant(tenantID.value, String(row.id));
-  if (current.status !== 'active') {
-    window.$message?.warning('应用授权状态已发生变化，请刷新后重试');
+  const key = `${tenantID.value}:${row.id}:revoke`;
+  await runRevoke(key, async () => {
+    const current = await getApplicationGrant(tenantID.value, String(row.id));
+    if (applicationGrantChanged(snapshot, current)) {
+      revokeIdempotencyKeys.delete(key);
+      window.$message?.warning('应用授权已发生变化，请确认最新内容后重试');
+      await loadApplications();
+      return;
+    }
+    await revokeApplicationGrant({
+      tenantID: tenantID.value,
+      applicationID: String(row.id),
+      version: Number(current.version),
+      idempotencyKey: operationIdempotencyKey(revokeIdempotencyKeys, key)
+    });
+    revokeIdempotencyKeys.delete(key);
+    window.$message?.success('应用授权已撤销');
     await loadApplications();
-    return;
-  }
-  await revokeApplicationGrant(tenantID.value, String(row.id), Number(current.version));
-  window.$message?.success('应用授权已撤销');
-  await loadApplications();
+  });
 }
+
+watch(
+  () => [
+    tenantID.value,
+    editingApplication.value?.id,
+    form.source,
+    form.valid_from,
+    form.valid_until,
+    form.entitlements_json
+  ],
+  () => {
+    grantIdempotencyKey.value = '';
+  }
+);
 
 function grantStatusType(status?: unknown) {
   if (status === 'active') return 'success';
@@ -198,6 +229,8 @@ function grantStatusType(status?: unknown) {
 }
 
 watch(tenantID, async () => {
+  revokeIdempotencyKeys.clear();
+  resetRevoke();
   page.value = 1;
   await loadApplications();
 });
@@ -267,13 +300,16 @@ onMounted(loadCatalogs);
           <ElButton v-if="canGrant && (!row.grant || canReadGrant)" link type="primary" @click="openGrant(row)">
             {{ row.grant ? '编辑' : '授权' }}
           </ElButton>
-          <ElPopconfirm
+          <ElButton
             v-if="canRevoke && canReadGrant && row.grant?.status === 'active'"
-            title="确认撤销该租户的应用授权？"
-            @confirm="revoke(row)"
+            link
+            type="danger"
+            :loading="revoking === `${tenantID}:${row.id}:revoke`"
+            :disabled="Boolean(revoking)"
+            @click="revoke(row)"
           >
-            <template #reference><ElButton link type="danger">撤销</ElButton></template>
-          </ElPopconfirm>
+            撤销
+          </ElButton>
         </template>
       </ElTableColumn>
     </ElTable>

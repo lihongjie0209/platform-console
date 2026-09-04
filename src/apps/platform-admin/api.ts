@@ -310,6 +310,7 @@ export interface GrantApplicationInput {
   applicationID: string;
   form: ApplicationGrantForm;
   version: number;
+  idempotencyKey: string;
 }
 
 export interface ResourcePage<T> {
@@ -740,6 +741,7 @@ export function grantApplication(input: GrantApplicationInput) {
     applicationRequest({
       url: '/api/v1/applications/tenant-grants/grant',
       method: 'post',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
       data
     })
   );
@@ -755,12 +757,18 @@ export function getApplicationGrant(tenantID: string, applicationID: string) {
   );
 }
 
-export function revokeApplicationGrant(tenantID: string, applicationID: string, version: number) {
+export function revokeApplicationGrant(input: {
+  tenantID: string;
+  applicationID: string;
+  version: number;
+  idempotencyKey: string;
+}) {
   return unwrap<ApplicationGrant>(
     applicationRequest({
       url: '/api/v1/applications/tenant-grants/revoke',
       method: 'post',
-      data: { tenant_id: tenantID, application_id: applicationID, version }
+      headers: { 'Idempotency-Key': input.idempotencyKey },
+      data: { tenant_id: input.tenantID, application_id: input.applicationID, version: input.version }
     })
   );
 }
