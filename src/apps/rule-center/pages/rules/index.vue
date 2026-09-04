@@ -4,7 +4,8 @@ import { usePlatformStore } from '@/store/modules/platform';
 import { useAsyncAction } from '@/components/business';
 import { createLatestRequestGuard, hasApplicationScope } from '@/platform/application-context';
 import { parseJSONObject } from '@/platform/json';
-import { ensureIdempotencyKey } from '@/platform/idempotency-key';
+import { ensureIdempotencyKey, operationIdempotencyKey, operationPromise } from '@/platform/idempotency-key';
+import { hasPersistedStateChanged, hasPersistedVersionChanged } from '@/platform/optimistic-mutation';
 import type { RuleSet, RuleVersion } from '../../api';
 import {
   createRuleVersion,
@@ -30,6 +31,8 @@ const pageSize = ref(20);
 const status = ref('');
 const keyword = ref('');
 const visible = ref(false);
+const saving = ref(false);
+const publishingVersionID = ref('');
 const editing = ref<RuleSet>();
 const versionVisible = ref(false);
 const selected = ref<RuleSet>();
@@ -45,6 +48,9 @@ const evaluation = ref('');
 const form = reactive({ code: '', name: '', description: '', status: 'draft' });
 const loadGuard = createLatestRequestGuard();
 const versionGuard = createLatestRequestGuard();
+const formKeys = new Map<string, string>();
+const publishKeys = new Map<string, string>();
+const publishBaselines = new Map<string, Promise<{ set: RuleSet; version: RuleVersion }>>();
 const canCreate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'rule.set.create' }));
 const canRead = computed(() => store.hasPermission({ scope: 'tenant', codes: 'rule.set.read' }));
 const canUpdate = computed(() => store.hasPermission({ scope: 'tenant', codes: 'rule.set.update' }));
@@ -86,15 +92,31 @@ function search() {
 async function open(v?: RuleSet) {
   if ((v && (!canUpdate.value || !canRead.value)) || (!v && !canCreate.value)) return;
   const current = v ? await getRuleSet(v) : undefined;
+  formKeys.clear();
   editing.value = current;
   Object.assign(form, current || { code: '', name: '', description: '', status: 'draft' });
   visible.value = true;
 }
 async function save() {
-  if ((editing.value && !canUpdate.value) || (!editing.value && !canCreate.value) || !scopeReady.value) return;
-  await saveRuleSet(editing.value, { tenantID: tenantID.value, applicationID: applicationID.value }, form);
-  visible.value = false;
-  await load();
+  if (saving.value || (editing.value && !canUpdate.value) || (!editing.value && !canCreate.value) || !scopeReady.value)
+    return;
+  const operation = JSON.stringify(['rule-set', editing.value?.id || '', editing.value?.version || 0, form]);
+  saving.value = true;
+  try {
+    await saveRuleSet(
+      editing.value,
+      { tenantID: tenantID.value, applicationID: applicationID.value },
+      {
+        ...form,
+        idempotencyKey: operationIdempotencyKey(formKeys, operation)
+      }
+    );
+    formKeys.clear();
+    visible.value = false;
+    await load();
+  } finally {
+    saving.value = false;
+  }
 }
 async function versionsFor(v: RuleSet) {
   if (!canListVersions.value) return;
@@ -137,18 +159,39 @@ watch(definition, () => {
   versionIdempotencyKey.value = '';
 });
 async function publish(v: RuleVersion) {
-  if (!canPublish.value || !canRead.value || !canReadVersion.value || !selected.value) return;
-  const current = await getRuleSet(selected.value);
-  const currentVersion = await getRuleVersion(current, v.id);
-  if (currentVersion.status !== v.status || currentVersion.status !== 'draft') {
-    window.$message?.warning('规则版本状态已变化，请确认最新状态后重试');
-    await versionsFor(current);
+  if (!canPublish.value || !canRead.value || !canReadVersion.value || !selected.value || publishingVersionID.value)
     return;
+  const selectedSet = selected.value;
+  const operation = `publish:${selectedSet.id}:${selectedSet.version}:${v.id}:${v.version}`;
+  publishingVersionID.value = v.id;
+  try {
+    const current = await operationPromise(publishBaselines, operation, async () => {
+      const set = await getRuleSet(selectedSet);
+      const version = await getRuleVersion(set, v.id);
+      if (
+        hasPersistedVersionChanged(selectedSet.version, set.version) ||
+        hasPersistedStateChanged(selectedSet.status, set.status) ||
+        hasPersistedVersionChanged(v.version, version.version) ||
+        hasPersistedStateChanged(v.status, version.status) ||
+        version.status !== 'draft'
+      ) {
+        throw new Error('规则集或规则版本已发生变化，请确认最新状态后重试');
+      }
+      return { set, version };
+    });
+    const result = await publishRuleVersion(
+      current.set,
+      current.version,
+      operationIdempotencyKey(publishKeys, operation)
+    );
+    publishBaselines.delete(operation);
+    publishKeys.delete(operation);
+    selected.value = result.rule_set;
+    await load();
+    await versionsFor(result.rule_set);
+  } finally {
+    publishingVersionID.value = '';
   }
-  const result = await publishRuleVersion(current, currentVersion);
-  selected.value = result.rule_set;
-  await load();
-  await versionsFor(result.rule_set);
 }
 async function evaluate(v: RuleSet) {
   if (!canEvaluate.value) return;
@@ -156,6 +199,9 @@ async function evaluate(v: RuleSet) {
   evaluation.value = JSON.stringify(r, null, 2);
 }
 watch([tenantID, applicationID], () => {
+  formKeys.clear();
+  publishKeys.clear();
+  publishBaselines.clear();
   versionGuard.invalidate();
   rows.value = [];
   total.value = 0;
@@ -235,7 +281,7 @@ onMounted(load);
     </ElForm>
     <template #footer>
       <ElButton @click="visible = false">取消</ElButton>
-      <ElButton v-if="editing ? canUpdate : canCreate" type="primary" @click="save">保存</ElButton>
+      <ElButton v-if="editing ? canUpdate : canCreate" type="primary" :loading="saving" @click="save">保存</ElButton>
     </template>
   </ElDialog>
   <ElDrawer v-model="versionVisible" title="规则版本" size="760px">
@@ -249,7 +295,13 @@ onMounted(load);
       <ElTableColumn prop="checksum" label="校验和" />
       <ElTableColumn label="操作">
         <template #default="{ row }">
-          <ElButton v-if="canPublish && canRead && canReadVersion && row.status === 'draft'" link @click="publish(row)">
+          <ElButton
+            v-if="canPublish && canRead && canReadVersion && row.status === 'draft'"
+            link
+            :loading="publishingVersionID === row.id"
+            :disabled="Boolean(publishingVersionID)"
+            @click="publish(row)"
+          >
             发布
           </ElButton>
         </template>

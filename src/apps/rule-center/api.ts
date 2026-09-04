@@ -70,12 +70,13 @@ export const getRuleSet = (value: Pick<RuleSet, 'id' | 'tenant_id' | 'applicatio
 export function saveRuleSet(
   current: RuleSet | undefined,
   scope: { tenantID: string; applicationID: string },
-  input: { code: string; name: string; description: string; status: string }
+  input: { code: string; name: string; description: string; status: string; idempotencyKey: string }
 ) {
   return unwrap<RuleSet>(
     request({
       url: current ? '/api/v1/rule-sets/update' : '/api/v1/rule-sets/create',
       method: 'post',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
       data: current
         ? {
             ...applicationScope(scope.tenantID, scope.applicationID),
@@ -132,6 +133,7 @@ export const createRuleVersion = (value: RuleSet, definition: Record<string, unk
     request({
       url: '/api/v1/rule-versions/create',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         ...applicationScope(value.tenant_id, value.application_id),
         rule_set_id: value.id,
@@ -140,11 +142,12 @@ export const createRuleVersion = (value: RuleSet, definition: Record<string, unk
       }
     })
   );
-export const publishRuleVersion = (set: RuleSet, version: RuleVersion) =>
+export const publishRuleVersion = (set: RuleSet, version: RuleVersion, idempotencyKey: string) =>
   unwrap<{ rule_set: RuleSet; rule_version: RuleVersion }>(
     request({
       url: '/api/v1/rule-versions/publish',
       method: 'post',
+      headers: { 'Idempotency-Key': idempotencyKey },
       data: {
         ...applicationScope(set.tenant_id, set.application_id),
         rule_set_id: set.id,
